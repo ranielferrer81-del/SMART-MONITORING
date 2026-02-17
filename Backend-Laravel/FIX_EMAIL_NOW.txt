@@ -1,0 +1,64 @@
+================================================================================
+FIX EMAIL TO SEND VERIFICATION CODES - FOLLOW THESE EXACT STEPS
+================================================================================
+
+STEP 1: Get Gmail App Password
+-------------------------------
+1. Go to: https://myaccount.google.com/apppasswords
+2. Enable 2-Step Verification if not already enabled
+3. Click "Select app" → Choose "Mail"
+4. Click "Select device" → Choose "Other (Custom name)"
+5. Type: "SIA System"
+6. Click "Generate"
+7. COPY the 16-character password (example: abcd efgh ijkl mnop)
+8. REMOVE ALL SPACES when you use it: abcdefghijklmnop
+
+STEP 2: Update .env File
+--------------------------
+1. Open: Backend -Laravel\.env
+2. Find these 3 lines (around line 55-58):
+
+   MAIL_USERNAME=your-gmail@gmail.com
+   MAIL_PASSWORD=your-app-password-here
+   MAIL_FROM_ADDRESS="your-gmail@gmail.com"
+
+3. REPLACE with your actual Gmail:
+
+   MAIL_USERNAME=youractualemail@gmail.com
+   MAIL_PASSWORD=abcdefghijklmnop
+   MAIL_FROM_ADDRESS="youractualemail@gmail.com"
+
+   IMPORTANT:
+   - Use the SAME Gmail for both USERNAME and FROM_ADDRESS
+   - Remove ALL spaces from the app password
+   - Use App Password, NOT your regular Gmail password
+
+STEP 3: Clear Cache
+--------------------
+Run this command in Backend -Laravel folder:
+   php artisan config:clear
+
+STEP 4: Restart Server
+----------------------
+Restart your Laravel development server
+
+================================================================================
+EXAMPLE:
+================================================================================
+If your Gmail is: student1@gmail.com
+And your App Password is: abcd efgh ijkl mnop
+
+Then in .env, set:
+   MAIL_USERNAME=student1@gmail.com
+   MAIL_PASSWORD=abcdefghijklmnop
+   MAIL_FROM_ADDRESS="student1@gmail.com"
+
+================================================================================
+AFTER THIS:
+================================================================================
+- System will send verification codes to students' email addresses
+- Students will receive codes in their Gmail inbox
+- Testing mode (showing code on screen) will only work if email fails
+
+================================================================================
+

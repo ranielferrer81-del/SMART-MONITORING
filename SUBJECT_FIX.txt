@@ -1,0 +1,18 @@
+# Fix for Subject Controller - Line 83-84
+
+Replace these lines in Backend-Laravel/app/Http/Controllers/Api/SubjectController.php:
+
+**OLD (lines 83-84):**
+```php
+$exists = DB::table('subjects')->where('code', $data['code'])->where('course', $data['course'])->where('section', $data['section'])->exists();
+if ($exists) return response()->json(['ok'=>false,'message'=>'Subject already exists for course/section'], 422);
+```
+
+**NEW:**
+```php
+// Only check if subject code exists globally (allows multiple subjects per course/section)
+$exists = DB::table('subjects')->where('code', $data['code'])->exists();
+if ($exists) return response()->json(['ok'=>false,'message'=>'Subject code already exists. Please use a different code.'], 422);
+```
+
+This allows you to create multiple subjects (MATH101, ENG101, SCI101) for the same course/section/teacher.

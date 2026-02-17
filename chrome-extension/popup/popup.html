@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIA Monitor</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🛡️ SIA Monitor</h1>
+            <p class="subtitle">Student Activity Monitoring</p>
+        </div>
+
+        <!-- Login Form (shown when not authenticated) -->
+        <div id="loginForm" class="section" style="display: none;">
+            <h2>Student Login</h2>
+            <form id="loginFormElement">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" placeholder="student@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Login</button>
+                <div id="loginError" class="error" style="display: none;"></div>
+            </form>
+        </div>
+
+        <!-- Monitoring Status (shown when authenticated) -->
+        <div id="monitoringStatus" class="section" style="display: none;">
+            <div class="status-card">
+                <div class="status-header">
+                    <span class="status-label">Status:</span>
+                    <span id="statusIndicator" class="status-badge">●</span>
+                </div>
+                <div class="user-info">
+                    <p><strong>Student:</strong> <span id="studentName"></span></p>
+                    <p><strong>Email:</strong> <span id="studentEmail"></span></p>
+                </div>
+            </div>
+
+            <div class="info-box">
+                <p>⚠️ Your browsing activity is being monitored during this session.</p>
+                <p>📋 All visited URLs are logged and visible to your teacher.</p>
+                <p>🚫 Using incognito mode will trigger an alert.</p>
+            </div>
+
+            <div class="actions">
+                <button id="logoutBtn" class="btn btn-secondary">Logout</button>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading" class="section" style="display: none;">
+            <div class="loader"></div>
+            <p>Loading...</p>
+        </div>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+
+</html>

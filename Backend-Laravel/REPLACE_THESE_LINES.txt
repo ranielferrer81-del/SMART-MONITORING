@@ -1,0 +1,53 @@
+================================================================================
+🚨 URGENT: REPLACE THESE 3 LINES IN YOUR .env FILE
+================================================================================
+
+FILE LOCATION: Backend -Laravel\.env (or Backend -Laravel\env)
+
+FIND THESE LINES (around line 77-80):
+================================================================================
+MAIL_USERNAME=your-email@gmail.com
+MAIL_PASSWORD=your-app-password
+MAIL_FROM_ADDRESS="your-email@gmail.com"
+
+
+REPLACE WITH YOUR ACTUAL GMAIL:
+================================================================================
+MAIL_USERNAME=YOUR_REAL_EMAIL@gmail.com
+MAIL_PASSWORD=YOUR_16_CHAR_APP_PASSWORD
+MAIL_FROM_ADDRESS="YOUR_REAL_EMAIL@gmail.com"
+
+
+EXAMPLE (if your email is student1@gmail.com):
+================================================================================
+MAIL_USERNAME=student1@gmail.com
+MAIL_PASSWORD=abcdefghijklmnop
+MAIL_FROM_ADDRESS="student1@gmail.com"
+
+
+HOW TO GET APP PASSWORD:
+================================================================================
+1. Go to: https://myaccount.google.com/apppasswords
+2. Sign in with your Gmail
+3. Enable 2-Step Verification (if not enabled)
+4. Generate App Password:
+   - Select app: "Mail"
+   - Select device: "Other" → Name: "SIA System"
+   - Click "Generate"
+5. Copy the password (looks like: abcd efgh ijkl mnop)
+6. REMOVE ALL SPACES: abcdefghijklmnop
+
+
+AFTER EDITING:
+================================================================================
+1. Save the file (Ctrl+S)
+2. Run this command in Backend -Laravel folder:
+   
+   php artisan config:clear
+
+3. Restart your Laravel server (Ctrl+C then php artisan serve)
+
+
+THAT'S IT! Emails will now be sent! ✅
+================================================================================
+

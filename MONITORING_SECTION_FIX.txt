@@ -1,0 +1,12 @@
+// Add this code after line 1791 in AdminDashboard.js
+// Right after the manage-subjects section closes
+
+          {/* Browser Monitoring Section */}
+          {activeSection === 'monitoring' && (
+            <div className="bg-white/10 backdrop-blur-sm shadow-2xl rounded-2xl border border-slate-200/60 p-4 lg:p-6 dark:bg-slate-900/10 dark:border-slate-800/60">
+              <BrowserMonitoringDashboard
+                userRole="admin"
+                enrolledStudents={[...studentsBSIT, ...studentsBSCS, ...studentsBSEMC]}
+              />
+            </div>
+          )}

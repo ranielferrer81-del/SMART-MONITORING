@@ -1,0 +1,24 @@
+// Add these lines to electron/main.ts
+
+// At the top with other imports:
+import { startMonitoringServer, setStudentCredentials, clearStudentCredentials } from './monitoring-server';
+
+// After app.on('ready', createWindow); add:
+app.on('ready', () => {
+  createWindow();
+  startMonitoringServer(); // Start the monitoring server
+});
+
+// Add these IPC handlers after the existing ones (around line 163):
+ipcMain.handle('student-logged-in', (event, studentData) => {
+  setStudentCredentials({
+    email: studentData.email,
+    token: studentData.token,
+    userId: studentData.userId,
+    fullName: studentData.fullName
+  });
+});
+
+ipcMain.handle('student-logged-out', () => {
+  clearStudentCredentials();
+});

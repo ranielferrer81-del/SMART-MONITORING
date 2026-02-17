@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Extension Connection Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #1e293b;
+            color: white;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #334155;
+            border-radius: 5px;
+            white-space: pre-wrap;
+        }
+        .success { color: #10b981; }
+        .error { color: #ef4444; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Desktop App Connection Test</h1>
+    <p>Click the button below to test if the Desktop App monitoring server is reachable:</p>
+    
+    <button onclick="testConnection()">Test Connection to Desktop App</button>
+    
+    <div id="result"></div>
+
+    <script>
+        async function testConnection() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '⏳ Testing connection to http://localhost:9876...';
+            
+            try {
+                const response = await fetch('http://localhost:9876/monitoring-credentials', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    if (data.success && data.credentials) {
+                        resultDiv.innerHTML = `<span class="success">✅ SUCCESS!</span>\n\nDesktop App is running and has student credentials:\n\nEmail: ${data.credentials.email}\nUser ID: ${data.credentials.userId}\nFull Name: ${data.credentials.fullName}\n\n<span class="success">The Desktop App side is working perfectly!</span>`;
+                    } else {
+                        resultDiv.innerHTML = `<span class="error">⚠️ Desktop App is running but NO student is logged in.</span>\n\nResponse: ${JSON.stringify(data, null, 2)}`;
+                    }
+                } else {
+                    resultDiv.innerHTML = `<span class="error">❌ Desktop App responded with error</span>\n\nStatus: ${response.status}\nStatus Text: ${response.statusText}`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ FAILED to connect to Desktop App</span>\n\nError: ${error.message}\n\n<span class="error">Make sure the Desktop App is running!</span>`;
+            }
+        }
+    </script>
+</body>
+</html>

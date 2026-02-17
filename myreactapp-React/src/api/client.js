@@ -1,0 +1,329 @@
+import axios from 'axios';
+
+const API_BASE = process.env.REACT_APP_API_BASE || 'http://127.0.0.1:8000';
+
+export const api = axios.create({
+  baseURL: API_BASE,
+  headers: { 'Content-Type': 'application/json' },
+  timeout: 30000, // Increased to 30 seconds to handle slow backend
+});
+
+// Add token to requests
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+export async function loginRequest(email, password) {
+  try {
+    const res = await api.post('/api/login', { email, password });
+    console.log('Login success:', res.data);
+    return { ok: true, data: res.data };
+  } catch (error) {
+    // Detailed debug output
+    console.log('Login error:', {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message,
+      url: error.config?.url,
+    });
+    const message = error.response?.data?.message || 'Login failed';
+    return { ok: false, error: message, raw: error.response?.data };
+  }
+}
+
+export async function createAccount(payload) {
+  // payload: { role, full_name, email, password }
+  const res = await api.post('/api/admin/accounts', payload);
+  return res.data;
+}
+
+export async function fetchTeachers() {
+  try {
+    const res = await api.get('/api/admin/accounts/teachers');
+    console.log('fetchTeachers raw response:', res);
+    console.log('fetchTeachers response data:', res.data);
+    return res.data; // Returns { ok: true, data: [...] }
+  } catch (error) {
+    console.error('fetchTeachers error:', error);
+    return { ok: false, data: [], error: error.message };
+  }
+}
+
+export async function fetchAllStudents() {
+  try {
+    const res = await api.get('/api/admin/accounts/students');
+    return res.data;
+  } catch (error) {
+    console.error('fetchAllStudents error:', error);
+    return { ok: false, data: [], error: error.message };
+  }
+}
+
+// Teacher-specific endpoint to fetch all students
+export async function fetchAllStudentsForTeacher() {
+  try {
+    const res = await api.get('/api/teacher/students');
+    return res.data;
+  } catch (error) {
+    console.error('fetchAllStudentsForTeacher error:', error);
+    return { ok: false, data: [], error: error.message };
+  }
+}
+
+export async function fetchStudentsByCourse(course) {
+  const maxRetries = 2;
+  let lastError = null;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const res = await api.get(`/api/admin/accounts/students/${course}`, {
+        timeout: 30000 // Increase timeout to 30 seconds
+      });
+      if (attempt > 0) {
+        console.log(`✅ fetchStudentsByCourse(${course}) succeeded on retry ${attempt}`);
+      }
+      return res.data;
+    } catch (error) {
+      lastError = error;
+      console.error(`❌ fetchStudentsByCourse(${course}) attempt ${attempt + 1}/${maxRetries + 1} failed:`, error.message);
+
+      // Only retry on network errors or timeouts, not on 4xx/5xx errors
+      if (error.response) {
+        // Server responded with error status - don't retry
+        return { ok: false, data: [], error: error.response.data?.message || error.message };
+      }
+
+      // Network error or timeout - wait before retry
+      if (attempt < maxRetries) {
+        const delay = 1000 * (attempt + 1); // 1s, 2s
+        console.log(`⏳ Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+
+  // All retries failed
+  console.error(`⛔ fetchStudentsByCourse(${course}) failed after ${maxRetries + 1} attempts`);
+  return { ok: false, data: [], error: lastError?.message || 'Request failed' };
+}
+
+// Teacher-scoped fetch (uses teacher-only endpoint)
+export async function fetchTeacherStudentsByCourse(course) {
+  try {
+    const res = await api.get(`/api/teacher/students/${course}`);
+    return res.data;
+  } catch (error) {
+    console.error(`fetchTeacherStudentsByCourse(${course}) error:`, error);
+    return { ok: false, data: [], error: error.message };
+  }
+}
+
+export async function updateAccount(userId, payload) {
+  const res = await api.patch(`/api/admin/accounts/${userId}`, payload);
+  return res.data;
+}
+
+export async function deleteAccount(userId) {
+  const res = await api.delete(`/api/admin/accounts/${userId}`);
+  return res.data;
+}
+
+// Subjects API
+export async function listSubjects(course) {
+  const maxRetries = 2;
+  let lastError = null;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const res = await api.get('/api/subjects', {
+        params: { course },
+        timeout: 30000 // Increase timeout to 30 seconds
+      });
+      console.log('listSubjects raw response:', res.data);
+      if (attempt > 0) {
+        console.log(`✅ listSubjects succeeded on retry ${attempt}`);
+      }
+      return res.data;
+    } catch (error) {
+      lastError = error;
+      console.error(`❌ listSubjects attempt ${attempt + 1}/${maxRetries + 1} failed:`, error.message);
+
+      // Only retry on network errors or timeouts, not on 4xx/5xx errors
+      if (error.response) {
+        // Server responded with error status - don't retry
+        return { ok: false, data: [], error: error.response.data?.message || error.message };
+      }
+
+      // Network error or timeout - wait before retry
+      if (attempt < maxRetries) {
+        const delay = 1000 * (attempt + 1); // 1s, 2s
+        console.log(`⏳ Retrying listSubjects in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+
+  // All retries failed
+  console.error(`⛔ listSubjects failed after ${maxRetries + 1} attempts`);
+  return { ok: false, data: [], error: lastError?.message || 'Request failed' };
+}
+
+export async function createSubject(payload) {
+  const res = await api.post('/api/subjects', payload);
+  return res.data;
+}
+
+export async function deleteSubject(id) {
+  const res = await api.delete(`/api/subjects/${id}`);
+  return res.data;
+}
+
+export async function getSubjectEnrolledStudents(subjectId) {
+  try {
+    const res = await api.get(`/api/subjects/${subjectId}`);
+    return res.data;
+  } catch (error) {
+    console.error(`getSubjectEnrolledStudents(${subjectId}) error:`, error);
+    return { ok: false, data: [], error: error.message };
+  }
+}
+
+export async function enrollStudentToSubject(subjectId, studentId) {
+  const res = await api.post(`/api/subjects/${subjectId}/enroll`, { student_id: studentId });
+  return res.data;
+}
+
+export async function enrollAllStudentsToSubject(subjectId, studentIds) {
+  const res = await api.post(`/api/subjects/${subjectId}/enroll-all`, { student_ids: studentIds });
+  return res.data;
+}
+
+export async function unenrollStudentFromSubject(subjectId, studentId) {
+  const res = await api.delete(`/api/subjects/${subjectId}/unenroll/${studentId}`);
+  return res.data;
+}
+
+// Manual attendance update (present / late / absent) for a student in a subject
+export async function markStudentAttendance(subjectId, studentId, status) {
+  const res = await api.post(`/api/subjects/${subjectId}/attendance`, {
+    student_id: studentId,
+    status,
+  });
+  return res.data;
+}
+
+// Get attendance history for a student in a subject (for teacher view)
+export async function getStudentAttendanceHistory(subjectId, studentId) {
+  try {
+    const res = await api.get(`/api/subjects/${subjectId}/students/${studentId}/attendance`);
+    return { ok: true, data: res.data };
+  } catch (error) {
+    const message = error.response?.data?.message || 'Failed to fetch attendance history';
+    return { ok: false, error: message, raw: error.response?.data };
+  }
+}
+
+// Update a specific attendance record
+export async function updateAttendanceRecord(subjectId, studentId, recordId, status) {
+  try {
+    const res = await api.patch(`/api/subjects/${subjectId}/students/${studentId}/attendance/${recordId}`, {
+      status,
+    });
+    return { ok: true, data: res.data };
+  } catch (error) {
+    const message = error.response?.data?.message || 'Failed to update attendance record';
+    return { ok: false, error: message, raw: error.response?.data };
+  }
+}
+
+// Current authenticated user
+export async function fetchMe() {
+  try {
+    const res = await api.get('/api/me');
+    return res.data;
+  } catch (error) {
+    console.error('fetchMe error:', error);
+    return { ok: false, data: null, error: error.message };
+  }
+}
+
+// Student profile picture
+export async function uploadProfilePicture(file) {
+  const formData = new FormData();
+  formData.append('profile_picture', file);
+  const res = await api.post('/api/student/profile-picture', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return res.data;
+}
+
+export async function deleteProfilePicture() {
+  const res = await api.delete('/api/student/profile-picture');
+  return res.data;
+}
+
+// Teacher profile picture
+export async function uploadTeacherProfilePicture(file) {
+  const formData = new FormData();
+  formData.append('profile_picture', file);
+  const res = await api.post('/api/teacher/profile-picture', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return res.data;
+}
+
+export async function deleteTeacherProfilePicture() {
+  const res = await api.delete('/api/teacher/profile-picture');
+  return res.data;
+}
+
+// Student enrolled subjects and attendance
+export async function getStudentEnrolledSubjects() {
+  try {
+    const res = await api.get('/api/student/subjects');
+    return { ok: true, data: res.data };
+  } catch (error) {
+    const message = error.response?.data?.message || 'Failed to fetch enrolled subjects';
+    return { ok: false, error: message, raw: error.response?.data };
+  }
+}
+
+export async function getStudentAttendance(subjectId) {
+  try {
+    const res = await api.get(`/api/student/subjects/${subjectId}/attendance`);
+    return { ok: true, data: res.data };
+  } catch (error) {
+    const message = error.response?.data?.message || 'Failed to fetch attendance';
+    return { ok: false, error: message, raw: error.response?.data };
+  }
+}
+
+// Student PIN
+export async function updateStudentPin(pin) {
+  try {
+    const res = await api.post('/api/student/pin', { pin });
+    return { ok: true, data: res.data };
+  } catch (error) {
+    const message = error.response?.data?.message || 'Failed to update PIN';
+    return { ok: false, error: message, raw: error.response?.data };
+  }
+}
+
+// Update student profile (name, password)
+export async function updateStudentProfile(data) {
+  try {
+    const res = await api.patch('/api/student/profile', data);
+    return { ok: true, data: res.data };
+  } catch (error) {
+    const message = error.response?.data?.message || 'Failed to update profile';
+    return { ok: false, error: message, raw: error.response?.data };
+  }
+}

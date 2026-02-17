@@ -1,0 +1,39 @@
+
+// Heartbeat system
+function startHeartbeat() {
+    chrome.alarms.create('heartbeat', { periodInMinutes: 0.5 });
+}
+
+function stopHeartbeat() {
+    chrome.alarms.clear('heartbeat');
+}
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+    if (alarm.name === 'heartbeat') {
+        sendHeartbeat();
+    }
+});
+
+async function sendHeartbeat() {
+    const result = await chrome.storage.local.get([
+        STORAGE_KEYS.TOKEN,
+        STORAGE_KEYS.IS_MONITORING
+    ]);
+
+    if (!result[STORAGE_KEYS.TOKEN] || !result[STORAGE_KEYS.IS_MONITORING]) {
+        return;
+    }
+
+    try {
+        await fetch(`${API_BASE_URL}/browser-activity/heartbeat`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${result[STORAGE_KEYS.TOKEN]}`,
+                'Accept': 'application/json'
+            }
+        });
+        // console.log('Heartbeat sent');
+    } catch (error) {
+        console.error('Failed to send heartbeat', error);
+    }
+}

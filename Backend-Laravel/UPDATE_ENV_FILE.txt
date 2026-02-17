@@ -1,0 +1,50 @@
+================================================================================
+URGENT: UPDATE .env FILE TO SEND EMAILS
+================================================================================
+
+The system is ready to send emails, but you MUST update the .env file first.
+
+STEP 1: Open this file:
+   Backend -Laravel\.env
+
+STEP 2: Find these lines (around line 55-58):
+   MAIL_USERNAME=your-gmail@gmail.com
+   MAIL_PASSWORD=your-app-password-here
+   MAIL_FROM_ADDRESS="your-gmail@gmail.com"
+
+STEP 3: Get Gmail App Password:
+   1. Go to: https://myaccount.google.com/apppasswords
+   2. Enable 2-Step Verification if needed
+   3. Generate App Password → Mail → Other → "SIA System"
+   4. Copy the 16-character password
+
+STEP 4: Replace in .env:
+   MAIL_USERNAME=youractualemail@gmail.com
+   MAIL_PASSWORD=abcdefghijklmnop
+   MAIL_FROM_ADDRESS="youractualemail@gmail.com"
+
+   (Remove spaces from app password!)
+
+STEP 5: Save file, then run:
+   php artisan config:clear
+
+STEP 6: Restart Laravel server
+
+================================================================================
+EXAMPLE:
+================================================================================
+If your Gmail is: admin@gmail.com
+And App Password is: abcd efgh ijkl mnop
+
+Then set:
+   MAIL_USERNAME=admin@gmail.com
+   MAIL_PASSWORD=abcdefghijklmnop
+   MAIL_FROM_ADDRESS="admin@gmail.com"
+
+================================================================================
+AFTER THIS:
+- System will send verification codes to students' emails
+- Students receive codes in their Gmail inbox
+- No more "testing" mode messages
+================================================================================
+

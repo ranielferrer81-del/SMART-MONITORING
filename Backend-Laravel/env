@@ -1,0 +1,92 @@
+APP_NAME=SIA
+APP_ENV=local
+APP_KEY=base64:n0oNVkFEQ7woIB59Z9BZBhqCLewKtoODVXbpDYGeG0s=
+APP_DEBUG=true
+APP_URL=http://127.0.0.1:8000
+
+APP_LOCALE=en
+APP_FALLBACK_LOCALE=en
+APP_FAKER_LOCALE=en_US
+
+APP_MAINTENANCE_DRIVER=file
+# APP_MAINTENANCE_STORE=database
+
+PHP_CLI_SERVER_WORKERS=4
+
+BCRYPT_ROUNDS=12
+
+LOG_CHANNEL=stack
+LOG_STACK=single
+LOG_DEPRECATIONS_CHANNEL=null
+LOG_LEVEL=debug
+
+# XAMPP MySQL (adjust if your MySQL port/user/password differ)
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=sia_app
+DB_USERNAME=root
+DB_PASSWORD=
+
+# Allow requests from CRA dev server
+SESSION_DRIVER=file
+SESSION_LIFETIME=120
+SESSION_ENCRYPT=false
+SESSION_PATH=/
+SESSION_DOMAIN=localhost
+
+BROADCAST_CONNECTION=log
+FILESYSTEM_DISK=local
+QUEUE_CONNECTION=sync
+
+CACHE_STORE=database
+# CACHE_PREFIX=
+
+MEMCACHED_HOST=127.0.0.1
+
+REDIS_CLIENT=phpredis
+REDIS_HOST=127.0.0.1
+REDIS_PASSWORD=null
+REDIS_PORT=6379
+
+# ============================================================================
+# EMAIL CONFIGURATION - REQUIRED FOR SENDING VERIFICATION CODES
+# ============================================================================
+# This is the SYSTEM email that SENDS verification codes to ALL users
+# NOT the email of students logging in - they receive codes at their own email
+#
+# SETUP STEPS:
+# 1. Go to: https://myaccount.google.com/apppasswords
+# 2. Enable 2-Step Verification if needed
+# 3. Generate App Password: Mail → Other → "SIA System"
+# 4. Copy the 16-character password (remove all spaces)
+# 5. Replace the values below with YOUR Gmail and App Password
+# 6. Save this file
+# 7. Run: php artisan config:clear
+# 8. Restart your Laravel server
+#
+# EXAMPLE:
+# MAIL_USERNAME=admin@gmail.com
+# MAIL_PASSWORD=abcdefghijklmnop  (16 chars, no spaces)
+# MAIL_FROM_ADDRESS="admin@gmail.com"
+# ============================================================================
+
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=ranielferrer81@gmail.com
+MAIL_PASSWORD=ofhqvqxvqxbvmnys
+MAIL_ENCRYPTION=tls
+MAIL_FROM_ADDRESS="ranielferrer81@gmail.com"
+MAIL_FROM_NAME="${APP_NAME}"
+
+# ⚠️ IMPORTANT: Replace "your-email@gmail.com" and "your-app-password" above
+# with your ACTUAL Gmail address and App Password (from step 3-4)
+
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+AWS_DEFAULT_REGION=us-east-1
+AWS_BUCKET=
+AWS_USE_PATH_STYLE_ENDPOINT=false
+
+VITE_APP_NAME="${APP_NAME}"
