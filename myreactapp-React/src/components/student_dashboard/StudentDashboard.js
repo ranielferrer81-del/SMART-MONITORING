@@ -211,9 +211,8 @@ export default function StudentDashboard() {
       console.error('Failed to fetch enrolled subjects', error);
       setEnrolledSubjects([]);
     } finally {
-      setLoadingSubjects(false);
     }
-  };
+  }, [user]);
 
   const fetchAttendance = async (subjectId) => {
     if (attendanceData[subjectId] || loadingAttendance[subjectId]) return;
