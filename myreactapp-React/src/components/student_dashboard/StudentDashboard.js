@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { fetchMe, uploadProfilePicture, deleteProfilePicture, getStudentEnrolledSubjects, getStudentAttendance, updateStudentPin, listSubjects, getSubjectEnrolledStudents, updateStudentProfile } from '../../api/client';
-import { getStudentBrowserActivity, getIncognitoAlerts } from '../../api/browserMonitoring';
+
 
 import ThemeToggle from '../../components/ThemeToggle';
 
@@ -120,9 +120,9 @@ export default function StudentDashboard() {
     if (activeSection === 'subjects' && user) {
       fetchEnrolledSubjects(user);
     }
-  }, [activeSection, user]);
+  }, [activeSection, user, fetchEnrolledSubjects]);
 
-  const fetchEnrolledSubjects = async (currentUser) => {
+  const fetchEnrolledSubjects = useCallback(async (currentUser) => {
     setLoadingSubjects(true);
     try {
       const effectiveUser = currentUser || user;
