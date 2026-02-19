@@ -1,5 +1,7 @@
+providers = ['php']
+
 [phases.setup]
-nixPkgs = ['php82', 'php82Packages.composer']
+nixPkgs = ['php81', 'php81Packages.composer']
 
 [phases.install]
 cmds = ['composer install --no-dev --optimize-autoloader --no-interaction']
