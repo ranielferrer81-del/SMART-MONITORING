@@ -116,11 +116,7 @@ export default function StudentDashboard() {
     setProfilePictureUrl(buildPictureUrl(studentInfo?.profilePicture || null));
   }, [studentInfo?.profilePicture]);
 
-  useEffect(() => {
-    if (activeSection === 'subjects' && user) {
-      fetchEnrolledSubjects(user);
-    }
-  }, [activeSection, user, fetchEnrolledSubjects]);
+
 
   const fetchEnrolledSubjects = useCallback(async (currentUser) => {
     setLoadingSubjects(true);
@@ -211,8 +207,15 @@ export default function StudentDashboard() {
       console.error('Failed to fetch enrolled subjects', error);
       setEnrolledSubjects([]);
     } finally {
+      setLoadingSubjects(false);
     }
   }, [user]);
+
+  useEffect(() => {
+    if (activeSection === 'subjects' && user) {
+      fetchEnrolledSubjects(user);
+    }
+  }, [activeSection, user, fetchEnrolledSubjects]);
 
   const fetchAttendance = async (subjectId) => {
     if (attendanceData[subjectId] || loadingAttendance[subjectId]) return;
