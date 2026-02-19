@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { listSubjects, getSubjectEnrolledStudents, fetchMe, uploadTeacherProfilePicture, deleteTeacherProfilePicture, markStudentAttendance, getStudentAttendanceHistory, updateAttendanceRecord, fetchAllStudentsForTeacher, enrollStudentToSubject } from '../../api/client';
-import { getOnlineStudents, getStudentBrowserActivity, getStudentOpenTabs, getIncognitoAlerts, acknowledgeIncognitoAlert, forceCloseStudentBrowser, getRealtimeBrowserActivity } from '../../api/browserMonitoring';
+import { getOnlineStudents, getIncognitoAlerts, forceCloseStudentBrowser, getRealtimeBrowserActivity } from '../../api/browserMonitoring';
 import ThemeToggle from '../../components/ThemeToggle';
 
 // Browser Monitoring Section Component
@@ -258,6 +258,7 @@ export default function TeacherDashboard() {
   const [activityModalOpen, setActivityModalOpen] = useState(false);
   const [studentActivity, setStudentActivity] = useState([]);
   const [currentViewStudent, setCurrentViewStudent] = useState(null);
+  // eslint-disable-next-line no-unused-vars
   const [realtimeActivity, setRealtimeActivity] = useState([]); // NEW: Real-time activity feed
   // Add Student modal states
   const [showAddStudentsModal, setShowAddStudentsModal] = useState(false);
@@ -496,15 +497,7 @@ export default function TeacherDashboard() {
     }
   };
 
-  // Get all students from teacher's subjects for browser monitoring
-  const allTeacherStudents = useMemo(() => {
-    const studentMap = new Map();
-    subjects.forEach(subject => {
-      // We need to get enrolled students for each subject
-      // This will be populated when we fetch enrolled students
-    });
-    return Array.from(studentMap.values());
-  }, [subjects]);
+
 
   const teacherInfo = useMemo(() => {
     if (!user) return null;
