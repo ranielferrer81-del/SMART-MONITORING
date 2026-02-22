@@ -20,34 +20,73 @@ class ImportLegacyDatabase extends Command
         }
 
         if ($this->option('fresh')) {
-            $this->info('Dropping all tables...');
-            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+            $this->info('Dropping all tables and views...');
+            try {
+                DB::statement('SET FOREIGN_KEY_CHECKS=0');
 
-            $tables = DB::select('SHOW TABLES');
-            foreach ($tables as $table) {
-                $tableName = array_values((array) $table)[0];
-                DB::statement("DROP TABLE IF EXISTS `{$tableName}`");
-                DB::statement("DROP VIEW IF EXISTS `{$tableName}`");
+                // Drop views first (they depend on tables)
+                $views = DB::select("SHOW FULL TABLES WHERE Table_type = 'VIEW'");
+                foreach ($views as $view) {
+                    $viewName = array_values((array) $view)[0];
+                    DB::statement("DROP VIEW IF EXISTS `{$viewName}`");
+                    $this->line("  Dropped view: {$viewName}");
+                }
+
+                // Then drop base tables
+                $tables = DB::select("SHOW FULL TABLES WHERE Table_type = 'BASE TABLE'");
+                foreach ($tables as $table) {
+                    $tableName = array_values((array) $table)[0];
+                    DB::statement("DROP TABLE IF EXISTS `{$tableName}`");
+                    $this->line("  Dropped table: {$tableName}");
+                }
+
+                // Also drop stored functions and procedures
+                $functions = DB::select("SHOW FUNCTION STATUS WHERE Db = DATABASE()");
+                foreach ($functions as $func) {
+                    DB::statement("DROP FUNCTION IF EXISTS `{$func->Name}`");
+                    $this->line("  Dropped function: {$func->Name}");
+                }
+
+                $procedures = DB::select("SHOW PROCEDURE STATUS WHERE Db = DATABASE()");
+                foreach ($procedures as $proc) {
+                    DB::statement("DROP PROCEDURE IF EXISTS `{$proc->Name}`");
+                    $this->line("  Dropped procedure: {$proc->Name}");
+                }
+
+                DB::statement('SET FOREIGN_KEY_CHECKS=1');
+                $this->info('All objects dropped successfully.');
+            } catch (\Exception $e) {
+                DB::statement('SET FOREIGN_KEY_CHECKS=1');
+                $this->error('Failed during drop phase: ' . $e->getMessage());
+                return 1;
             }
-
-            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
-            $this->info('All tables dropped.');
         }
 
         $this->info('Reading SQL file...');
         $sql = file_get_contents($sqlFile);
 
-        // Strip DEFINER clauses - Railway MySQL user is not root@localhost
-        $sql = preg_replace('/DEFINER\s*=\s*`[^`]*`@`[^`]*`\s*/i', '', $sql);
-        // Strip SQL_SECURITY DEFINER (views)
-        $sql = preg_replace('/SQL SECURITY DEFINER\s*/i', '', $sql);
+        // ---- Pre-process the SQL to fix compatibility issues ----
 
-        // Parse SQL handling DELIMITER statements for stored procedures, functions, triggers
+        // 1. Strip DEFINER clauses (Railway MySQL user is not root@localhost)
+        $sql = preg_replace('/\bDEFINER\s*=\s*`[^`]*`@`[^`]*`\s*/i', '', $sql);
+
+        // 2. Strip SQL SECURITY DEFINER
+        $sql = preg_replace('/\bSQL\s+SECURITY\s+DEFINER\b\s*/i', '', $sql);
+
+        // 3. Fix ALGORITHM=UNDEFINED (not supported in all MySQL versions, just remove it)
+        $sql = preg_replace('/\bALGORITHM\s*=\s*UNDEFINED\s*/i', '', $sql);
+
+        // 4. Remove START TRANSACTION and COMMIT (DDL statements can't be in transactions)
+        $sql = preg_replace('/^\s*START\s+TRANSACTION\s*;?\s*$/im', '', $sql);
+        $sql = preg_replace('/^\s*COMMIT\s*;?\s*$/im', '', $sql);
+        $sql = preg_replace('/^\s*ROLLBACK\s*;?\s*$/im', '', $sql);
+
+        // ---- Parse and execute ----
         $statements = $this->parseSql($sql);
+        $total = count($statements);
+        $this->info("Executing {$total} SQL statements...");
 
-        $this->info('Executing ' . count($statements) . ' SQL statements...');
-
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        DB::statement('SET FOREIGN_KEY_CHECKS=0');
 
         $errors = 0;
         foreach ($statements as $i => $statement) {
@@ -58,17 +97,17 @@ class ImportLegacyDatabase extends Command
             try {
                 DB::unprepared($statement);
             } catch (\Exception $e) {
-                $this->warn("Statement " . ($i + 1) . " failed: " . $e->getMessage());
+                $this->warn("  [" . ($i + 1) . "/{$total}] Warning: " . $e->getMessage());
                 $errors++;
             }
         }
 
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
         if ($errors > 0) {
-            $this->warn("Import completed with {$errors} warnings (some statements may have been skipped).");
+            $this->warn("Import finished with {$errors} warnings out of {$total} statements.");
         } else {
-            $this->info('Import completed successfully!');
+            $this->info("Import completed successfully! ({$total} statements executed)");
         }
 
         return 0;
@@ -82,38 +121,40 @@ class ImportLegacyDatabase extends Command
         $lines = explode("\n", $sql);
 
         foreach ($lines as $line) {
-            $trimmedLine = trim($line);
+            $trimmedLine = rtrim($line);
 
-            // Skip empty lines and comments
-            if (empty($trimmedLine) || str_starts_with($trimmedLine, '--') || str_starts_with($trimmedLine, '#')) {
+            // Skip pure comment lines
+            if (preg_match('/^\s*--/', $trimmedLine) || preg_match('/^\s*#/', $trimmedLine)) {
                 continue;
             }
 
-            // Handle DELIMITER changes
-            if (preg_match('/^DELIMITER\s+(.+)$/i', $trimmedLine, $matches)) {
-                $delimiter = trim($matches[1]);
+            // Handle DELIMITER directive
+            if (preg_match('/^\s*DELIMITER\s+(\S+)\s*$/i', $trimmedLine, $matches)) {
+                $delimiter = $matches[1];
                 continue;
             }
 
             $currentStatement .= $line . "\n";
 
-            // Check if current statement ends with the delimiter
-            if (str_ends_with(rtrim($currentStatement), $delimiter)) {
+            // Check if the accumulated statement ends with the current delimiter
+            $trimmedStatement = rtrim($currentStatement);
+            if (
+                strlen($trimmedStatement) >= strlen($delimiter) &&
+                substr($trimmedStatement, -strlen($delimiter)) === $delimiter
+            ) {
                 // Remove the trailing delimiter
-                $stmt = rtrim($currentStatement);
-                $stmt = substr($stmt, 0, strlen($stmt) - strlen($delimiter));
-                $stmt = trim($stmt);
-
-                if (!empty($stmt)) {
+                $stmt = trim(substr($trimmedStatement, 0, -strlen($delimiter)));
+                if ($stmt !== '') {
                     $statements[] = $stmt;
                 }
                 $currentStatement = '';
             }
         }
 
-        // Add any remaining statement
-        if (!empty(trim($currentStatement))) {
-            $statements[] = trim($currentStatement);
+        // Flush any remaining content
+        $remaining = trim($currentStatement);
+        if ($remaining !== '') {
+            $statements[] = $remaining;
         }
 
         return $statements;
