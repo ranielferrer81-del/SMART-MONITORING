@@ -1,10 +1,11 @@
 FROM php:8.2-cli
 
-# Install system dependencies
+# Install system dependencies (including mysql-client for DB import)
 RUN apt-get update && apt-get install -y \
     git \
     unzip \
     libzip-dev \
+    default-mysql-client \
     && docker-php-ext-install pdo pdo_mysql zip
 
 # Set working directory
@@ -18,6 +19,9 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
+
+# Make import script executable
+RUN chmod +x database/import.sh
 
 # Start the application
 CMD php artisan serve --host=0.0.0.0 --port=${PORT:-8000}
