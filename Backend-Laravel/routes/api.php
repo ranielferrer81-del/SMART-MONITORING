@@ -1,6 +1,102 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\DB;
+
+// TEMPORARY: Database import route - DELETE AFTER USE
+Route::get('/run-import', function () {
+    set_time_limit(300);
+    $log = [];
+
+    try {
+        $sqlFile = database_path('legacy_seed.sql');
+        if (!file_exists($sqlFile)) {
+            return response()->json(['error' => 'SQL file not found at: ' . $sqlFile]);
+        }
+        $log[] = 'SQL file found: ' . filesize($sqlFile) . ' bytes';
+
+        // Drop everything first
+        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        $log[] = 'Foreign key checks disabled';
+
+        // Drop views
+        $views = DB::select("SELECT TABLE_NAME FROM information_schema.VIEWS WHERE TABLE_SCHEMA = DATABASE()");
+        foreach ($views as $v) {
+            DB::statement("DROP VIEW IF EXISTS `{$v->TABLE_NAME}`");
+            $log[] = "Dropped view: {$v->TABLE_NAME}";
+        }
+
+        // Drop tables
+        $tables = DB::select("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_TYPE = 'BASE TABLE'");
+        foreach ($tables as $t) {
+            DB::statement("DROP TABLE IF EXISTS `{$t->TABLE_NAME}`");
+            $log[] = "Dropped table: {$t->TABLE_NAME}";
+        }
+
+        // Drop functions
+        $funcs = DB::select("SELECT ROUTINE_NAME FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_TYPE = 'FUNCTION'");
+        foreach ($funcs as $f) {
+            DB::statement("DROP FUNCTION IF EXISTS `{$f->ROUTINE_NAME}`");
+            $log[] = "Dropped function: {$f->ROUTINE_NAME}";
+        }
+
+        $log[] = 'All objects dropped';
+
+        // Read and clean SQL
+        $sql = file_get_contents($sqlFile);
+        $sql = preg_replace('/DEFINER\s*=\s*`[^`]*`@`[^`]*`\s*/i', '', $sql);
+        $sql = preg_replace('/SQL\s+SECURITY\s+DEFINER\s*/i', '', $sql);
+        $sql = preg_replace('/ALGORITHM\s*=\s*UNDEFINED\s*/i', '', $sql);
+        $log[] = 'SQL cleaned of DEFINER/ALGORITHM clauses';
+
+        // Parse statements (handle DELIMITER)
+        $statements = [];
+        $delimiter = ';';
+        $current = '';
+        foreach (explode("\n", $sql) as $line) {
+            $trimmed = trim($line);
+            if ($trimmed === '' || str_starts_with($trimmed, '--') || str_starts_with($trimmed, '#'))
+                continue;
+            if (preg_match('/^\s*DELIMITER\s+(\S+)\s*$/i', $trimmed, $m)) {
+                $delimiter = $m[1];
+                continue;
+            }
+            $current .= $line . "\n";
+            $check = rtrim($current);
+            if (strlen($check) >= strlen($delimiter) && substr($check, -strlen($delimiter)) === $delimiter) {
+                $stmt = trim(substr($check, 0, -strlen($delimiter)));
+                if ($stmt !== '')
+                    $statements[] = $stmt;
+                $current = '';
+            }
+        }
+        if (trim($current) !== '')
+            $statements[] = trim($current);
+
+        $log[] = 'Parsed ' . count($statements) . ' statements';
+
+        // Execute
+        $errors = 0;
+        foreach ($statements as $i => $stmt) {
+            try {
+                DB::unprepared($stmt);
+            } catch (\Exception $e) {
+                $errors++;
+                $preview = substr($stmt, 0, 80);
+                $log[] = "ERROR #{$errors} in statement " . ($i + 1) . ": " . $e->getMessage() . " | SQL: {$preview}...";
+            }
+        }
+
+        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        $log[] = "Done! {$errors} errors out of " . count($statements) . " statements";
+
+        return response()->json(['success' => true, 'errors' => $errors, 'log' => $log]);
+
+    } catch (\Exception $e) {
+        $log[] = 'FATAL: ' . $e->getMessage();
+        return response()->json(['success' => false, 'log' => $log]);
+    }
+});
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AdminAccountController;
 use App\Http\Controllers\Api\TeacherStudentController;
