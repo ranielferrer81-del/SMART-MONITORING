@@ -25,7 +25,7 @@ class ImportLegacyDatabase extends Command
 
             $tables = DB::select('SHOW TABLES');
             foreach ($tables as $table) {
-                $tableName = array_values((array)$table)[0];
+                $tableName = array_values((array) $table)[0];
                 DB::statement("DROP TABLE IF EXISTS `{$tableName}`");
                 DB::statement("DROP VIEW IF EXISTS `{$tableName}`");
             }
@@ -36,6 +36,11 @@ class ImportLegacyDatabase extends Command
 
         $this->info('Reading SQL file...');
         $sql = file_get_contents($sqlFile);
+
+        // Strip DEFINER clauses - Railway MySQL user is not root@localhost
+        $sql = preg_replace('/DEFINER\s*=\s*`[^`]*`@`[^`]*`\s*/i', '', $sql);
+        // Strip SQL_SECURITY DEFINER (views)
+        $sql = preg_replace('/SQL SECURITY DEFINER\s*/i', '', $sql);
 
         // Parse SQL handling DELIMITER statements for stored procedures, functions, triggers
         $statements = $this->parseSql($sql);
