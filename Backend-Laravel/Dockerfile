@@ -30,8 +30,7 @@ RUN mkdir -p storage/app/public/profile_pictures \
     bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache
 
-# Create the storage symlink (public/storage -> storage/app/public)
-RUN php artisan storage:link
+# NOTE: No storage:link needed - StorageController in web.php serves files via /storage/* route
 
 # Make import script executable
 RUN chmod +x database/import.sh
