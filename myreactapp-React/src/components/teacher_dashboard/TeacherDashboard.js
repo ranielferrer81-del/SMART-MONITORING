@@ -158,7 +158,7 @@ const BrowserMonitoringSection = ({ subjects, loadingSubjects, isStudentOnline, 
                         <div className="flex items-center space-x-4 mb-4">
                           {student.profile_picture ? (
                             <img
-                              src={getProfilePictureUrl(student.profile_picture)}
+                              src={student.profile_picture.startsWith('data:') ? student.profile_picture : `${process.env.REACT_APP_API_BASE || 'http://127.0.0.1:8000'}${student.profile_picture.startsWith('/') ? '' : '/'}${student.profile_picture}`}
                               alt={student.full_name || 'Student'}
                               className="w-12 h-12 rounded-full object-cover shadow-lg border-2 border-rose-200 dark:border-rose-700"
                               onError={(e) => {
