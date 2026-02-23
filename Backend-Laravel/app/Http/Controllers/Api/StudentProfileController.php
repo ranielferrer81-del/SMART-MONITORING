@@ -175,45 +175,16 @@ class StudentProfileController extends Controller
                 return response()->json(['ok' => false, 'message' => 'Student profile not found'], 404);
             }
 
-            // Delete old profile picture if exists
-            if ($studentProfile->profile_picture) {
-                // Handle both full URL and relative path
-                $oldPath = $studentProfile->profile_picture;
-                if (strpos($oldPath, '/storage/') !== false) {
-                    $oldPath = str_replace('/storage/', '', $oldPath);
-                } elseif (strpos($oldPath, 'storage/') !== false) {
-                    $oldPath = str_replace('storage/', '', $oldPath);
-                } elseif (strpos($oldPath, 'profile_pictures/') !== false) {
-                    // Already in correct format
-                } else {
-                    // Extract path from URL if it's a full URL
-                    $parsed = parse_url($oldPath);
-                    if (isset($parsed['path'])) {
-                        $oldPath = ltrim($parsed['path'], '/storage/');
-                    }
-                }
-                if (Storage::disk('public')->exists($oldPath)) {
-                    Storage::disk('public')->delete($oldPath);
-                }
-            }
-
-            // Store new profile picture
+            // Generate Base64 from uploaded file
             $file = $request->file('profile_picture');
-            $fileName = 'profile_' . $user->id . '_' . time() . '.' . $file->getClientOriginalExtension();
-            $path = $file->storeAs('profile_pictures', $fileName, 'public');
-
-            // Generate Base64 for immediate display
-            $imageData = base64_encode(file_get_contents($file));
+            $imageData = base64_encode(file_get_contents($file->getRealPath()));
             $base64Image = 'data:image/' . $file->getClientOriginalExtension() . ';base64,' . $imageData;
 
-            // Return relative path for storage
-            $relativePath = '/storage/' . $path;
-
-            // Update student profile
+            // Store base64 directly in the database (persists across Railway redeploys)
             DB::table('student_profiles')
                 ->where('user_id', $user->id)
                 ->update([
-                    'profile_picture' => $relativePath,
+                    'profile_picture' => $base64Image,
                     'updated_at' => now(),
                 ]);
 
@@ -221,7 +192,7 @@ class StudentProfileController extends Controller
                 'ok' => true,
                 'message' => 'Profile picture uploaded successfully',
                 'data' => [
-                    'profile_picture' => $base64Image, // Return Base64 for immediate display
+                    'profile_picture' => $base64Image,
                 ],
             ]);
         } catch (\Exception $e) {

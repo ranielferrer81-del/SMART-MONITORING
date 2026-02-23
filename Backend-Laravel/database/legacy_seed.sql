@@ -403,7 +403,7 @@ CREATE TABLE `student_profiles` (
   `course` varchar(100) DEFAULT NULL,
   `year_level` tinyint(3) UNSIGNED DEFAULT NULL,
   `section` varchar(50) DEFAULT NULL,
-  `profile_picture` varchar(255) DEFAULT NULL,
+  `profile_picture` longtext DEFAULT NULL,
   `pin` varchar(255) DEFAULT NULL,
   `status` enum('active','inactive','suspended','graduated') DEFAULT 'active',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
@@ -416,7 +416,7 @@ CREATE TABLE `student_profiles` (
 
 INSERT INTO `student_profiles` (`user_id`, `student_number`, `course`, `year_level`, `section`, `profile_picture`, `pin`, `status`, `created_at`, `updated_at`) VALUES
 (32, '01334567122', 'BSEMC', NULL, 'BSIT 3-Y2-2', NULL, NULL, 'active', '2026-01-15 06:53:35', '2026-01-15 10:01:05'),
-(38, '01223777150', 'BSIT', NULL, 'BSIT 3-Y2-2', '/storage/profile_pictures/profile_38_1770233287.jpg', '$2y$12$A6KtLT1dpJle2thqF38qKuVLomkx8My2mG.bbQQUBwKmkTbnBvis6', 'active', '2026-02-04 10:46:20', '2026-02-04 11:28:07');
+(38, '01223777150', 'BSIT', NULL, 'BSIT 3-Y2-2', NULL, '$2y$12$A6KtLT1dpJle2thqF38qKuVLomkx8My2mG.bbQQUBwKmkTbnBvis6', 'active', '2026-02-04 10:46:20', '2026-02-04 11:28:07');
 
 --
 -- Triggers `student_profiles`
@@ -561,7 +561,7 @@ CREATE TABLE `teacher_profiles` (
   `teacher_number` varchar(50) NOT NULL,
   `department` varchar(100) DEFAULT NULL,
   `specialization` varchar(255) DEFAULT NULL,
-  `profile_picture` varchar(255) DEFAULT NULL,
+  `profile_picture` longtext DEFAULT NULL,
   `status` enum('active','inactive','on_leave') DEFAULT 'active',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
@@ -572,7 +572,7 @@ CREATE TABLE `teacher_profiles` (
 --
 
 INSERT INTO `teacher_profiles` (`user_id`, `teacher_number`, `department`, `specialization`, `profile_picture`, `status`, `created_at`, `updated_at`) VALUES
-(34, 'T-0001', NULL, NULL, '/storage/profile_pictures/profile_34_1770315829.jpg', 'active', '2026-01-20 17:24:28', '2026-02-05 10:23:49');
+(34, 'T-0001', NULL, NULL, NULL, 'active', '2026-01-20 17:24:28', '2026-02-05 10:23:49');
 
 -- --------------------------------------------------------
 

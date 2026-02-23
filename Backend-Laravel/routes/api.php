@@ -5,6 +5,26 @@ use Illuminate\Support\Facades\DB;
 
 
 
+// TEMPORARY: Fix profile_picture columns for base64 storage - visit once then remove
+Route::get('/fix-profile-columns', function () {
+    try {
+        DB::statement('ALTER TABLE student_profiles MODIFY profile_picture LONGTEXT DEFAULT NULL');
+        DB::statement('ALTER TABLE teacher_profiles MODIFY profile_picture LONGTEXT DEFAULT NULL');
+        // Clear any stale file paths (not base64)
+        DB::table('student_profiles')
+            ->whereNotNull('profile_picture')
+            ->where('profile_picture', 'NOT LIKE', 'data:%')
+            ->update(['profile_picture' => null]);
+        DB::table('teacher_profiles')
+            ->whereNotNull('profile_picture')
+            ->where('profile_picture', 'NOT LIKE', 'data:%')
+            ->update(['profile_picture' => null]);
+        return response()->json(['ok' => true, 'message' => 'Columns altered to LONGTEXT and stale paths cleared']);
+    } catch (\Exception $e) {
+        return response()->json(['ok' => false, 'error' => $e->getMessage()]);
+    }
+});
+
 // TEMPORARY: Database import route - DELETE AFTER USE
 Route::get('/run-import', function () {
     set_time_limit(300);
