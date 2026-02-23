@@ -158,7 +158,7 @@ const BrowserMonitoringSection = ({ subjects, loadingSubjects, isStudentOnline, 
                         <div className="flex items-center space-x-4 mb-4">
                           {student.profile_picture ? (
                             <img
-                              src={`http://127.0.0.1:8000${student.profile_picture}`}
+                              src={getProfilePictureUrl(student.profile_picture)}
                               alt={student.full_name || 'Student'}
                               className="w-12 h-12 rounded-full object-cover shadow-lg border-2 border-rose-200 dark:border-rose-700"
                               onError={(e) => {
@@ -269,6 +269,7 @@ export default function TeacherDashboard() {
   const getProfilePictureUrl = (profilePicture) => {
     if (!profilePicture) return null;
     if (typeof profilePicture !== 'string') return null;
+    if (profilePicture.startsWith('data:')) return profilePicture;
     if (profilePicture.startsWith('http')) return profilePicture;
     const apiBase = process.env.REACT_APP_API_BASE || 'http://127.0.0.1:8000';
     if (profilePicture.startsWith('/storage/')) {

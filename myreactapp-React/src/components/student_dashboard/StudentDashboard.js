@@ -10,6 +10,11 @@ const API_BASE = process.env.REACT_APP_API_BASE || 'http://127.0.0.1:8000';
 const buildPictureUrl = (picture) => {
   if (!picture) return null;
 
+  // Base64 data URL - return as-is (from upload response)
+  if (picture.startsWith('data:')) {
+    return picture;
+  }
+
   // Already a full URL (http:// or https://)
   if (picture.startsWith('http://') || picture.startsWith('https://')) {
     return picture;

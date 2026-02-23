@@ -7,6 +7,7 @@ import {
 } from '../api/browserMonitoring';
 
 const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
+    const API_BASE = process.env.REACT_APP_API_BASE || 'http://127.0.0.1:8000';
     const [selectedCourse, setSelectedCourse] = useState(null);
     const [selectedSection, setSelectedSection] = useState(null);
     const [students, setStudents] = useState([]);
@@ -255,7 +256,7 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
                                             <div className="flex items-center">
                                                 {student.profile_picture ? (
                                                     <img
-                                                        src={`http://127.0.0.1:8000${student.profile_picture}`}
+                                                        src={`${API_BASE}${student.profile_picture}`}
                                                         alt={student.full_name || 'Student'}
                                                         className="h-10 w-10 rounded-full object-cover border-2 border-rose-200 dark:border-rose-700"
                                                         onError={(e) => {

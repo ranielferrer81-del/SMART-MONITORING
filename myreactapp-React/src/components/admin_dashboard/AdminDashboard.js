@@ -467,6 +467,11 @@ export default function AdminDashboard() {
   const getProfilePictureUrl = (profilePicture) => {
     if (!profilePicture) return null;
 
+    // Base64 data URL - return as-is (from upload response)
+    if (profilePicture.startsWith('data:')) {
+      return profilePicture;
+    }
+
     // If it's already a full URL, return it
     if (profilePicture.startsWith('http')) {
       return profilePicture;
