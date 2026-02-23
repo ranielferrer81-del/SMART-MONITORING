@@ -1,12 +1,13 @@
 FROM php:8.2-cli
 
-# Install system dependencies (including mysql-client for DB import)
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     git \
     unzip \
     libzip-dev \
     default-mysql-client \
-    && docker-php-ext-install pdo pdo_mysql zip
+    && docker-php-ext-install pdo pdo_mysql zip \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
@@ -19,6 +20,18 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
+
+# Create storage directories with proper permissions
+RUN mkdir -p storage/app/public/profile_pictures \
+    storage/framework/cache/data \
+    storage/framework/sessions \
+    storage/framework/views \
+    storage/logs \
+    bootstrap/cache \
+    && chmod -R 775 storage bootstrap/cache
+
+# Create the storage symlink (public/storage -> storage/app/public)
+RUN php artisan storage:link
 
 # Make import script executable
 RUN chmod +x database/import.sh

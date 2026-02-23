@@ -3,34 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
 
-// TEMPORARY: Debug route to see DB config - DELETE AFTER USE
-Route::get('/debug-db', function () {
-    return response()->json([
-        'DB_CONNECTION' => env('DB_CONNECTION'),
-        'DB_HOST' => env('DB_HOST'),
-        'DB_PORT' => env('DB_PORT'),
-        'DB_DATABASE' => env('DB_DATABASE'),
-        'DB_USERNAME' => env('DB_USERNAME'),
-        'DB_PASSWORD' => env('DB_PASSWORD') ? '***SET***' : '***NOT SET***',
-        'MYSQLHOST' => env('MYSQLHOST'),
-        'MYSQL_URL' => env('MYSQL_URL') ? '***SET***' : '***NOT SET***',
-        'config_host' => config('database.connections.mysql.host'),
-        'config_port' => config('database.connections.mysql.port'),
-        'config_database' => config('database.connections.mysql.database'),
-        'config_username' => config('database.connections.mysql.username'),
-    ]);
-});
 
-// TEMPORARY: Clear broken profile picture paths - DELETE AFTER USE
-Route::get('/fix-images', function () {
-    $s = DB::table('student_profiles')->whereNotNull('profile_picture')->update(['profile_picture' => null]);
-    $t = DB::table('teacher_profiles')->whereNotNull('profile_picture')->update(['profile_picture' => null]);
-    return response()->json([
-        'success' => true,
-        'student_profiles_cleared' => $s,
-        'teacher_profiles_cleared' => $t,
-    ]);
-});
 
 // TEMPORARY: Database import route - DELETE AFTER USE
 Route::get('/run-import', function () {
