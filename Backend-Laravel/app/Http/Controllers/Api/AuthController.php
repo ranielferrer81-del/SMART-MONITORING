@@ -129,6 +129,23 @@ class AuthController extends Controller
             }
         }
 
+        // Verify profile picture file actually exists (handles Railway ephemeral storage)
+        if ($profilePicture && !str_starts_with($profilePicture, 'data:')) {
+            $relativePath = $profilePicture;
+            if (str_starts_with($relativePath, '/storage/')) {
+                $relativePath = substr($relativePath, strlen('/storage/'));
+            } elseif (str_starts_with($relativePath, 'storage/')) {
+                $relativePath = substr($relativePath, strlen('storage/'));
+            }
+            $fullPath = storage_path('app/public/' . $relativePath);
+            if (!file_exists($fullPath)) {
+                // File was lost (e.g. Railway redeploy) — clear stale path
+                $profilePicture = null;
+                $table = $role === 'student' ? 'student_profiles' : 'teacher_profiles';
+                \DB::table($table)->where('user_id', $user->id)->update(['profile_picture' => null]);
+            }
+        }
+
         if ($role === 'student') {
             if (!$studentNumber || !$course || !$section) {
                 $row = \DB::table('bsit_students')->where('user_id', $user->id)->first();

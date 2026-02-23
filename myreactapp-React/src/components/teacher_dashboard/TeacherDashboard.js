@@ -515,7 +515,10 @@ export default function TeacherDashboard() {
     if (teacherInfo?.profilePicture) {
       // If profile picture is a relative path, prepend API base URL
       let pictureUrl = teacherInfo.profilePicture;
-      if (!pictureUrl.startsWith('http')) {
+      if (pictureUrl.startsWith('data:')) {
+        // Base64 data URL - use as-is
+        setProfilePictureUrl(pictureUrl);
+      } else if (!pictureUrl.startsWith('http')) {
         // Handle both /storage/ and storage/ paths
         if (pictureUrl.startsWith('/storage/')) {
           pictureUrl = `${process.env.REACT_APP_API_BASE || 'http://127.0.0.1:8000'}${pictureUrl}`;
@@ -524,8 +527,10 @@ export default function TeacherDashboard() {
         } else {
           pictureUrl = `${process.env.REACT_APP_API_BASE || 'http://127.0.0.1:8000'}/storage/${pictureUrl}`;
         }
+        setProfilePictureUrl(pictureUrl);
+      } else {
+        setProfilePictureUrl(pictureUrl);
       }
-      setProfilePictureUrl(pictureUrl);
     } else {
       setProfilePictureUrl(null);
     }
