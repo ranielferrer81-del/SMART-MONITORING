@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE = process.env.REACT_APP_API_BASE || 'http://127.0.0.1:8000/api';
+const API_BASE = process.env.REACT_APP_API_BASE || 'http://127.0.0.1:8000';
 
 // Get auth token from localStorage
 const getAuthToken = () => {
@@ -12,7 +12,7 @@ export const getStudentBrowserActivity = async (studentId, filters = {}) => {
     try {
         const token = getAuthToken();
         const params = new URLSearchParams(filters).toString();
-        const url = `${API_BASE}/browser-activity/student/${studentId}${params ? `?${params}` : ''}`;
+        const url = `${API_BASE}/api/browser-activity/student/${studentId}${params ? `?${params}` : ''}`;
 
         const response = await axios.get(url, {
             headers: {
@@ -34,7 +34,7 @@ export const getStudentBrowserActivity = async (studentId, filters = {}) => {
 export const getStudentOpenTabs = async (studentId) => {
     try {
         const token = getAuthToken();
-        const response = await axios.get(`${API_BASE}/browser-activity/student/${studentId}/open-tabs`, {
+        const response = await axios.get(`${API_BASE}/api/browser-activity/student/${studentId}/open-tabs`, {
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Accept': 'application/json'
@@ -53,7 +53,7 @@ export const getStudentOpenTabs = async (studentId) => {
 export const getRealtimeBrowserActivity = async () => {
     try {
         const token = getAuthToken();
-        const response = await axios.get(`${API_BASE}/browser-activity/realtime`, {
+        const response = await axios.get(`${API_BASE}/api/browser-activity/realtime`, {
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Accept': 'application/json'
@@ -74,7 +74,7 @@ export const getIncognitoAlerts = async (filters = {}) => {
     try {
         const token = getAuthToken();
         const params = new URLSearchParams(filters).toString();
-        const url = `${API_BASE}/browser-activity/incognito-alerts${params ? `?${params}` : ''}`;
+        const url = `${API_BASE}/api/browser-activity/incognito-alerts${params ? `?${params}` : ''}`;
 
         const response = await axios.get(url, {
             headers: {
@@ -97,7 +97,7 @@ export const acknowledgeIncognitoAlert = async (alertId) => {
     try {
         const token = getAuthToken();
         const response = await axios.patch(
-            `${API_BASE}/browser-activity/incognito-alerts/${alertId}/acknowledge`,
+            `${API_BASE}/api/browser-activity/incognito-alerts/${alertId}/acknowledge`,
             {},
             {
                 headers: {
@@ -121,7 +121,7 @@ export const startMonitoringSession = async (studentUserId, sessionName = '') =>
     try {
         const token = getAuthToken();
         const response = await axios.post(
-            `${API_BASE}/monitoring-sessions/start`,
+            `${API_BASE}/api/monitoring-sessions/start`,
             { student_user_id: studentUserId, session_name: sessionName },
             {
                 headers: {
@@ -146,7 +146,7 @@ export const endMonitoringSession = async (sessionId) => {
     try {
         const token = getAuthToken();
         const response = await axios.post(
-            `${API_BASE}/monitoring-sessions/${sessionId}/end`,
+            `${API_BASE}/api/monitoring-sessions/${sessionId}/end`,
             {},
             {
                 headers: {
@@ -170,7 +170,7 @@ export const getMonitoringSessions = async (filters = {}) => {
     try {
         const token = getAuthToken();
         const params = new URLSearchParams(filters).toString();
-        const url = `${API_BASE}/monitoring-sessions${params ? `?${params}` : ''}`;
+        const url = `${API_BASE}/api/monitoring-sessions${params ? `?${params}` : ''}`;
 
         const response = await axios.get(url, {
             headers: {
@@ -191,7 +191,7 @@ export const getMonitoringSessions = async (filters = {}) => {
 export const getOnlineStudents = async () => {
     try {
         const token = getAuthToken();
-        const response = await axios.get(`${API_BASE}/browser-activity/online-students`, {
+        const response = await axios.get(`${API_BASE}/api/browser-activity/online-students`, {
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Accept': 'application/json'
@@ -212,7 +212,7 @@ export const forceCloseStudentBrowser = async (studentId) => {
     try {
         const token = getAuthToken();
         const response = await axios.post(
-            `${API_BASE}/browser-activity/force-close/${studentId}`,
+            `${API_BASE}/api/browser-activity/force-close/${studentId}`,
             {},
             {
                 headers: {
@@ -236,7 +236,7 @@ export const forceCloseStudentTab = async (studentId, activityId, url) => {
     try {
         const token = getAuthToken();
         const response = await axios.post(
-            `${API_BASE}/browser-activity/force-close-tab/${studentId}`,
+            `${API_BASE}/api/browser-activity/force-close-tab/${studentId}`,
             { activity_id: activityId, url: url },
             {
                 headers: {
