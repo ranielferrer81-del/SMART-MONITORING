@@ -21,6 +21,17 @@ Route::get('/debug-db', function () {
     ]);
 });
 
+// TEMPORARY: Clear broken profile picture paths - DELETE AFTER USE
+Route::get('/fix-images', function () {
+    $s = DB::table('student_profiles')->whereNotNull('profile_picture')->update(['profile_picture' => null]);
+    $t = DB::table('teacher_profiles')->whereNotNull('profile_picture')->update(['profile_picture' => null]);
+    return response()->json([
+        'success' => true,
+        'student_profiles_cleared' => $s,
+        'teacher_profiles_cleared' => $t,
+    ]);
+});
+
 // TEMPORARY: Database import route - DELETE AFTER USE
 Route::get('/run-import', function () {
     set_time_limit(300);
