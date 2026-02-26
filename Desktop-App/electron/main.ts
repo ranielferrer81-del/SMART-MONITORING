@@ -1,5 +1,7 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import * as path from 'path';
+import * as os from 'os';
+import * as fs from 'fs';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
 
@@ -7,8 +9,30 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const require = createRequire(import.meta.url);
 
+// Get the Windows Computer Name (Hostname) for lab tracking
+const COMPUTER_NAME = os.hostname();
+console.log(`🖥️ Computer Name (Hostname): ${COMPUTER_NAME}`);
+
+// Read API base URL from .env file (single source of truth)
+let API_BASE_URL = 'http://127.0.0.1:8000';
+try {
+  const envPath = path.join(__dirname, '../.env');
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, 'utf-8');
+    const match = envContent.match(/VITE_API_BASE_URL\s*=\s*(.+)/);
+    if (match) {
+      API_BASE_URL = match[1].trim().replace(/["']/g, '');
+      // Remove trailing slash if present
+      if (API_BASE_URL.endsWith('/')) API_BASE_URL = API_BASE_URL.slice(0, -1);
+    }
+  }
+} catch (e) {
+  console.log('⚠️ Could not read .env file, using default API URL');
+}
+console.log(`🌐 API Base URL: ${API_BASE_URL}`);
+
 // Import monitoring server (using require for CommonJS module)
-const { startMonitoringServer, setStudentCredentials, clearStudentCredentials } = require('./monitoring-server.js');
+const { startMonitoringServer, setStudentCredentials, clearStudentCredentials, setComputerName, setApiBaseUrl } = require('./monitoring-server.cjs');
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
 try {
@@ -171,7 +195,8 @@ ipcMain.handle('student-logged-in', (event, studentData) => {
     email: studentData.email,
     token: studentData.token,
     userId: studentData.userId,
-    fullName: studentData.fullName
+    fullName: studentData.fullName,
+    computerName: COMPUTER_NAME
   });
 });
 
@@ -183,6 +208,8 @@ ipcMain.handle('student-logged-out', () => {
 // This method will be called when Electron has finished initialization
 app.on('ready', () => {
   createWindow();
+  setComputerName(COMPUTER_NAME); // Set the hostname for the monitoring server
+  setApiBaseUrl(API_BASE_URL);    // Set the API URL for heartbeats
   startMonitoringServer(); // Start monitoring server on port 9876
 });
 

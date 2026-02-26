@@ -126,6 +126,7 @@ use App\Http\Controllers\Api\SubjectController;
 use App\Http\Controllers\Api\StudentProfileController;
 use App\Http\Controllers\Api\TeacherProfileController;
 use App\Http\Controllers\Api\BrowserActivityController;
+use App\Http\Controllers\Api\LabComputerController;
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/validate-barcode', [AuthController::class, 'validateBarcode']);
@@ -208,5 +209,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/browser-activity/force-close/{studentId}', [BrowserActivityController::class, 'forceCloseBrowser']);
     // Force close specific student tab (Admin/Teacher only)
     Route::post('/browser-activity/force-close-tab/{studentId}', [BrowserActivityController::class, 'forceCloseTab']);
+
+    // Lab Computer Management (hostname-to-room mapping)
+    Route::get('/lab-computers', [LabComputerController::class, 'index']);
+    Route::post('/lab-computers', [LabComputerController::class, 'store']);
+    Route::patch('/lab-computers/{id}', [LabComputerController::class, 'update']);
+    Route::delete('/lab-computers/{id}', [LabComputerController::class, 'destroy']);
+    Route::get('/lab-computers/rooms', [LabComputerController::class, 'rooms']);
 });
 

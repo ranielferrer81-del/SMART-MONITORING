@@ -1,12 +1,16 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import * as path from 'path';
+import * as os from 'os';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const require = createRequire(import.meta.url);
+// Get the Windows Computer Name (Hostname) for lab tracking
+const COMPUTER_NAME = os.hostname();
+console.log(`🖥️ Computer Name (Hostname): ${COMPUTER_NAME}`);
 // Import monitoring server (using require for CommonJS module)
-const { startMonitoringServer, setStudentCredentials, clearStudentCredentials } = require('./monitoring-server.js');
+const { startMonitoringServer, setStudentCredentials, clearStudentCredentials, setComputerName } = require('./monitoring-server.cjs');
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
 try {
     if (require('electron-squirrel-startup')) {
@@ -152,7 +156,8 @@ ipcMain.handle('student-logged-in', (event, studentData) => {
         email: studentData.email,
         token: studentData.token,
         userId: studentData.userId,
-        fullName: studentData.fullName
+        fullName: studentData.fullName,
+        computerName: COMPUTER_NAME
     });
 });
 // IPC handler for student logout (for browser monitoring)
@@ -162,6 +167,7 @@ ipcMain.handle('student-logged-out', () => {
 // This method will be called when Electron has finished initialization
 app.on('ready', () => {
     createWindow();
+    setComputerName(COMPUTER_NAME); // Set the hostname for the monitoring server
     startMonitoringServer(); // Start monitoring server on port 9876
 });
 // Quit when all windows are closed

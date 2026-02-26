@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 11, 2026 at 07:40 PM
+-- Generation Time: Feb 17, 2026 at 07:58 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -114,6 +114,26 @@ CREATE TABLE `browser_activities` (
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Dumping data for table `browser_activities`
+--
+
+INSERT INTO `browser_activities` (`id`, `student_user_id`, `url`, `page_title`, `visit_timestamp`, `duration_seconds`, `tab_id`, `is_incognito`, `session_id`, `created_at`, `updated_at`) VALUES
+(1585, 38, 'http://localhost/phpmyadmin/index.php?route=/sql&pos=0&db=sia_app&table=browser_activities', 'localhost / 127.0.0.1 / sia_app / browser_activities | phpMyAdmin 5.2.1', '2026-02-12 22:41:43', NULL, '602570674', 0, 17, '2026-02-12 22:41:44', '2026-02-12 22:41:44'),
+(1586, 38, 'http://localhost/phpmyadmin/index.php?route=/sql&pos=0&db=sia_app&table=browser_activities', 'localhost / 127.0.0.1 / sia_app / browser_activities | phpMyAdmin 5.2.1', '2026-02-12 22:41:44', NULL, '602570674', 0, 17, '2026-02-12 22:41:44', '2026-02-12 22:41:44'),
+(1587, 38, 'http://localhost/phpmyadmin/index.php?route=/sql&pos=0&db=sia_app&table=browser_activities', 'localhost / 127.0.0.1 / sia_app / browser_activities | phpMyAdmin 5.2.1', '2026-02-12 22:41:49', NULL, '602570674', 0, 17, '2026-02-12 22:41:50', '2026-02-12 22:41:50'),
+(1588, 38, 'http://localhost/phpmyadmin/index.php?route=/sql&pos=0&db=sia_app&table=browser_activities', 'localhost / 127.0.0.1 / sia_app / browser_activities | phpMyAdmin 5.2.1', '2026-02-12 22:41:53', NULL, '602570674', 0, 17, '2026-02-12 22:41:56', '2026-02-12 22:41:56'),
+(1589, 38, 'http://localhost/phpmyadmin/index.php?route=/sql&pos=0&db=sia_app&table=email_verification_codes', 'localhost / 127.0.0.1 / sia_app / browser_activities | phpMyAdmin 5.2.1', '2026-02-12 22:41:56', NULL, '602570674', 0, 17, '2026-02-12 22:41:58', '2026-02-12 22:41:58'),
+(1590, 38, 'http://localhost/phpmyadmin/index.php?route=/sql&pos=0&db=sia_app&table=email_verification_codes', 'localhost / 127.0.0.1 / sia_app / email_verification_codes | phpMyAdmin 5.2.1', '2026-02-12 22:41:57', NULL, '602570674', 0, 17, '2026-02-12 22:41:58', '2026-02-12 22:41:58'),
+(1591, 38, 'http://localhost/phpmyadmin/index.php?route=/sql&pos=0&db=sia_app&table=email_verification_codes', 'localhost / 127.0.0.1 / sia_app / email_verification_codes | phpMyAdmin 5.2.1', '2026-02-12 22:42:02', NULL, '602570674', 0, 17, '2026-02-12 22:42:03', '2026-02-12 22:42:03'),
+(1592, 38, 'http://localhost/phpmyadmin/index.php?route=/sql&pos=0&db=sia_app&table=email_verification_codes', 'localhost / 127.0.0.1 / sia_app / email_verification_codes | phpMyAdmin 5.2.1', '2026-02-12 22:42:05', NULL, '602570674', 0, 17, '2026-02-12 22:42:06', '2026-02-12 22:42:06'),
+(1593, 38, 'http://localhost:3000/teacher/dashboard', 'Sia Web', '2026-02-12 22:42:08', NULL, '602570652', 0, 17, '2026-02-12 22:42:10', '2026-02-12 22:42:10'),
+(1594, 38, 'http://localhost:3000/teacher/dashboard', 'Sia Web', '2026-02-12 23:02:30', NULL, '602570652', 0, 18, '2026-02-12 23:02:32', '2026-02-12 23:02:32'),
+(1595, 38, 'http://localhost:3000/teacher/dashboard', 'Sia Web', '2026-02-12 23:02:30', NULL, '602570652', 0, 18, '2026-02-12 23:02:33', '2026-02-12 23:02:33'),
+(1597, 38, 'https://www.youtube.com/', 'YouTube', '2026-02-12 23:03:10', NULL, '602570675', 0, 18, '2026-02-12 23:03:12', '2026-02-12 23:03:12'),
+(1598, 38, 'http://localhost:3000/teacher/dashboard', 'Sia Web', '2026-02-12 23:03:11', NULL, '602570652', 0, 18, '2026-02-12 23:03:13', '2026-02-12 23:03:13'),
+(1599, 38, 'FORCE_CLOSE_TAB_COMMAND', 'https://www.youtube.com/', '2026-02-12 23:03:39', NULL, NULL, 0, NULL, '2026-02-12 23:03:39', '2026-02-12 23:03:39');
+
 -- --------------------------------------------------------
 
 --
@@ -211,12 +231,9 @@ CREATE TABLE `email_verification_codes` (
 --
 
 INSERT INTO `email_verification_codes` (`id`, `email`, `code`, `used`, `expires_at`, `created_at`, `updated_at`) VALUES
-(24, 'kaylepedroza@gmail.com', '242287', 1, '2026-02-09 14:31:29', '2026-02-09 06:31:09', '2026-02-09 06:31:29'),
-(25, 'kaylepedroza@gmail.com', '608327', 1, '2026-02-09 14:39:00', '2026-02-09 06:38:40', '2026-02-09 06:39:00'),
-(26, 'kaylepedroza@gmail.com', '399169', 1, '2026-02-09 17:00:37', '2026-02-09 08:59:58', '2026-02-09 09:00:37'),
-(27, 'kaylepedroza@gmail.com', '073988', 1, '2026-02-09 17:08:30', '2026-02-09 09:07:55', '2026-02-09 09:08:30'),
-(28, 'kaylepedroza@gmail.com', '460306', 1, '2026-02-09 17:17:19', '2026-02-09 09:16:44', '2026-02-09 09:17:19'),
-(29, 'kaylepedroza@gmail.com', '585287', 1, '2026-02-09 17:23:48', '2026-02-09 09:23:27', '2026-02-09 09:23:48');
+(45, 'kaylepedroza@gmail.com', '959207', 1, '2026-02-13 06:43:47', '2026-02-12 22:43:18', '2026-02-12 22:43:47'),
+(46, 'kaylepedroza@gmail.com', '040087', 1, '2026-02-13 06:59:48', '2026-02-12 22:59:29', '2026-02-12 22:59:48'),
+(47, 'kaylepedroza@gmail.com', '325594', 1, '2026-02-13 07:01:36', '2026-02-12 23:01:14', '2026-02-12 23:01:36');
 
 -- --------------------------------------------------------
 
@@ -311,7 +328,11 @@ INSERT INTO `monitoring_sessions` (`id`, `student_user_id`, `session_start`, `se
 (11, 38, '2026-02-09 17:02:22', '2026-02-09 09:02:22', NULL, 0, 'Auto-started Session', 38, '2026-02-09 09:00:44', '2026-02-09 09:02:22'),
 (12, 38, '2026-02-09 17:10:55', '2026-02-09 09:10:55', NULL, 0, 'Auto-started Session', 38, '2026-02-09 09:08:45', '2026-02-09 09:10:55'),
 (13, 38, '2026-02-09 17:20:26', '2026-02-09 09:20:26', NULL, 0, 'Auto-started Session', 38, '2026-02-09 09:11:04', '2026-02-09 09:20:26'),
-(14, 38, '2026-02-09 17:26:25', '2026-02-09 09:26:25', NULL, 0, 'Auto-started Session', 38, '2026-02-09 09:20:28', '2026-02-09 09:26:25');
+(14, 38, '2026-02-09 17:26:25', '2026-02-09 09:26:25', NULL, 0, 'Auto-started Session', 38, '2026-02-09 09:20:28', '2026-02-09 09:26:25'),
+(15, 38, '2026-02-11 18:48:18', '2026-02-11 10:48:18', NULL, 0, 'Auto-started Session', 38, '2026-02-11 10:46:29', '2026-02-11 10:48:18'),
+(16, 38, '2026-02-13 04:44:51', '2026-02-12 20:44:51', NULL, 0, 'Auto-started Session', 38, '2026-02-11 10:48:19', '2026-02-12 20:44:51'),
+(17, 38, '2026-02-13 06:44:18', '2026-02-12 22:44:18', NULL, 0, 'Auto-started Session', 38, '2026-02-12 20:44:55', '2026-02-12 22:44:18'),
+(18, 38, '2026-02-13 09:18:59', NULL, NULL, 1, 'Auto-started Session', 38, '2026-02-12 23:02:22', '2026-02-13 01:18:59');
 
 -- --------------------------------------------------------
 
@@ -337,9 +358,9 @@ CREATE TABLE `personal_access_tokens` (
 --
 
 INSERT INTO `personal_access_tokens` (`id`, `tokenable_type`, `tokenable_id`, `name`, `token`, `abilities`, `last_used_at`, `expires_at`, `created_at`, `updated_at`) VALUES
-(14, 'App\\Models\\User', 1, 'web', 'da898fab14f415c38f4b32fada322ffd1bceb76441e6bd7b4d95d7e9b7444f25', '[\"*\"]', '2026-02-05 10:30:55', NULL, '2026-02-05 10:30:39', '2026-02-05 10:30:55'),
-(48, 'App\\Models\\User', 34, 'web', '01bba2b2b46a0a5b946d5a392dc0679fadb656b4139e345a20067947fa2fa20c', '[\"*\"]', '2026-02-09 09:26:31', NULL, '2026-02-09 09:23:06', '2026-02-09 09:26:31'),
-(49, 'App\\Models\\User', 38, 'web', '3f38764d9b6417d21bd25804d073290aea2727cfb60c9b7850472ea3d085c992', '[\"*\"]', '2026-02-09 09:26:25', NULL, '2026-02-09 09:23:48', '2026-02-09 09:26:25');
+(69, 'App\\Models\\User', 1, 'web', '9d09bfc2d0b60b7292cb5eacc361189d95e2f9ed10f23c72ff0e868706a375b2', '[\"*\"]', '2026-02-12 20:37:16', NULL, '2026-02-12 20:36:36', '2026-02-12 20:37:16'),
+(73, 'App\\Models\\User', 34, 'web', '0e5a9d89da05c38c5dd8349994461c76a35927a5acb2e065dd636946b1f8fa42', '[\"*\"]', '2026-02-13 01:18:49', NULL, '2026-02-12 22:26:27', '2026-02-13 01:18:49'),
+(80, 'App\\Models\\User', 38, 'web', '5532c06823040fef0fed67b17a51892792091b688fd234deec788fdd068905a8', '[\"*\"]', '2026-02-13 01:18:59', NULL, '2026-02-12 23:02:21', '2026-02-13 01:18:59');
 
 -- --------------------------------------------------------
 
@@ -551,8 +572,7 @@ CREATE TABLE `teacher_profiles` (
 --
 
 INSERT INTO `teacher_profiles` (`user_id`, `teacher_number`, `department`, `specialization`, `profile_picture`, `status`, `created_at`, `updated_at`) VALUES
-(34, 'T-0001', NULL, NULL, '/storage/profile_pictures/profile_34_1770315829.jpg', 'active', '2026-01-20 17:24:28', '2026-02-05 10:23:49'),
-(35, 'T-0002', NULL, NULL, NULL, 'active', '2026-01-21 04:06:40', '2026-01-21 04:06:40');
+(34, 'T-0001', NULL, NULL, '/storage/profile_pictures/profile_34_1770315829.jpg', 'active', '2026-01-20 17:24:28', '2026-02-05 10:23:49');
 
 -- --------------------------------------------------------
 
@@ -582,7 +602,6 @@ INSERT INTO `users` (`id`, `email`, `password`, `role`, `full_name`, `is_active`
 (1, 'admin@example.com', '$2y$12$s3V..DYb1q6jxVpocpBmB.k4GS4qXabrEonXcgzBUsgMDVjdS/5OO', 'admin', 'Alice Admin', 1, NULL, NULL, NULL, '2025-10-16 05:19:11', '2025-10-16 05:19:11'),
 (32, 'student1@gmail.com', '$2y$12$GTBnpbfPyI5VHuBOtJ4MSO0Jvt5B9G8ZPHs7bryOQdYmep2y97W.W', 'student', 'Marquez B. Dizon', 1, 1, NULL, NULL, '2026-01-15 06:53:35', '2026-01-15 10:01:05'),
 (34, 'gegewiwi678@gmail.com', '$2y$12$yxfN8l6m1b/kIy2oTOTQXOt.eRnQyFph6DfLiaM8HmWPMD5Sw4neC', 'teacher', 'Juan D. Marquez', 1, 1, NULL, NULL, '2026-01-20 17:24:28', '2026-01-20 17:24:28'),
-(35, 'tanginamo@gmail.com', '$2y$12$lubgfXcBBnKh7xzNCKZjHeA4UDIosdMXNC3Ss5ocjrROl4qDooxfi', 'teacher', 'Poppey D. Reyes', 1, 1, NULL, NULL, '2026-01-21 04:06:40', '2026-01-21 04:06:40'),
 (38, 'kaylepedroza@gmail.com', '$2y$12$WFLX6pnjh0VuN8WJzf1.PO37sDlOn/iw5EaoEDCWlsa/Y8J61FcWK', 'student', 'Kayle D. Ped', 1, 1, NULL, NULL, '2026-02-04 10:46:20', '2026-02-04 10:46:20');
 
 -- --------------------------------------------------------
@@ -944,7 +963,7 @@ ALTER TABLE `attendance_logs`
 -- AUTO_INCREMENT for table `browser_activities`
 --
 ALTER TABLE `browser_activities`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1561;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1600;
 
 --
 -- AUTO_INCREMENT for table `course_sections`
@@ -956,7 +975,7 @@ ALTER TABLE `course_sections`
 -- AUTO_INCREMENT for table `email_verification_codes`
 --
 ALTER TABLE `email_verification_codes`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=30;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=48;
 
 --
 -- AUTO_INCREMENT for table `incognito_alerts`
@@ -980,13 +999,13 @@ ALTER TABLE `migrations`
 -- AUTO_INCREMENT for table `monitoring_sessions`
 --
 ALTER TABLE `monitoring_sessions`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
 -- AUTO_INCREMENT for table `personal_access_tokens`
 --
 ALTER TABLE `personal_access_tokens`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=50;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=81;
 
 --
 -- AUTO_INCREMENT for table `student_barcodes`

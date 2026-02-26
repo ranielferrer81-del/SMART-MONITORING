@@ -1,6 +1,15 @@
 // Configuration
-const API_BASE_URL = 'http://127.0.0.1:8000/api';
+// Default API URL (used when Desktop App is not running or hasn't provided one)
+const DEFAULT_API_BASE_URL = 'http://127.0.0.1:8000/api';
 const DESKTOP_APP_URL = 'http://localhost:9876';
+
+// Dynamic API URL - updated from Desktop App credentials
+let dynamicApiBaseUrl = null;
+
+// Get the current API base URL (prefers Desktop App's URL over default)
+function getApiBaseUrl() {
+    return dynamicApiBaseUrl || DEFAULT_API_BASE_URL;
+}
 
 // Storage keys
 const STORAGE_KEYS = {
@@ -10,7 +19,9 @@ const STORAGE_KEYS = {
     IS_MONITORING: 'is_monitoring',
     AUTO_ACTIVATED: 'auto_activated',
     LAST_LOGOUT_SIGNAL: 'last_logout_signal',
-    MANUAL_LOGOUT: 'manual_logout' // New flag to track manual logout
+    MANUAL_LOGOUT: 'manual_logout', // Flag to track manual logout
+    COMPUTER_NAME: 'computer_name', // PC hostname for lab tracking
+    API_BASE_URL: 'api_base_url'    // Dynamic API URL from Desktop App
 };
 
 // Track active tabs and their visit times
@@ -20,16 +31,28 @@ const tabVisits = new Map();
 let monitoringListenersActive = false;
 
 // Initialize extension
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener(async () => {
     console.log('SIA Student Activity Monitor installed');
+    // Restore saved API URL
+    const stored = await chrome.storage.local.get(STORAGE_KEYS.API_BASE_URL);
+    if (stored[STORAGE_KEYS.API_BASE_URL]) {
+        dynamicApiBaseUrl = stored[STORAGE_KEYS.API_BASE_URL];
+        console.log('🌐 Restored API URL:', dynamicApiBaseUrl);
+    }
     checkAuthStatus();
     startDesktopAppPolling();
     startLogoutStatusPolling();
 });
 
 // Start polling when browser starts (not just on install)
-chrome.runtime.onStartup.addListener(() => {
+chrome.runtime.onStartup.addListener(async () => {
     console.log('SIA Student Activity Monitor started');
+    // Restore saved API URL
+    const stored = await chrome.storage.local.get(STORAGE_KEYS.API_BASE_URL);
+    if (stored[STORAGE_KEYS.API_BASE_URL]) {
+        dynamicApiBaseUrl = stored[STORAGE_KEYS.API_BASE_URL];
+        console.log('🌐 Restored API URL:', dynamicApiBaseUrl);
+    }
     checkAuthStatus();
     startDesktopAppPolling();
     startLogoutStatusPolling();
@@ -98,6 +121,12 @@ async function autoLoginWithDesktopApp(credentials) {
             console.log('Could not fetch initial logout signal');
         }
 
+        // If Desktop App provided an API URL, use it
+        if (credentials.apiBaseUrl) {
+            dynamicApiBaseUrl = credentials.apiBaseUrl;
+            console.log('🌐 Using API URL from Desktop App:', dynamicApiBaseUrl);
+        }
+
         await chrome.storage.local.set({
             [STORAGE_KEYS.TOKEN]: credentials.token,
             [STORAGE_KEYS.USER]: {
@@ -107,7 +136,9 @@ async function autoLoginWithDesktopApp(credentials) {
             },
             [STORAGE_KEYS.IS_MONITORING]: true,
             [STORAGE_KEYS.AUTO_ACTIVATED]: true,
-            [STORAGE_KEYS.LAST_LOGOUT_SIGNAL]: currentLogoutSignal
+            [STORAGE_KEYS.LAST_LOGOUT_SIGNAL]: currentLogoutSignal,
+            [STORAGE_KEYS.COMPUTER_NAME]: credentials.computerName || null,
+            [STORAGE_KEYS.API_BASE_URL]: dynamicApiBaseUrl || DEFAULT_API_BASE_URL
         });
 
         // Ensure manual logout flag is cleared if it existed (though polling prevents getting here usually)
@@ -380,7 +411,7 @@ async function logActivity(tab) {
 
         console.log('📝 Logging activity:', tab.url);
 
-        const response = await fetch(`${API_BASE_URL}/browser-activity/log`, {
+        const response = await fetch(`${getApiBaseUrl()}/browser-activity/log`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -409,7 +440,7 @@ async function logIncognitoAlert() {
             return;
         }
 
-        const response = await fetch(`${API_BASE_URL}/browser-activity/incognito-alert`, {
+        const response = await fetch(`${getApiBaseUrl()}/browser-activity/incognito-alert`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -463,7 +494,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 // Handle login
 async function handleLogin(credentials) {
     try {
-        const response = await fetch(`${API_BASE_URL}/login`, {
+        const response = await fetch(`${getApiBaseUrl()}/login`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -544,7 +575,8 @@ async function sendHeartbeat() {
     const result = await chrome.storage.local.get([
         STORAGE_KEYS.TOKEN,
         STORAGE_KEYS.IS_MONITORING,
-        STORAGE_KEYS.USER
+        STORAGE_KEYS.USER,
+        STORAGE_KEYS.COMPUTER_NAME
     ]);
 
     if (!result[STORAGE_KEYS.TOKEN] || !result[STORAGE_KEYS.IS_MONITORING]) {
@@ -569,8 +601,8 @@ async function sendHeartbeat() {
             console.error('Failed to get open tabs:', error);
         }
 
-        // Send heartbeat with currently open tabs
-        await fetch(`${API_BASE_URL}/browser-activity/heartbeat`, {
+        // Send heartbeat with currently open tabs and computer name
+        await fetch(`${getApiBaseUrl()}/browser-activity/heartbeat`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${result[STORAGE_KEYS.TOKEN]}`,
@@ -578,7 +610,8 @@ async function sendHeartbeat() {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                open_tabs: openTabs
+                open_tabs: openTabs,
+                computer_name: result[STORAGE_KEYS.COMPUTER_NAME] || null
             })
         });
 
@@ -586,7 +619,7 @@ async function sendHeartbeat() {
         if (result[STORAGE_KEYS.USER] && result[STORAGE_KEYS.USER].id) {
             console.log('🔍 Checking for close commands for student:', result[STORAGE_KEYS.USER].id);
 
-            const activityResponse = await fetch(`${API_BASE_URL}/browser-activity/student/${result[STORAGE_KEYS.USER].id}?per_page=5`, {
+            const activityResponse = await fetch(`${getApiBaseUrl()}/browser-activity/student/${result[STORAGE_KEYS.USER].id}?per_page=5`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${result[STORAGE_KEYS.TOKEN]}`,

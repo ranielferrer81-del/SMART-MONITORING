@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use App\Models\BrowserActivity;
 use App\Models\MonitoringSession;
 use App\Models\IncognitoAlert;
+use App\Models\LabComputer;
 
 class BrowserActivityController extends Controller
 {
@@ -93,6 +94,9 @@ class BrowserActivityController extends Controller
             return response()->json(['error' => 'Only students can send heartbeats'], 403);
         }
 
+        // Get computer_name from the request (sent by Chrome Extension)
+        $computerName = $request->input('computer_name');
+
         // Get or create active session
         $activeSession = MonitoringSession::where('student_user_id', $user->id)
             ->where('is_active', true)
@@ -100,7 +104,13 @@ class BrowserActivityController extends Controller
             ->first();
 
         if ($activeSession) {
-            $activeSession->touch(); // Updates updated_at
+            // Update computer_name if provided and changed
+            if ($computerName && $activeSession->computer_name !== $computerName) {
+                $activeSession->computer_name = $computerName;
+                $activeSession->save();
+            } else {
+                $activeSession->touch(); // Updates updated_at
+            }
         } else {
             // Auto-start a session if none exists
             $activeSession = MonitoringSession::create([
@@ -109,6 +119,7 @@ class BrowserActivityController extends Controller
                 'is_active' => true,
                 'session_name' => 'Auto-started Session',
                 'created_by' => $user->id,
+                'computer_name' => $computerName,
             ]);
         }
 
@@ -170,7 +181,7 @@ class BrowserActivityController extends Controller
 
         $sessions = $query->get();
 
-        // Map to student objects with session info and profile picture
+        // Map to student objects with session info, profile picture, and lab info
         $onlineStudents = $sessions->map(function ($session) {
             $student = $session->student;
 
@@ -188,6 +199,18 @@ class BrowserActivityController extends Controller
             $student->last_seen = $session->updated_at;
             $student->current_session_id = $session->id;
             $student->profile_picture = $profile ? $profile->profile_picture : null;
+
+            // Attach computer name and laboratory room from the session
+            $student->computer_name = $session->computer_name;
+            $student->laboratory_room = null;
+
+            if ($session->computer_name) {
+                $labComputer = LabComputer::where('computer_name', strtoupper($session->computer_name))->first();
+                if ($labComputer) {
+                    $student->laboratory_room = $labComputer->laboratory_room;
+                }
+            }
+
             return $student;
         })->filter()->unique('id')->values();
 

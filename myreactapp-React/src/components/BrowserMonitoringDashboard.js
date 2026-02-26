@@ -242,6 +242,12 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
                                         Student Number
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                                        Computer
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                                        Lab Room
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                                         Status
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
@@ -250,69 +256,101 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-200/50 dark:divide-slate-700/50">
-                                {students.map((student) => (
-                                    <tr key={student.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center">
-                                                {student.profile_picture ? (
-                                                    <img
-                                                        src={`${API_BASE}${student.profile_picture}`}
-                                                        alt={student.full_name || 'Student'}
-                                                        className="h-10 w-10 rounded-full object-cover border-2 border-rose-200 dark:border-rose-700"
-                                                        onError={(e) => {
-                                                            // Fallback to initials if image fails to load
-                                                            e.target.style.display = 'none';
-                                                            e.target.nextSibling.style.display = 'flex';
-                                                        }}
-                                                    />
-                                                ) : null}
-                                                <div
-                                                    className="h-10 w-10 rounded-full bg-gradient-to-br from-rose-100 to-red-100 dark:from-rose-900/30 dark:to-red-900/30 border-2 border-rose-200 dark:border-rose-700 flex items-center justify-center"
-                                                    style={{ display: student.profile_picture ? 'none' : 'flex' }}
-                                                >
-                                                    <span className="text-rose-600 dark:text-rose-400 font-bold">
-                                                        {student.full_name?.charAt(0) || 'S'}
-                                                    </span>
-                                                </div>
-                                                <div className="ml-4">
-                                                    <div className="text-sm font-medium text-slate-900 dark:text-slate-50">
-                                                        {student.full_name}
+                                {students.map((student) => {
+                                    // Get computer info from online students data
+                                    const onlineInfo = onlineStudents.find(s => s.id === student.id);
+                                    const computerName = onlineInfo?.computer_name || null;
+                                    const labRoom = onlineInfo?.laboratory_room || null;
+
+                                    return (
+                                        <tr key={student.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="flex items-center">
+                                                    {student.profile_picture ? (
+                                                        <img
+                                                            src={`${API_BASE}${student.profile_picture}`}
+                                                            alt={student.full_name || 'Student'}
+                                                            className="h-10 w-10 rounded-full object-cover border-2 border-rose-200 dark:border-rose-700"
+                                                            onError={(e) => {
+                                                                // Fallback to initials if image fails to load
+                                                                e.target.style.display = 'none';
+                                                                e.target.nextSibling.style.display = 'flex';
+                                                            }}
+                                                        />
+                                                    ) : null}
+                                                    <div
+                                                        className="h-10 w-10 rounded-full bg-gradient-to-br from-rose-100 to-red-100 dark:from-rose-900/30 dark:to-red-900/30 border-2 border-rose-200 dark:border-rose-700 flex items-center justify-center"
+                                                        style={{ display: student.profile_picture ? 'none' : 'flex' }}
+                                                    >
+                                                        <span className="text-rose-600 dark:text-rose-400 font-bold">
+                                                            {student.full_name?.charAt(0) || 'S'}
+                                                        </span>
+                                                    </div>
+                                                    <div className="ml-4">
+                                                        <div className="text-sm font-medium text-slate-900 dark:text-slate-50">
+                                                            {student.full_name}
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300">
-                                            {student.email}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300">
-                                            {student.student_number || '-'}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            {isStudentOnline(student.id) ? (
-                                                <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 border border-green-200">
-                                                    Online
-                                                </span>
-                                            ) : (
-                                                <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-slate-100 text-slate-500 border border-slate-200">
-                                                    Offline
-                                                </span>
-                                            )}
-                                            {hasIncognitoAlert(student.id) && (
-                                                <span className="ml-2 px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800 border border-red-200 animate-pulse">
-                                                    Incognito Alert
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                            <button
-                                                onClick={() => handleViewActivity(student)}
-                                                className="text-rose-600 hover:text-rose-900 dark:text-rose-400 dark:hover:text-rose-300 font-medium"
-                                            >
-                                                View Activity
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300">
+                                                {student.email}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300">
+                                                {student.student_number || '-'}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                {isStudentOnline(student.id) && computerName ? (
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-mono text-xs border border-blue-200 dark:border-blue-800">
+                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                                        </svg>
+                                                        {computerName}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-slate-400 dark:text-slate-500">-</span>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                {isStudentOnline(student.id) && labRoom ? (
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 font-medium text-xs border border-purple-200 dark:border-purple-800">
+                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                        </svg>
+                                                        {labRoom}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-slate-400 dark:text-slate-500">-</span>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                {isStudentOnline(student.id) ? (
+                                                    <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 border border-green-200">
+                                                        Online
+                                                    </span>
+                                                ) : (
+                                                    <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-slate-100 text-slate-500 border border-slate-200">
+                                                        Offline
+                                                    </span>
+                                                )}
+                                                {hasIncognitoAlert(student.id) && (
+                                                    <span className="ml-2 px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800 border border-red-200 animate-pulse">
+                                                        Incognito Alert
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                <button
+                                                    onClick={() => handleViewActivity(student)}
+                                                    className="text-rose-600 hover:text-rose-900 dark:text-rose-400 dark:hover:text-rose-300 font-medium"
+                                                >
+                                                    View Activity
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>
