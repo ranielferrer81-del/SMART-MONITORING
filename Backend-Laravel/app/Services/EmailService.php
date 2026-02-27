@@ -14,70 +14,46 @@ class EmailService
      */
     public static function sendVerificationCode($toEmail, $code): bool
     {
-        // CRITICAL CHECK: If mailer is set to 'log', emails are NOT sent, only logged!
+        // Check mailer config - if set to 'log' or 'array', skip SMTP but still try API methods (Brevo, SendGrid, etc.)
         $mailer = config('mail.default');
-        if ($mailer === 'log' || $mailer === 'array') {
-            Log::error('❌ Email NOT sent - MAIL_MAILER is set to "' . $mailer . '" which only logs emails. Change to "smtp" in .env');
-            // Don't try other methods if mailer is log - it will never work
-            return false;
+        $skipSmtp = ($mailer === 'log' || $mailer === 'array');
+        if ($skipSmtp) {
+            Log::info('MAIL_MAILER is "' . $mailer . '" - skipping SMTP, will try API methods (Brevo, SendGrid, Mailgun)');
         }
 
-        // Method 1: Try Laravel Mail (SMTP) FIRST - most reliable for Gmail
-        $mailUsername = config('mail.mailers.smtp.username');
-        $mailPassword = config('mail.mailers.smtp.password');
-        $mailHost = config('mail.mailers.smtp.host');
+        // Method 1: Try Laravel Mail (SMTP) - skip if MAIL_MAILER is log/array
+        if (!$skipSmtp) {
+            $mailUsername = config('mail.mailers.smtp.username');
+            $mailPassword = config('mail.mailers.smtp.password');
+            $mailHost = config('mail.mailers.smtp.host');
 
-        $isPlaceholder = empty($mailUsername) ||
-            strpos($mailUsername, 'your-gmail') !== false ||
-            strpos($mailUsername, 'your-email') !== false ||
-            strpos($mailUsername, 'null') !== false ||
-            empty($mailPassword) ||
-            strpos($mailPassword, 'your-app-password') !== false ||
-            strpos($mailPassword, 'your-app-password-here') !== false ||
-            strpos($mailPassword, 'null') !== false ||
-            empty($mailHost) ||
-            $mailHost === '127.0.0.1';
+            $isPlaceholder = empty($mailUsername) ||
+                strpos($mailUsername, 'your-gmail') !== false ||
+                strpos($mailUsername, 'your-email') !== false ||
+                strpos($mailUsername, 'null') !== false ||
+                empty($mailPassword) ||
+                strpos($mailPassword, 'your-app-password') !== false ||
+                strpos($mailPassword, 'your-app-password-here') !== false ||
+                strpos($mailPassword, 'null') !== false ||
+                empty($mailHost) ||
+                $mailHost === '127.0.0.1';
 
-        if (!$isPlaceholder) {
-            try {
-                // Use send() with error handling - this will throw if it fails
-                Mail::to($toEmail)->send(new VerificationCodeMail($code, $toEmail));
-
-                // If we reach here without exception, email was sent successfully
-                Log::info('✅ Email sent successfully via SMTP', [
-                    'to' => $toEmail,
-                    'host' => $mailHost,
-                    'username' => $mailUsername
-                ]);
-                return true;
-            } catch (\Exception $e) {
-                $errorMsg = $e->getMessage();
-                Log::error('❌ SMTP failed with exception', [
-                    'to' => $toEmail,
-                    'error' => $errorMsg,
-                    'username' => $mailUsername,
-                    'host' => $mailHost
-                ]);
-                // Don't continue to other methods if it's an auth error - credentials are wrong
-                if (
-                    strpos($errorMsg, '535') !== false ||
-                    strpos($errorMsg, 'BadCredentials') !== false ||
-                    strpos($errorMsg, 'Authentication failed') !== false ||
-                    strpos($errorMsg, '530') !== false ||
-                    strpos($errorMsg, 'Invalid credentials') !== false ||
-                    strpos($errorMsg, 'SMTP connect() failed') !== false
-                ) {
-                    Log::error('SMTP authentication/connection failed - check Gmail credentials in .env');
-                    return false;
+            if (!$isPlaceholder) {
+                try {
+                    Mail::to($toEmail)->send(new VerificationCodeMail($code, $toEmail));
+                    Log::info('✅ Email sent successfully via SMTP', [
+                        'to' => $toEmail,
+                        'host' => $mailHost,
+                        'username' => $mailUsername
+                    ]);
+                    return true;
+                } catch (\Exception $e) {
+                    Log::error('❌ SMTP failed', ['error' => $e->getMessage()]);
+                    // Fall through to try API methods
                 }
-                // For other errors, fall through to try other methods
+            } else {
+                Log::warning('SMTP not configured - trying API methods');
             }
-        } else {
-            Log::warning('SMTP not configured - credentials are placeholders or invalid', [
-                'username' => $mailUsername ? '***' : 'empty',
-                'password' => $mailPassword ? '***' : 'empty',
-                'host' => $mailHost
-            ]);
         }
 
         // Method 2: Try SendGrid API (if configured)
