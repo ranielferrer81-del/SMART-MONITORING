@@ -4,7 +4,7 @@ import PinEntry from './components/PinEntry';
 import LoginForm from './components/LoginForm';
 import EmailVerification from './components/EmailVerification';
 import ProfileWidget from './components/ProfileWidget';
-import { fetchCurrentUser, resendVerificationCode } from './api/client';
+import { api, fetchCurrentUser, resendVerificationCode } from './api/client';
 import type { LoginResult, AuthenticatedUser } from './api/client';
 
 type Screen =
@@ -157,15 +157,7 @@ function App() {
     try {
       const token = localStorage.getItem('token');
       if (token) {
-        const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000';
-        await fetch(`${API_BASE_URL}/api/browser-activity/end-my-session`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          }
-        });
+        await api.post('/api/browser-activity/end-my-session');
       }
     } catch (error) {
       console.error('Failed to end monitoring session:', error);
