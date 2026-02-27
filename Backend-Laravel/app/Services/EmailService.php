@@ -26,23 +26,23 @@ class EmailService
         $mailUsername = config('mail.mailers.smtp.username');
         $mailPassword = config('mail.mailers.smtp.password');
         $mailHost = config('mail.mailers.smtp.host');
-        
-        $isPlaceholder = empty($mailUsername) || 
-                        strpos($mailUsername, 'your-gmail') !== false || 
-                        strpos($mailUsername, 'your-email') !== false ||
-                        strpos($mailUsername, 'null') !== false ||
-                        empty($mailPassword) ||
-                        strpos($mailPassword, 'your-app-password') !== false ||
-                        strpos($mailPassword, 'your-app-password-here') !== false ||
-                        strpos($mailPassword, 'null') !== false ||
-                        empty($mailHost) ||
-                        $mailHost === '127.0.0.1';
-        
+
+        $isPlaceholder = empty($mailUsername) ||
+            strpos($mailUsername, 'your-gmail') !== false ||
+            strpos($mailUsername, 'your-email') !== false ||
+            strpos($mailUsername, 'null') !== false ||
+            empty($mailPassword) ||
+            strpos($mailPassword, 'your-app-password') !== false ||
+            strpos($mailPassword, 'your-app-password-here') !== false ||
+            strpos($mailPassword, 'null') !== false ||
+            empty($mailHost) ||
+            $mailHost === '127.0.0.1';
+
         if (!$isPlaceholder) {
             try {
                 // Use send() with error handling - this will throw if it fails
                 Mail::to($toEmail)->send(new VerificationCodeMail($code, $toEmail));
-                
+
                 // If we reach here without exception, email was sent successfully
                 Log::info('✅ Email sent successfully via SMTP', [
                     'to' => $toEmail,
@@ -59,12 +59,14 @@ class EmailService
                     'host' => $mailHost
                 ]);
                 // Don't continue to other methods if it's an auth error - credentials are wrong
-                if (strpos($errorMsg, '535') !== false || 
-                    strpos($errorMsg, 'BadCredentials') !== false || 
+                if (
+                    strpos($errorMsg, '535') !== false ||
+                    strpos($errorMsg, 'BadCredentials') !== false ||
                     strpos($errorMsg, 'Authentication failed') !== false ||
                     strpos($errorMsg, '530') !== false ||
                     strpos($errorMsg, 'Invalid credentials') !== false ||
-                    strpos($errorMsg, 'SMTP connect() failed') !== false) {
+                    strpos($errorMsg, 'SMTP connect() failed') !== false
+                ) {
                     Log::error('SMTP authentication/connection failed - check Gmail credentials in .env');
                     return false;
                 }
@@ -88,6 +90,19 @@ class EmailService
                 }
             } catch (\Exception $e) {
                 Log::warning('SendGrid failed', ['error' => $e->getMessage()]);
+            }
+        }
+
+        // Method 2.5: Try Brevo (Sendinblue) API (if configured)
+        $brevoKey = env('BREVO_API_KEY');
+        if ($brevoKey && !empty($brevoKey)) {
+            try {
+                if (self::sendViaBrevo($toEmail, $code, $brevoKey)) {
+                    Log::info('✅ Email sent via Brevo API', ['to' => $toEmail]);
+                    return true;
+                }
+            } catch (\Exception $e) {
+                Log::warning('Brevo failed', ['error' => $e->getMessage()]);
             }
         }
 
@@ -135,6 +150,34 @@ class EmailService
     }
 
     /**
+     * Send via Brevo (Sendinblue) API
+     */
+    private static function sendViaBrevo($to, $code, $apiKey): bool
+    {
+        $response = Http::withHeaders([
+            'api-key' => $apiKey,
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json'
+        ])->post('https://api.brevo.com/v3/smtp/email', [
+                    'sender' => [
+                        'email' => env('MAIL_FROM_ADDRESS', 'noreply@sia-system.com'),
+                        'name' => env('MAIL_FROM_NAME', 'SIA System'),
+                    ],
+                    'to' => [
+                        ['email' => $to]
+                    ],
+                    'subject' => 'Email Verification Code - SIA System',
+                    'htmlContent' => self::getEmailHtml($code),
+                ]);
+
+        if ($response->successful()) {
+            return true;
+        }
+
+        throw new \Exception('Brevo API error: ' . $response->body());
+    }
+
+    /**
      * Send via SendGrid API
      */
     private static function sendViaSendGrid($to, $code, $apiKey): bool
@@ -143,23 +186,23 @@ class EmailService
             'Authorization' => 'Bearer ' . $apiKey,
             'Content-Type' => 'application/json',
         ])->post('https://api.sendgrid.com/v3/mail/send', [
-            'personalizations' => [
-                [
-                    'to' => [['email' => $to]],
-                ],
-            ],
-            'from' => [
-                'email' => env('MAIL_FROM_ADDRESS', 'noreply@sia-system.com'),
-                'name' => env('MAIL_FROM_NAME', 'SIA System'),
-            ],
-            'subject' => 'Email Verification Code - SIA System',
-            'content' => [
-                [
-                    'type' => 'text/html',
-                    'value' => self::getEmailHtml($code),
-                ],
-            ],
-        ]);
+                    'personalizations' => [
+                        [
+                            'to' => [['email' => $to]],
+                        ],
+                    ],
+                    'from' => [
+                        'email' => env('MAIL_FROM_ADDRESS', 'noreply@sia-system.com'),
+                        'name' => env('MAIL_FROM_NAME', 'SIA System'),
+                    ],
+                    'subject' => 'Email Verification Code - SIA System',
+                    'content' => [
+                        [
+                            'type' => 'text/html',
+                            'value' => self::getEmailHtml($code),
+                        ],
+                    ],
+                ]);
 
         if ($response->successful()) {
             Log::info('Email sent via SendGrid', ['to' => $to]);
@@ -203,9 +246,9 @@ class EmailService
             Log::warning('PHP mail() skipped on Windows - not reliable', ['to' => $to]);
             return false;
         }
-        
+
         $subject = 'Email Verification Code - SIA System';
-        
+
         // Simple HTML email
         $message = "
         <!DOCTYPE html>
@@ -242,7 +285,7 @@ class EmailService
         </body>
         </html>
         ";
-        
+
         $headers = "MIME-Version: 1.0\r\n";
         $headers .= "Content-type: text/html; charset=UTF-8\r\n";
         $headers .= "From: SIA System <" . (env('MAIL_FROM_ADDRESS') ?: 'noreply@sia-system.com') . ">\r\n";
@@ -250,7 +293,7 @@ class EmailService
         $headers .= "X-Mailer: PHP/" . phpversion() . "\r\n";
 
         $result = @mail($to, $subject, $message, $headers);
-        
+
         if ($result) {
             Log::info('PHP mail() returned true (but may not have actually sent on Windows)', ['to' => $to]);
             // Don't trust PHP mail() on Windows - return false to try other methods
