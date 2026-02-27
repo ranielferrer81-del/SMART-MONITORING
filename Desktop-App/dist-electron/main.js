@@ -16,7 +16,7 @@ try {
     const envPath = path.join(__dirname, '../.env');
     if (fs.existsSync(envPath)) {
         const envContent = fs.readFileSync(envPath, 'utf-8');
-        const match = envContent.match(/VITE_API_BASE_URL\s*=\s*(.+)/);
+        const match = envContent.match(/^VITE_API_BASE_URL\s*=\s*(.+)/m);
         if (match) {
             API_BASE_URL = match[1].trim().replace(/["']/g, '');
             // Remove trailing slash if present
