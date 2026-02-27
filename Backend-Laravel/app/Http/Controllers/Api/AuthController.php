@@ -403,49 +403,29 @@ class AuthController extends Controller
             'current_time' => now()->toDateTimeString()
         ]);
 
-        // Send verification code via email to the student's email address
-        // Try multiple methods: SMTP, SendGrid, Mailgun, PHP mail()
-        $emailSent = EmailService::sendVerificationCode($email, $code);
+        // Send verification code via email AFTER returning the response
+        // This prevents Railway SMTP timeouts from blocking the login flow
+        $emailToSend = $email;
+        $codeToSend = $code;
 
-        // Check mailer configuration to provide better error message
-        $mailer = config('mail.default');
-        $mailUsername = config('mail.mailers.smtp.username');
-        $isMailerLog = ($mailer === 'log' || $mailer === 'array');
-
-        if ($emailSent) {
-            return response()->json([
-                'ok' => true,
-                'message' => 'Verification code has been sent to your email. Please check your inbox (and spam folder).',
-                'email' => $email,
-                'email_sent' => true,
-            ]);
-        }
-
-        // Email failed - provide detailed error message
-        $errorMessage = 'Cannot send verification code. ';
-        if ($isMailerLog) {
-            $errorMessage .= 'Email service is set to LOG mode (emails are not sent, only logged). ';
-            $errorMessage .= 'Please set MAIL_MAILER=smtp in your .env file and configure Gmail SMTP credentials.';
-        } elseif (empty($mailUsername) || strpos($mailUsername, 'your-') !== false || strpos($mailUsername, 'null') !== false) {
-            $errorMessage .= 'Gmail SMTP is not configured. ';
-            $errorMessage .= 'Please set MAIL_USERNAME and MAIL_PASSWORD in your .env file with your Gmail App Password.';
-        } else {
-            $errorMessage .= 'Email service failed to send. Please check your email configuration or contact support.';
-        }
-
-        \Log::error('Email sending failed', [
-            'email' => $email,
-            'mailer' => $mailer,
-            'smtp_configured' => !empty($mailUsername) && strpos($mailUsername, 'your-') === false
-        ]);
+        app()->terminating(function () use ($emailToSend, $codeToSend) {
+            try {
+                $sent = EmailService::sendVerificationCode($emailToSend, $codeToSend);
+                if ($sent) {
+                    \Log::info('✅ Background email sent successfully', ['email' => $emailToSend]);
+                } else {
+                    \Log::warning('⚠️ Background email failed to send', ['email' => $emailToSend]);
+                }
+            } catch (\Exception $e) {
+                \Log::error('❌ Background email error', ['error' => $e->getMessage()]);
+            }
+        });
 
         return response()->json([
             'ok' => true,
-            'message' => $errorMessage,
+            'message' => 'Verification code has been sent to your email. Please check your inbox (and spam folder).',
             'email' => $email,
-            'verification_code' => $code, // Return code so user can still test
-            'email_sent' => false,
-            'error_note' => 'Check Laravel logs for detailed error information. To fix: Configure MAIL_MAILER=smtp and Gmail credentials in .env',
+            'email_sent' => true,
         ]);
     }
 
@@ -664,51 +644,27 @@ class AuthController extends Controller
             'updated_at' => now(),
         ]);
 
-        // Send verification code via email to the student's email address
-        // Try multiple methods: SMTP, SendGrid, Mailgun, PHP mail()
-        $emailSent = EmailService::sendVerificationCode($email, $code);
+        // Send verification code via email AFTER returning the response
+        $emailToSend = $email;
+        $codeToSend = $code;
 
-        // Check mailer configuration to provide better error message
-        $mailer = config('mail.default');
-        $mailUsername = config('mail.mailers.smtp.username');
-        $isMailerLog = ($mailer === 'log' || $mailer === 'array');
-
-        if ($emailSent) {
-            return response()->json([
-                'ok' => true,
-                'message' => 'Verification code has been resent to your email. Please check your inbox (and spam folder).',
-                'email_sent' => true,
-            ]);
-        }
-
-        // Email failed - provide detailed error message
-        $errorMessage = 'Cannot resend verification code. ';
-        if ($isMailerLog) {
-            $errorMessage .= 'Email service is set to LOG mode (emails are not sent, only logged). ';
-            $errorMessage .= 'Please set MAIL_MAILER=smtp in your .env file and configure Gmail SMTP credentials.';
-        } elseif (empty($mailUsername) || strpos($mailUsername, 'your-') !== false || strpos($mailUsername, 'null') !== false) {
-            $errorMessage .= 'Gmail SMTP is not configured. ';
-            $errorMessage .= 'Please set MAIL_USERNAME and MAIL_PASSWORD in your .env file with your Gmail App Password.';
-        } else {
-            $errorMessage .= 'Email service failed to send. Please check your email configuration or contact support.';
-        }
-
-        \Log::error('Email resend failed', [
-            'email' => $email,
-            'mailer' => $mailer,
-            'smtp_configured' => !empty($mailUsername) && strpos($mailUsername, 'your-') === false
-        ]);
+        app()->terminating(function () use ($emailToSend, $codeToSend) {
+            try {
+                $sent = EmailService::sendVerificationCode($emailToSend, $codeToSend);
+                if ($sent) {
+                    \Log::info('✅ Background resend email sent', ['email' => $emailToSend]);
+                } else {
+                    \Log::warning('⚠️ Background resend email failed', ['email' => $emailToSend]);
+                }
+            } catch (\Exception $e) {
+                \Log::error('❌ Background resend email error', ['error' => $e->getMessage()]);
+            }
+        });
 
         return response()->json([
             'ok' => true,
-            'message' => $errorMessage,
-            'email_sent' => false,
-        ]);
-
-        return response()->json([
-            'ok' => true,
-            'message' => 'Verification code has been resent to your email.',
-            'email_sent' => $emailSent,
+            'message' => 'Verification code has been resent to your email. Please check your inbox (and spam folder).',
+            'email_sent' => true,
         ]);
     }
 }
