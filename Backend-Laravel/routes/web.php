@@ -13,7 +13,14 @@ Route::get('/storage/{path}', [StorageController::class, 'serve'])->where('path'
 // Easy way to run migrations on Railway without the terminal
 Route::get('/run-migrations-for-railway', function () {
     try {
-        \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+        // Only run our new lab tracking migrations (old tables already exist on Railway)
+        \Illuminate\Support\Facades\Artisan::call('migrate', [
+            '--force' => true,
+            '--path' => [
+                'database/migrations/2026_02_26_000001_create_lab_computers_table.php',
+                'database/migrations/2026_02_26_000002_add_computer_name_to_monitoring_sessions_table.php',
+            ],
+        ]);
         return "Migration successful! Result: " . \Illuminate\Support\Facades\Artisan::output();
     } catch (\Exception $e) {
         return "Migration failed: " . $e->getMessage();
