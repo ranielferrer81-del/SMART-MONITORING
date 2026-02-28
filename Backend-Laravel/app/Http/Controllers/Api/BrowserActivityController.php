@@ -639,4 +639,25 @@ class BrowserActivityController extends Controller
             'deleted' => true
         ]);
     }
+
+    /**
+     * Clear executed force close commands so they don't loop
+     */
+    public function clearCommands(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user || $user->role !== 'student') {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $deletedCount = BrowserActivity::where('student_user_id', $user->id)
+            ->whereIn('url', ['FORCE_CLOSE_COMMAND', 'FORCE_CLOSE_TAB_COMMAND'])
+            ->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Commands cleared successfully',
+            'deleted_count' => $deletedCount
+        ]);
+    }
 }

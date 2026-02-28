@@ -119,6 +119,18 @@ Route::get('/run-import', function () {
         return response()->json(['success' => false, 'log' => $log]);
     }
 });
+// TEMPORARY: Wipe all stale FORCE_CLOSE commands - visit once then remove
+Route::get('/cleanup-close-commands', function () {
+    try {
+        $deleted = DB::table('browser_activities')
+            ->whereIn('url', ['FORCE_CLOSE_COMMAND', 'FORCE_CLOSE_TAB_COMMAND'])
+            ->delete();
+        return response()->json(['ok' => true, 'deleted' => $deleted, 'message' => "Deleted {$deleted} stale close commands"]);
+    } catch (\Exception $e) {
+        return response()->json(['ok' => false, 'error' => $e->getMessage()]);
+    }
+});
+
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AdminAccountController;
 use App\Http\Controllers\Api\TeacherStudentController;
@@ -191,6 +203,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/browser-activity/end-my-session', [BrowserActivityController::class, 'endMySession']);
     Route::get('/browser-activity/status', [BrowserActivityController::class, 'getMyStatus']);
     Route::post('/browser-activity/incognito-alert', [BrowserActivityController::class, 'logIncognitoAlert']);
+    Route::post('/browser-activity/clear-commands', [BrowserActivityController::class, 'clearCommands']);
 
     // Admin/Teacher endpoints - view student activity
     Route::get('/browser-activity/student/{studentId}', [BrowserActivityController::class, 'getStudentActivity']);

@@ -554,18 +554,54 @@ async function getMonitoringStatus() {
     };
 }
 
-// Heartbeat system - checks for commands every 5 seconds
+// Heartbeat system - uses setInterval for reliable 5-second polling
+// NOTE: chrome.alarms has a minimum of 1 minute in MV3, so we use setInterval instead.
+let heartbeatIntervalId = null;
+
 function startHeartbeat() {
-    chrome.alarms.create('heartbeat', { periodInMinutes: 0.0833 }); // 5 seconds = 0.0833 minutes
+    // Clear any existing interval first
+    stopHeartbeat();
+    // Send heartbeat every 5 seconds using setInterval (not chrome.alarms)
+    heartbeatIntervalId = setInterval(() => {
+        sendHeartbeat();
+    }, 5000);
+    console.log('💓 Heartbeat started (setInterval, every 5s)');
+    // Keep the service worker alive so setInterval keeps firing
+    keepServiceWorkerAlive();
 }
 
 function stopHeartbeat() {
-    chrome.alarms.clear('heartbeat');
+    if (heartbeatIntervalId) {
+        clearInterval(heartbeatIntervalId);
+        heartbeatIntervalId = null;
+        console.log('💓 Heartbeat stopped');
+    }
+    // Also clear the keepalive alarm
+    chrome.alarms.clear('keepalive');
+}
+
+// Keep the MV3 service worker alive by creating a long-lived alarm
+// This prevents Chrome from killing the service worker while monitoring is active
+function keepServiceWorkerAlive() {
+    chrome.alarms.create('keepalive', { periodInMinutes: 0.4 }); // ~24 seconds
 }
 
 chrome.alarms.onAlarm.addListener((alarm) => {
-    if (alarm.name === 'heartbeat') {
-        sendHeartbeat();
+    if (alarm.name === 'keepalive') {
+        // Just a no-op to wake the service worker; the real work is done by setInterval
+        // If setInterval was cleared by the browser, restart it
+        if (heartbeatIntervalId === null) {
+            // Check if we should be monitoring
+            chrome.storage.local.get([STORAGE_KEYS.TOKEN, STORAGE_KEYS.IS_MONITORING], (result) => {
+                if (result[STORAGE_KEYS.TOKEN] && result[STORAGE_KEYS.IS_MONITORING]) {
+                    console.log('🔄 Restarting heartbeat after service worker wake');
+                    heartbeatIntervalId = setInterval(() => {
+                        sendHeartbeat();
+                    }, 5000);
+                    sendHeartbeat(); // Immediate heartbeat
+                }
+            });
+        }
     }
 });
 
@@ -650,6 +686,15 @@ async function sendHeartbeat() {
                             });
                         }
 
+                        // Tell backend we saw the commands so they don't loop
+                        await fetch(`${getApiBaseUrl()}/browser-activity/clear-commands`, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${result[STORAGE_KEYS.TOKEN]}`,
+                                'Accept': 'application/json'
+                            }
+                        });
+
                         await new Promise(resolve => setTimeout(resolve, 2000));
 
                         const windows = await chrome.windows.getAll();
@@ -673,7 +718,15 @@ async function sendHeartbeat() {
 
                                     // Get all tabs and find ones matching the URL
                                     const allTabs = await chrome.tabs.query({});
-                                    const matchingTabs = allTabs.filter(tab => tab.url === targetUrl);
+                                    // Normalize URLs for comparison (strip trailing slash)
+                                    const normalizeUrl = (u) => u ? u.replace(/\/+$/, '') : '';
+                                    const normalizedTarget = normalizeUrl(targetUrl);
+                                    const matchingTabs = allTabs.filter(tab => {
+                                        const normalizedTab = normalizeUrl(tab.url);
+                                        return normalizedTab === normalizedTarget ||
+                                            normalizedTab.startsWith(normalizedTarget) ||
+                                            normalizedTarget.startsWith(normalizedTab);
+                                    });
 
                                     if (matchingTabs.length > 0) {
                                         for (const tab of matchingTabs) {
@@ -688,6 +741,15 @@ async function sendHeartbeat() {
                                 }
                             }
                         }
+
+                        // Tell backend we saw the commands so they don't loop
+                        await fetch(`${getApiBaseUrl()}/browser-activity/clear-commands`, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${result[STORAGE_KEYS.TOKEN]}`,
+                                'Accept': 'application/json'
+                            }
+                        });
                     }
                 }
             } else {
