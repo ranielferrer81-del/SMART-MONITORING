@@ -145,6 +145,10 @@ class BrowserActivityController extends Controller
                 'session_end' => now(),
             ]);
 
+        // Revoke the current access token to prevent 'ghost' heartbeats
+        // from the Chrome Extension creating new stray sessions.
+        $user->currentAccessToken()->delete();
+
         return response()->json([
             'success' => true,
             'sessions_ended' => $updated

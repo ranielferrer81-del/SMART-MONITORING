@@ -638,7 +638,7 @@ async function sendHeartbeat() {
         }
 
         // Send heartbeat with currently open tabs and computer name
-        await fetch(`${getApiBaseUrl()}/browser-activity/heartbeat`, {
+        const heartbeatResponse = await fetch(`${getApiBaseUrl()}/browser-activity/heartbeat`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${result[STORAGE_KEYS.TOKEN]}`,
@@ -650,6 +650,12 @@ async function sendHeartbeat() {
                 computer_name: result[STORAGE_KEYS.COMPUTER_NAME] || null
             })
         });
+
+        if (heartbeatResponse.status === 401) {
+            console.log('🔴 Token revoked (401). Immediately logging out extension...');
+            await autoLogoutFromDesktopApp();
+            return;
+        }
 
         // Check for force-close commands
         if (result[STORAGE_KEYS.USER] && result[STORAGE_KEYS.USER].id) {
