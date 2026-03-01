@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
     getOnlineStudents,
     getStudentBrowserActivity,
-    getIncognitoAlerts,
-    acknowledgeIncognitoAlert
+    getIncognitoAlerts
 } from '../api/browserMonitoring';
 
 const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
