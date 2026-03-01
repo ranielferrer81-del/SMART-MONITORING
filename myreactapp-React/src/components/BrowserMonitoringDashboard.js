@@ -381,8 +381,8 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
                                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                             </button>
                         </div>
-                        <div className="flex-1 overflow-y-auto p-0">
-                            <table className="w-full">
+                        <div className="flex-1 overflow-auto p-0">
+                            <table className="w-full min-w-max">
                                 <thead className="bg-slate-50 dark:bg-slate-900 text-xs uppercase text-slate-500 font-semibold border-b border-slate-200 dark:border-slate-700 sticky top-0">
                                     <tr>
                                         <th className="px-6 py-3 text-left">Time</th>
@@ -394,15 +394,15 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
                                     {studentActivity.length > 0 ? (
                                         studentActivity.map((log) => (
                                             <tr key={log.id} className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 ${log.is_incognito ? 'bg-red-50 dark:bg-red-900/10' : ''}`}>
-                                                <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                                                <td className="px-4 sm:px-6 py-4 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">
                                                     {new Date(log.visit_timestamp).toLocaleTimeString()}
                                                 </td>
-                                                <td className="px-6 py-4 text-sm text-slate-800 dark:text-slate-200 font-mono truncate max-w-sm" title={log.url}>
-                                                    <a href={log.url} target="_blank" rel="noopener noreferrer" className="text-rose-600 hover:text-rose-700 hover:underline dark:text-rose-400 dark:hover:text-rose-300">
+                                                <td className="px-4 sm:px-6 py-4 text-sm text-slate-800 dark:text-slate-200 font-mono" title={log.url}>
+                                                    <a href={log.url} target="_blank" rel="noopener noreferrer" className="text-rose-600 hover:text-rose-700 hover:underline dark:text-rose-400 dark:hover:text-rose-300 break-all block max-w-[200px] sm:max-w-md md:max-w-xl lg:max-w-2xl">
                                                         {log.url}
                                                     </a>
                                                 </td>
-                                                <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400 truncate max-w-sm">
+                                                <td className="px-4 sm:px-6 py-4 text-sm text-slate-600 dark:text-slate-400 truncate max-w-[150px] sm:max-w-xs md:max-w-md">
                                                     {log.page_title}
                                                 </td>
 
