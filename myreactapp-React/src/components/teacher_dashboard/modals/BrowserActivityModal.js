@@ -53,81 +53,83 @@ const BrowserActivityModal = ({
                         </button>
                     </div>
                 </div>
-                <div className="flex-1 overflow-auto p-0">
-                    <table className="w-full min-w-max">
-                        <thead className="bg-slate-50 dark:bg-slate-900 text-xs uppercase text-slate-500 font-semibold border-b border-slate-200 dark:border-slate-700 sticky top-0">
-                            <tr>
-                                <th className="px-6 py-3 text-center sticky left-0 bg-slate-50 dark:bg-slate-900 z-10">Actions</th>
-                                <th className="px-6 py-3 text-left">Time</th>
-                                <th className="px-6 py-3 text-left">URL</th>
-                                <th className="px-6 py-3 text-left">Title</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                            {studentActivity.length > 0 ? (
-                                studentActivity.map((log) => (
-                                    <tr key={log.id} className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 ${log.is_incognito ? 'bg-red-50 dark:bg-red-900/10' : ''}`}>
-                                        <td className="px-6 py-4 text-center sticky left-0 bg-white dark:bg-slate-800 z-10 border-r border-slate-200 dark:border-slate-700">
-                                            <button
-                                                onClick={async () => {
-                                                    if (!window.confirm(`Close this tab for ${currentViewStudent.full_name}?\n\nURL: ${log.url}\n\nThe tab will close within 5 seconds.`)) {
-                                                        return;
-                                                    }
-                                                    try {
-                                                        const { forceCloseStudentTab } = await import('../../../api/browserMonitoring');
-                                                        const result = await forceCloseStudentTab(currentViewStudent.id, log.id, log.url);
-                                                        if (result.ok) {
-                                                            // Remove from UI immediately for better UX
-                                                            setStudentActivity(prev => prev.filter(item => item.id !== log.id));
-                                                            alert('Tab close command sent! The tab will close within 5 seconds.');
-                                                        } else {
-                                                            alert('Failed to close tab: ' + (result.error || 'Unknown error'));
+                <div className="flex-1 overflow-auto p-0 w-full">
+                    <div className="w-full overflow-x-scroll no-scrollbar">
+                        <table className="w-full min-w-[800px]">
+                            <thead className="bg-slate-50 dark:bg-slate-900 text-xs uppercase text-slate-500 font-semibold border-b border-slate-200 dark:border-slate-700 sticky top-0">
+                                <tr>
+                                    <th className="px-6 py-3 text-center sticky left-0 bg-slate-50 dark:bg-slate-900 z-10">Actions</th>
+                                    <th className="px-6 py-3 text-left">Time</th>
+                                    <th className="px-6 py-3 text-left">URL</th>
+                                    <th className="px-6 py-3 text-left">Title</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                                {studentActivity.length > 0 ? (
+                                    studentActivity.map((log) => (
+                                        <tr key={log.id} className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 ${log.is_incognito ? 'bg-red-50 dark:bg-red-900/10' : ''}`}>
+                                            <td className="px-6 py-4 text-center sticky left-0 bg-white dark:bg-slate-800 z-10 border-r border-slate-200 dark:border-slate-700">
+                                                <button
+                                                    onClick={async () => {
+                                                        if (!window.confirm(`Close this tab for ${currentViewStudent.full_name}?\n\nURL: ${log.url}\n\nThe tab will close within 5 seconds.`)) {
+                                                            return;
                                                         }
-                                                    } catch (error) {
-                                                        alert('Error closing tab: ' + error.message);
-                                                    }
-                                                }}
-                                                className="inline-flex items-center px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold rounded-lg transition-all duration-200 shadow hover:shadow-md transform hover:scale-105"
-                                                title="Close this tab on student's browser"
-                                            >
-                                                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                </svg>
-                                                Close
-                                            </button>
-                                        </td>
-                                        <td className="px-4 sm:px-6 py-4 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">
-                                            {new Date(log.visit_timestamp).toLocaleTimeString()}
-                                            {log.is_incognito && (
-                                                <span className="ml-2 px-1.5 py-0.5 bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300 rounded text-xs font-semibold">
-                                                    Incognito
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="px-4 sm:px-6 py-4 text-sm font-mono whitespace-nowrap" title={log.url}>
-                                            <a
-                                                href={log.url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="text-rose-600 hover:text-rose-700 hover:underline dark:text-rose-400 dark:hover:text-rose-300"
-                                            >
-                                                {log.url}
-                                            </a>
-                                        </td>
-                                        <td className="px-4 sm:px-6 py-4 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">
-                                            {log.page_title || 'Untitled'}
+                                                        try {
+                                                            const { forceCloseStudentTab } = await import('../../../api/browserMonitoring');
+                                                            const result = await forceCloseStudentTab(currentViewStudent.id, log.id, log.url);
+                                                            if (result.ok) {
+                                                                // Remove from UI immediately for better UX
+                                                                setStudentActivity(prev => prev.filter(item => item.id !== log.id));
+                                                                alert('Tab close command sent! The tab will close within 5 seconds.');
+                                                            } else {
+                                                                alert('Failed to close tab: ' + (result.error || 'Unknown error'));
+                                                            }
+                                                        } catch (error) {
+                                                            alert('Error closing tab: ' + error.message);
+                                                        }
+                                                    }}
+                                                    className="inline-flex items-center px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold rounded-lg transition-all duration-200 shadow hover:shadow-md transform hover:scale-105"
+                                                    title="Close this tab on student's browser"
+                                                >
+                                                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                    </svg>
+                                                    Close
+                                                </button>
+                                            </td>
+                                            <td className="px-4 sm:px-6 py-4 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                                                {new Date(log.visit_timestamp).toLocaleTimeString()}
+                                                {log.is_incognito && (
+                                                    <span className="ml-2 px-1.5 py-0.5 bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300 rounded text-xs font-semibold">
+                                                        Incognito
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="px-4 sm:px-6 py-4 text-sm font-mono whitespace-nowrap" title={log.url}>
+                                                <a
+                                                    href={log.url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-rose-600 hover:text-rose-700 hover:underline dark:text-rose-400 dark:hover:text-rose-300"
+                                                >
+                                                    {log.url}
+                                                </a>
+                                            </td>
+                                            <td className="px-4 sm:px-6 py-4 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                                                {log.page_title || 'Untitled'}
+                                            </td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan={4} className="px-6 py-12 text-center text-slate-500">
+                                            No browsing history recorded
                                         </td>
                                     </tr>
-                                ))
-                            ) : (
-                                <tr>
-                                    <td colSpan={4} className="px-6 py-12 text-center text-slate-500">
-                                        No browsing history recorded
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>

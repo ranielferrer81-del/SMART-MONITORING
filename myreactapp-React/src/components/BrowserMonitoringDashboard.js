@@ -227,8 +227,8 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
                         </p>
                     </div>
 
-                    <div className="overflow-x-auto w-full">
-                        <table className="w-full">
+                    <div className="overflow-x-auto w-full overflow-x-scroll">
+                        <table className="w-full min-w-[600px]">
                             <thead className="bg-slate-100/50 dark:bg-slate-800/50">
                                 <tr>
                                     <th className="px-6 py-3 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
@@ -381,42 +381,44 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
                                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                             </button>
                         </div>
-                        <div className="flex-1 overflow-auto p-0">
-                            <table className="w-full min-w-max">
-                                <thead className="bg-slate-50 dark:bg-slate-900 text-xs uppercase text-slate-500 font-semibold border-b border-slate-200 dark:border-slate-700 sticky top-0">
-                                    <tr>
-                                        <th className="px-6 py-3 text-left">Time</th>
-                                        <th className="px-6 py-3 text-left">URL</th>
-                                        <th className="px-6 py-3 text-left">Title</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                                    {studentActivity.length > 0 ? (
-                                        studentActivity.map((log) => (
-                                            <tr key={log.id} className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 ${log.is_incognito ? 'bg-red-50 dark:bg-red-900/10' : ''}`}>
-                                                <td className="px-4 sm:px-6 py-4 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">
-                                                    {new Date(log.visit_timestamp).toLocaleTimeString()}
-                                                </td>
-                                                <td className="px-4 sm:px-6 py-4 text-sm text-slate-800 dark:text-slate-200 font-mono whitespace-nowrap" title={log.url}>
-                                                    <a href={log.url} target="_blank" rel="noopener noreferrer" className="text-rose-600 hover:text-rose-700 hover:underline dark:text-rose-400 dark:hover:text-rose-300">
-                                                        {log.url}
-                                                    </a>
-                                                </td>
-                                                <td className="px-4 sm:px-6 py-4 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">
-                                                    {log.page_title}
-                                                </td>
-
-                                            </tr>
-                                        ))
-                                    ) : (
+                        <div className="flex-1 overflow-auto p-0 w-full">
+                            <div className="w-full overflow-x-scroll no-scrollbar">
+                                <table className="w-full min-w-[800px]">
+                                    <thead className="bg-slate-50 dark:bg-slate-900 text-xs uppercase text-slate-500 font-semibold border-b border-slate-200 dark:border-slate-700 sticky top-0">
                                         <tr>
-                                            <td colSpan={3} className="px-6 py-12 text-center text-slate-500">
-                                                No activity recorded yet
-                                            </td>
+                                            <th className="px-6 py-3 text-left">Time</th>
+                                            <th className="px-6 py-3 text-left">URL</th>
+                                            <th className="px-6 py-3 text-left">Title</th>
                                         </tr>
-                                    )}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                                        {studentActivity.length > 0 ? (
+                                            studentActivity.map((log) => (
+                                                <tr key={log.id} className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 ${log.is_incognito ? 'bg-red-50 dark:bg-red-900/10' : ''}`}>
+                                                    <td className="px-4 sm:px-6 py-4 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                                                        {new Date(log.visit_timestamp).toLocaleTimeString()}
+                                                    </td>
+                                                    <td className="px-4 sm:px-6 py-4 text-sm text-slate-800 dark:text-slate-200 font-mono whitespace-nowrap" title={log.url}>
+                                                        <a href={log.url} target="_blank" rel="noopener noreferrer" className="text-rose-600 hover:text-rose-700 hover:underline dark:text-rose-400 dark:hover:text-rose-300">
+                                                            {log.url}
+                                                        </a>
+                                                    </td>
+                                                    <td className="px-4 sm:px-6 py-4 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                                                        {log.page_title}
+                                                    </td>
+
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan={3} className="px-6 py-12 text-center text-slate-500">
+                                                    No activity recorded yet
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
