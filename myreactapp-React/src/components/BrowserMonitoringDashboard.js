@@ -397,12 +397,12 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
                                                 <td className="px-4 sm:px-6 py-4 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">
                                                     {new Date(log.visit_timestamp).toLocaleTimeString()}
                                                 </td>
-                                                <td className="px-4 sm:px-6 py-4 text-sm text-slate-800 dark:text-slate-200 font-mono" title={log.url}>
-                                                    <a href={log.url} target="_blank" rel="noopener noreferrer" className="text-rose-600 hover:text-rose-700 hover:underline dark:text-rose-400 dark:hover:text-rose-300 break-all block max-w-[200px] sm:max-w-md md:max-w-xl lg:max-w-2xl">
+                                                <td className="px-4 sm:px-6 py-4 text-sm text-slate-800 dark:text-slate-200 font-mono whitespace-nowrap" title={log.url}>
+                                                    <a href={log.url} target="_blank" rel="noopener noreferrer" className="text-rose-600 hover:text-rose-700 hover:underline dark:text-rose-400 dark:hover:text-rose-300">
                                                         {log.url}
                                                     </a>
                                                 </td>
-                                                <td className="px-4 sm:px-6 py-4 text-sm text-slate-600 dark:text-slate-400 truncate max-w-[150px] sm:max-w-xs md:max-w-md">
+                                                <td className="px-4 sm:px-6 py-4 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">
                                                     {log.page_title}
                                                 </td>
 
