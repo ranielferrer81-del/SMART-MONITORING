@@ -202,8 +202,8 @@ export default function StudentDashboard() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col h-full relative z-10 lg:p-6 overflow-hidden min-w-0">
-        <div className="flex-1 flex flex-col bg-white/40 backdrop-blur-3xl border border-white/30 dark:bg-slate-900/40 dark:border-white/10 shadow-2xl lg:rounded-3xl overflow-hidden min-w-0">
+      <div className="flex-1 flex flex-col h-full relative z-10 lg:p-6 overflow-hidden">
+        <div className="flex-1 flex flex-col bg-white/40 backdrop-blur-3xl border border-white/30 dark:bg-slate-900/40 dark:border-white/10 shadow-2xl lg:rounded-3xl overflow-hidden">
           <header className="bg-white/50 backdrop-blur-md border-b border-white/20 dark:bg-slate-800/50 dark:border-white/10 sticky top-0 z-40">
             <div className="px-4 lg:px-8 py-4 lg:py-5">
               <div className="flex justify-between items-center">

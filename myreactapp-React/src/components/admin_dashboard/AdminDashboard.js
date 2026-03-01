@@ -760,7 +760,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-y-auto relative z-10 w-full min-w-0">
+      <div className="flex-1 overflow-y-auto relative z-10 w-full">
         <div className="p-4 lg:p-8">
           {/* Header */}
           <div className="flex items-center justify-between mb-6 lg:mb-8">
