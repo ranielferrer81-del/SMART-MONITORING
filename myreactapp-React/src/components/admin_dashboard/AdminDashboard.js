@@ -644,7 +644,7 @@ export default function AdminDashboard() {
       {/* Floating Sidebar */}
       <div className={`
         fixed lg:static inset-y-0 left-0 z-50 
-        w-80 lg:w-72 lg:h-[95vh] lg:my-auto lg:ml-6
+        w-[280px] sm:w-80 lg:w-72 lg:h-[95vh] lg:my-auto lg:ml-6
         bg-white/60 backdrop-blur-3xl border border-white/40 shadow-2xl 
         dark:bg-slate-900/60 dark:border-white/10
         lg:rounded-3xl transform transition-all duration-300 ease-in-out 
@@ -760,7 +760,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-y-auto relative z-10">
+      <div className="flex-1 overflow-y-auto relative z-10 w-full min-w-0">
         <div className="p-4 lg:p-8">
           {/* Header */}
           <div className="flex items-center justify-between mb-6 lg:mb-8">

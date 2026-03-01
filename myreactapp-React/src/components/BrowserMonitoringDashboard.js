@@ -98,7 +98,7 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0">
                 <div>
                     <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-50">
                         Browser Monitoring
@@ -217,17 +217,17 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
 
             {/* Student List View */}
             {selectedSection && students.length > 0 && (
-                <div className="bg-white/10 backdrop-blur-sm border border-slate-200/60 dark:border-slate-800/60 rounded-2xl overflow-hidden">
-                    <div className="p-6 border-b border-slate-200/60 dark:border-slate-800/60">
-                        <h3 className="text-xl font-bold text-slate-800 dark:text-slate-50">
+                <div className="bg-white/10 backdrop-blur-sm border border-slate-200/60 dark:border-slate-800/60 rounded-2xl overflow-hidden min-w-0">
+                    <div className="p-4 sm:p-6 border-b border-slate-200/60 dark:border-slate-800/60">
+                        <h3 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-slate-50">
                             {selectedCourse} - Section {selectedSection}
                         </h3>
-                        <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">
                             {students.length} enrolled student{students.length !== 1 ? 's' : ''}
                         </p>
                     </div>
 
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto w-full">
                         <table className="w-full">
                             <thead className="bg-slate-100/50 dark:bg-slate-800/50">
                                 <tr>
@@ -371,13 +371,13 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
 
             {/* Activity Modal */}
             {activityModalOpen && currentViewStudent && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[80vh] overflow-hidden flex flex-col border border-slate-200 dark:border-slate-700">
-                        <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-900/50">
-                            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-50">
+                <div className="fixed inset-0 z-[100] flex items-start justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm pt-8 sm:pt-20">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] sm:max-h-[85vh] overflow-hidden flex flex-col border border-slate-200 dark:border-slate-700">
+                        <div className="p-4 sm:p-6 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-900/50 gap-2">
+                            <h3 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-slate-50 min-w-0 truncate">
                                 Activity for {currentViewStudent.full_name}
                             </h3>
-                            <button onClick={() => setActivityModalOpen(false)} className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
+                            <button onClick={() => setActivityModalOpen(false)} className="flex-shrink-0 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 p-2">
                                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                             </button>
                         </div>

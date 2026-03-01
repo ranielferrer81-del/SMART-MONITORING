@@ -20,7 +20,7 @@ const StudentProfileModal = ({
 
     return (
         <div
-            className="fixed inset-0 bg-slate-900/10 dark:bg-slate-950/10 overflow-y-auto h-full w-full z-[100] flex items-start justify-center p-4 transition-opacity duration-300 pt-32"
+            className="fixed inset-0 bg-slate-900/10 dark:bg-slate-950/10 overflow-y-auto h-full w-full z-[100] flex items-start justify-center p-2 sm:p-4 transition-opacity duration-300 pt-8 sm:pt-32"
             onClick={() => {
                 setShowStudentProfile(false);
                 setSelectedStudent(null);
@@ -31,12 +31,12 @@ const StudentProfileModal = ({
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Modal Header */}
-                <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-800">
+                <div className="flex flex-row items-center justify-between p-4 sm:p-6 border-b border-slate-200 dark:border-slate-800">
                     <div>
-                        <h3 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent dark:from-indigo-400 dark:to-purple-400">
+                        <h3 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent dark:from-indigo-400 dark:to-purple-400">
                             Student Profile
                         </h3>
-                        <p className="text-sm text-slate-600 mt-1 dark:text-slate-400">
+                        <p className="text-xs sm:text-sm text-slate-600 mt-1 dark:text-slate-400">
                             View student credentials and information
                         </p>
                     </div>
@@ -57,7 +57,7 @@ const StudentProfileModal = ({
                 <div className="flex-1 overflow-y-auto p-6">
                     <div className="space-y-6">
                         {/* Profile Header */}
-                        <div className="flex items-center space-x-4 pb-6 border-b border-slate-200 dark:border-slate-700">
+                        <div className="flex flex-col sm:flex-row items-center sm:space-x-4 pb-6 border-b border-slate-200 dark:border-slate-700 gap-4 sm:gap-0 mt-2 sm:mt-0 text-center sm:text-left">
                             {getProfilePictureUrl(selectedStudent.profile_picture) ? (
                                 <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-rose-200 dark:border-rose-800 shadow-lg">
                                     <img

@@ -175,7 +175,7 @@ export default function StudentDashboard() {
       {mobileMenuOpen && <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setMobileMenuOpen(false)} />}
 
       {/* Sidebar */}
-      <div className={`fixed lg:static inset-y-0 left-0 z-50 w-80 lg:w-72 lg:h-[95vh] lg:my-auto lg:ml-6 bg-white/60 backdrop-blur-3xl border border-white/40 shadow-2xl dark:bg-slate-900/60 dark:border-white/10 lg:rounded-3xl transform transition-all duration-300 ease-in-out ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+      <div className={`fixed lg:static inset-y-0 left-0 z-50 w-[280px] sm:w-80 lg:w-72 lg:h-[95vh] lg:my-auto lg:ml-6 bg-white/60 backdrop-blur-3xl border border-white/40 shadow-2xl dark:bg-slate-900/60 dark:border-white/10 lg:rounded-3xl transform transition-all duration-300 ease-in-out ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         <div className="p-4 lg:p-6 h-full overflow-y-auto">
           <div className="flex items-center justify-between mb-6 lg:mb-8">
             <div className="flex items-center">
@@ -202,8 +202,8 @@ export default function StudentDashboard() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col h-full relative z-10 lg:p-6 overflow-hidden">
-        <div className="flex-1 flex flex-col bg-white/40 backdrop-blur-3xl border border-white/30 dark:bg-slate-900/40 dark:border-white/10 shadow-2xl lg:rounded-3xl overflow-hidden">
+      <div className="flex-1 flex flex-col h-full relative z-10 lg:p-6 overflow-hidden min-w-0">
+        <div className="flex-1 flex flex-col bg-white/40 backdrop-blur-3xl border border-white/30 dark:bg-slate-900/40 dark:border-white/10 shadow-2xl lg:rounded-3xl overflow-hidden min-w-0">
           <header className="bg-white/50 backdrop-blur-md border-b border-white/20 dark:bg-slate-800/50 dark:border-white/10 sticky top-0 z-40">
             <div className="px-4 lg:px-8 py-4 lg:py-5">
               <div className="flex justify-between items-center">
