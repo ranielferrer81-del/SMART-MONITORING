@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { forceCloseStudentBrowser } from '../../../api/browserMonitoring';
 
 const BrowserActivityModal = ({
@@ -10,7 +11,7 @@ const BrowserActivityModal = ({
 }) => {
     if (!activityModalOpen || !currentViewStudent) return null;
 
-    return (
+    return createPortal(
         <div className="fixed inset-0 z-[100] flex items-start justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm pt-8 sm:pt-32">
             <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] sm:max-h-[85vh] overflow-hidden flex flex-col border border-slate-200 dark:border-slate-700">
                 <div className="p-4 sm:p-6 border-b border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:justify-between sm:items-center bg-slate-50 dark:bg-slate-900/50 gap-4 sm:gap-0">
@@ -105,12 +106,12 @@ const BrowserActivityModal = ({
                                                     </span>
                                                 )}
                                             </td>
-                                            <td className="px-4 sm:px-6 py-4 text-sm font-mono whitespace-nowrap" title={log.url}>
+                                            <td className="px-4 sm:px-6 py-4 text-sm font-mono truncate max-w-[200px] sm:max-w-xs md:max-w-md" title={log.url}>
                                                 <a
                                                     href={log.url}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="text-rose-600 hover:text-rose-700 hover:underline dark:text-rose-400 dark:hover:text-rose-300"
+                                                    className="text-rose-600 hover:text-rose-700 hover:underline dark:text-rose-400 dark:hover:text-rose-300 block truncate"
                                                 >
                                                     {log.url}
                                                 </a>
@@ -132,7 +133,8 @@ const BrowserActivityModal = ({
                     </div>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 
