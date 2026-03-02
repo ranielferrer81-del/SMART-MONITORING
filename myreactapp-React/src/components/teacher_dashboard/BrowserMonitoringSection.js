@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { getSubjectEnrolledStudents } from '../../api/client';
 
 // Browser Monitoring Section Component
@@ -98,7 +99,7 @@ const BrowserMonitoringSection = ({ subjects, loadingSubjects, isStudentOnline, 
             </div>
 
             {/* Students Monitoring Modal */}
-            {showStudentsModal && selectedSubject && (
+            {showStudentsModal && selectedSubject && createPortal(
                 <div
                     className="fixed inset-0 bg-slate-900/10 dark:bg-slate-950/10 overflow-y-auto h-full w-full z-[100] flex items-center justify-center px-2 py-4 sm:p-4 transition-opacity duration-300"
                     onClick={() => {
@@ -222,7 +223,8 @@ const BrowserMonitoringSection = ({ subjects, loadingSubjects, isStudentOnline, 
                             )}
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </>
     );
