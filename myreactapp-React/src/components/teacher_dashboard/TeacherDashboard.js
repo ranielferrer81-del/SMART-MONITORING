@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import { listSubjects, getSubjectEnrolledStudents, fetchMe, uploadTeacherProfilePicture, deleteTeacherProfilePicture, getStudentAttendanceHistory, fetchAllStudentsForTeacher, enrollStudentToSubject } from '../../api/client';
 import { getOnlineStudents, getIncognitoAlerts, getRealtimeBrowserActivity } from '../../api/browserMonitoring';
 import ThemeToggle from '../../components/ThemeToggle';
@@ -542,7 +541,7 @@ export default function TeacherDashboard() {
             )}
 
             {/* Enrolled Students Modal */}
-            {showStudentsModal && selectedSubject && createPortal(
+            {showStudentsModal && selectedSubject && (
               <div className="fixed inset-0 bg-slate-900/10 dark:bg-slate-950/10 overflow-y-auto h-full w-full z-[100] flex items-center justify-center px-2 py-4 sm:p-4 transition-opacity duration-300" onClick={() => { setShowStudentsModal(false); setSelectedSubject(null); setEnrolledStudents([]); }}>
                 <div className="relative bg-white/20 backdrop-blur-xl rounded-2xl shadow-2xl w-11/12 max-w-full sm:max-w-6xl mx-auto max-h-[90vh] flex flex-col transform transition-all duration-300 scale-100 border border-white/20 dark:bg-slate-900/40 dark:border-white/10" onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-800">
@@ -603,8 +602,7 @@ export default function TeacherDashboard() {
                     )}
                   </div>
                 </div>
-              </div>,
-              document.body
+              </div>
             )}
 
             {/* Extracted Modals */}

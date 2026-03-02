@@ -382,7 +382,7 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
                             </button>
                         </div>
                         <div className="flex-1 overflow-auto p-0 w-full">
-                            <div className="w-full overflow-x-scroll no-scrollbar">
+                            <div className="w-full overflow-x-auto">
                                 <table className="w-full min-w-[800px]">
                                     <thead className="bg-slate-50 dark:bg-slate-900 text-xs uppercase text-slate-500 font-semibold border-b border-slate-200 dark:border-slate-700 sticky top-0">
                                         <tr>
@@ -398,12 +398,12 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
                                                     <td className="px-4 sm:px-6 py-4 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">
                                                         {new Date(log.visit_timestamp).toLocaleTimeString()}
                                                     </td>
-                                                    <td className="px-4 sm:px-6 py-4 text-sm text-slate-800 dark:text-slate-200 font-mono truncate max-w-[200px] sm:max-w-xs md:max-w-md" title={log.url}>
-                                                        <a href={log.url} target="_blank" rel="noopener noreferrer" className="text-rose-600 hover:text-rose-700 hover:underline dark:text-rose-400 dark:hover:text-rose-300 block truncate">
+                                                    <td className="px-4 sm:px-6 py-4 text-sm text-slate-800 dark:text-slate-200 font-mono break-all whitespace-normal max-w-xs sm:max-w-md xl:max-w-xl" title={log.url}>
+                                                        <a href={log.url} target="_blank" rel="noopener noreferrer" className="text-rose-600 hover:text-rose-700 hover:underline dark:text-rose-400 dark:hover:text-rose-300">
                                                             {log.url}
                                                         </a>
                                                     </td>
-                                                    <td className="px-4 sm:px-6 py-4 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                                                    <td className="px-4 sm:px-6 py-4 text-sm text-slate-600 dark:text-slate-400 break-words whitespace-normal max-w-xs sm:max-w-sm">
                                                         {log.page_title}
                                                     </td>
 

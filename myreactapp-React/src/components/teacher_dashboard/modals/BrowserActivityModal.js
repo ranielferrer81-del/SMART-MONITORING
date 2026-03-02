@@ -1,5 +1,4 @@
 import React from 'react';
-import { createPortal } from 'react-dom';
 import { forceCloseStudentBrowser } from '../../../api/browserMonitoring';
 
 const BrowserActivityModal = ({
@@ -11,7 +10,7 @@ const BrowserActivityModal = ({
 }) => {
     if (!activityModalOpen || !currentViewStudent) return null;
 
-    return createPortal(
+    return (
         <div className="fixed inset-0 z-[100] flex items-start justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm pt-8 sm:pt-32">
             <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] sm:max-h-[85vh] overflow-hidden flex flex-col border border-slate-200 dark:border-slate-700">
                 <div className="p-4 sm:p-6 border-b border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:justify-between sm:items-center bg-slate-50 dark:bg-slate-900/50 gap-4 sm:gap-0">
@@ -55,7 +54,7 @@ const BrowserActivityModal = ({
                     </div>
                 </div>
                 <div className="flex-1 overflow-auto p-0 w-full">
-                    <div className="w-full overflow-x-scroll no-scrollbar">
+                    <div className="w-full overflow-x-auto">
                         <table className="w-full min-w-[800px]">
                             <thead className="bg-slate-50 dark:bg-slate-900 text-xs uppercase text-slate-500 font-semibold border-b border-slate-200 dark:border-slate-700 sticky top-0">
                                 <tr>
@@ -106,17 +105,17 @@ const BrowserActivityModal = ({
                                                     </span>
                                                 )}
                                             </td>
-                                            <td className="px-4 sm:px-6 py-4 text-sm font-mono truncate max-w-[200px] sm:max-w-xs md:max-w-md" title={log.url}>
+                                            <td className="px-4 sm:px-6 py-4 text-sm font-mono break-all whitespace-normal max-w-xs sm:max-w-md xl:max-w-xl" title={log.url}>
                                                 <a
                                                     href={log.url}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="text-rose-600 hover:text-rose-700 hover:underline dark:text-rose-400 dark:hover:text-rose-300 block truncate"
+                                                    className="text-rose-600 hover:text-rose-700 hover:underline dark:text-rose-400 dark:hover:text-rose-300"
                                                 >
                                                     {log.url}
                                                 </a>
                                             </td>
-                                            <td className="px-4 sm:px-6 py-4 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                                            <td className="px-4 sm:px-6 py-4 text-sm text-slate-600 dark:text-slate-400 break-words whitespace-normal max-w-xs sm:max-w-sm">
                                                 {log.page_title || 'Untitled'}
                                             </td>
                                         </tr>
@@ -133,8 +132,7 @@ const BrowserActivityModal = ({
                     </div>
                 </div>
             </div>
-        </div>,
-        document.body
+        </div>
     );
 };
 
