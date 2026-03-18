@@ -38,7 +38,7 @@ RUN echo '#!/bin/bash\n\
 set -e\n\
 \n\
 # Check if database has been seeded (users table exists)\n\
-TABLE_CHECK=$(mysql -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USERNAME" -p"$DB_PASSWORD" --ssl-mode=DISABLED "$DB_DATABASE" -e "SHOW TABLES LIKE '"'"'users'"'"';" 2>/dev/null | grep -c users || true)\n\
+TABLE_CHECK=$(mysql -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USERNAME" -p"$DB_PASSWORD" --skip-ssl "$DB_DATABASE" -e "SHOW TABLES LIKE '"'"'users'"'"';" 2>/dev/null | grep -c users || true)\n\
 \n\
 if [ "$TABLE_CHECK" = "0" ]; then\n\
   echo "=== First run: importing database schema and seed data ==="\n\

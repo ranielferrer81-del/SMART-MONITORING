@@ -39,6 +39,6 @@ sed \
   "$SQL_FILE" > "$CLEAN_FILE"
 
 echo "Importing database..."
-mysql -h "$HOST" -P "$PORT" -u "$USER" -p"$PASS" --ssl-mode=DISABLED "$DBNAME" < "$CLEAN_FILE"
+mysql -h "$HOST" -P "$PORT" -u "$USER" -p"$PASS" --skip-ssl "$DBNAME" < "$CLEAN_FILE"
 
 echo "=== Import completed successfully! ==="
