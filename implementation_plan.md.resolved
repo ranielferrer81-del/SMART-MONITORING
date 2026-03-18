@@ -1,0 +1,308 @@
+# PC & Laboratory Identification — Deep Plan
+
+## The Core Problem
+
+Same hostname (e.g., `PC1`) exists in multiple labs. So `PC1` alone is **ambiguous** — is it `PC1` in Lab 1 or `PC1` in Lab 2?
+
+We need a **second piece of information** to identify the lab. That second piece lives in the **network** — specifically, in the router/switch the PC is connected to.
+
+---
+
+## How Campus Networks Work (Your Setup)
+
+```
+INTERNET
+    │
+ Main Router (campus)
+    ├── Switch/Router for Laboratory 1  → gateway: 192.168.1.1  → subnet: 192.168.1.x
+    │       ├── PC1  (192.168.1.11)
+    │       ├── PC2  (192.168.1.12)
+    │       └── PC3  (192.168.1.13)
+    │
+    ├── Switch/Router for Laboratory 2  → gateway: 192.168.2.1  → subnet: 192.168.2.x
+    │       ├── PC1  (192.168.2.11)
+    │       ├── PC2  (192.168.2.12)
+    │       └── PC3  (192.168.2.13)
+    │
+    └── Switch/Router for Laboratory 3  → gateway: 192.168.3.1  → subnet: 192.168.3.x
+            └── ...
+```
+
+Each lab has its own **switch/router with a different IP range (subnet)**. This is the standard campus setup.
+
+### The Key Insight
+
+Every PC knows:
+1. Its own **hostname** → `PC1` (configured in Windows Settings)
+2. Its own **IP address** → e.g., `192.168.2.11`
+3. Its **gateway (router) IP** → e.g., `192.168.2.1` ← **This identifies the lab!**
+
+So: **Gateway IP `192.168.2.1` = Laboratory 2**
+
+Combined identifier: `hostname` + `gateway IP` → `PC1 — Laboratory 2`
+
+---
+
+## The Two-Table Database Design
+
+We need **two separate mappings**:
+
+### Table 1: `lab_gateways` *(NEW)*
+Maps gateway IP to a laboratory room name.
+
+| id | gateway_ip | laboratory_room |
+|----|-----------|-----------------|
+| 1 | 192.168.1.1 | Laboratory 1 |
+| 2 | 192.168.2.1 | Laboratory 2 |
+| 3 | 192.168.3.1 | Laboratory 3 |
+
+Admin adds one entry per laboratory. This never changes unless the IT team reconfigures the network.
+
+### Table 2: `lab_computers` *(existing — needs schema change)*
+Maps hostname to a human-readable display name, **per lab** (not globally unique).
+
+Current unique constraint: `computer_name` must be globally unique ❌ → **Wrong for your case**
+
+New design: unique constraint on [(hostname, laboratory_room)](file:///c:/Users/ranie/OneDrive/Desktop/Sia-Web/Backend-Laravel/app/Http/Controllers/Api/AuthController.php#101-175). This enforces your exact rule:
+- `PC1` in `Laboratory 1` ✅
+- `PC1` in `Laboratory 2` ✅ (Same hostname, different lab)
+- `PC1` in `Laboratory 1` second time ❌ (Not allowed: same hostname in SAME lab)
+
+| id | hostname | display_name | laboratory_room |
+|----|----------|-------------|-----------------|
+| 1 | PC1 | PC 1 | Laboratory 1 |
+| 2 | PC2 | PC 2 | Laboratory 1 |
+| 3 | PC1 | PC 1 | Laboratory 2 |
+| 4 | PC2 | PC 2 | Laboratory 2 |
+
+> [!NOTE]
+> `display_name` is optional — it can just mirror `hostname` or be a friendly alias like "PC Near Window". Admin can customize.
+
+### Monitoring Sessions *(existing — minor change)*
+Add `gateway_ip` column alongside the existing `computer_name` column so we always know **both** pieces:
+
+| student_user_id | computer_name | gateway_ip | laboratory_room (resolved) |
+|---|---|---|---|
+| 5 | PC1 | 192.168.2.1 | Laboratory 2 |
+| 8 | PC1 | 192.168.1.1 | Laboratory 1 |
+
+---
+
+## Data Flow (End to End)
+
+```
+┌─────────────────────────────────┐
+│  STUDENT'S PC                   │
+│                                 │
+│  Electron Desktop App           │
+│  ├─ os.hostname() → "PC1"       │
+│  └─ Network → gateway "192.168.2.1" │
+│         │                       │
+│         ▼                       │
+│  Chrome Extension               │
+│  └─ Heartbeat payload:          │
+│     { computer_name: "PC1",     │
+│       gateway_ip: "192.168.2.1" }│
+└────────────┬────────────────────┘
+             │ POST /api/browser-activity/heartbeat
+             ▼
+┌─────────────────────────────────┐
+│  LARAVEL BACKEND                │
+│                                 │
+│  1. Save computer_name +        │
+│     gateway_ip to session       │
+│                                 │
+│  2. Look up lab_gateways:       │
+│     192.168.2.1 → "Laboratory 2"│
+│                                 │
+│  3. Look up lab_computers:      │
+│     PC1 + Lab 2 → display name  │
+│                                 │
+│  4. Store laboratory_room on    │
+│     monitoring_sessions         │
+└────────────┬────────────────────┘
+             │
+             ▼
+┌─────────────────────────────────┐
+│  ADMIN / TEACHER DASHBOARD      │
+│                                 │
+│  Online Students:               │
+│  ● Juan dela Cruz               │
+│    PC1 — Laboratory 2           │
+│                                 │
+│  ● Maria Santos                 │
+│    PC3 — Laboratory 1           │
+└─────────────────────────────────┘
+```
+
+---
+
+## How the Electron App Gets the Gateway IP
+
+The Desktop App (Electron) already runs Node.js. Getting the gateway is straightforward:
+
+```js
+// In Electron main process (Node.js)
+const { networkInterfaces } = require('os');
+// OR use a small package: systeminformation or default-gateway
+const defaultGateway = require('default-gateway');
+
+const { gateway } = await defaultGateway.v4();
+// Returns: "192.168.2.1"
+```
+
+Then passes it to the Chrome Extension via the existing communication channel (native messaging or shared local storage).
+
+---
+
+## How the Chrome Extension Gets the Hostname
+
+Two sources (Electron app already reads `os.hostname()` for the login barcode system):
+1. **Already available**: The Electron app sends the hostname to the extension — we just need to also send the gateway IP alongside it.
+2. The extension stores both in `chrome.storage.local` and includes them in every heartbeat.
+
+---
+
+## What Needs to Be Built
+
+### Layer A: Network / IT Setup (One-time admin task, not code)
+- IT admin ensures each lab's switch/router uses a **different subnet**
+- IT admin configures Windows hostnames: `PC1`, `PC2`, `PC3` on each machine
+- This is standard practice — if it's already done, zero extra work
+
+### Layer B: Electron Desktop App
+#### [MODIFY] Main process / heartbeat sender
+- Read `os.hostname()` (already done for barcode login)
+- Read default gateway IP using `default-gateway` npm package (new)
+- Pass both to Chrome Extension via existing IPC/native messaging
+
+### Layer C: Chrome Extension
+#### [MODIFY] Background service worker
+- Receive `computer_name` + `gateway_ip` from Electron (or read from storage)
+- Include both in every heartbeat request body
+
+### Layer D: Backend — Database
+#### [NEW] Migration: `create_lab_gateways_table`
+```sql
+gateway_ip      VARCHAR(45)  UNIQUE   -- e.g., "192.168.2.1"
+laboratory_room VARCHAR(255)          -- e.g., "Laboratory 2"
+description     VARCHAR(255) NULL     -- e.g., "3rd floor east wing"
+```
+
+#### [MODIFY] Migration: `update_lab_computers_table`
+- Remove global unique constraint on `computer_name`
+- Rename `computer_name` → `hostname` (clearer)  
+- Add `display_name` (nullable, defaults to hostname)
+- New unique constraint on [(hostname, laboratory_room)](file:///c:/Users/ranie/OneDrive/Desktop/Sia-Web/Backend-Laravel/app/Http/Controllers/Api/AuthController.php#101-175)
+
+#### [MODIFY] Migration: `add_gateway_ip_to_monitoring_sessions`
+- Add `gateway_ip VARCHAR(45) NULL` to `monitoring_sessions`
+
+### Layer E: Backend — Models & Controllers
+#### [NEW] `LabGateway` model
+#### [NEW] `LabGatewayController` (CRUD: admin only)
+- `GET /api/lab-gateways` — list all
+- `POST /api/lab-gateways` — create
+- `PATCH /api/lab-gateways/{id}` — update
+- `DELETE /api/lab-gateways/{id}` — delete
+
+#### [MODIFY] `BrowserActivityController::heartbeat()`
+```
+1. Accept gateway_ip from request
+2. Save gateway_ip to session
+3. Look up lab_gateways by gateway_ip → get laboratory_room
+4. Save laboratory_room to session
+5. Look up lab_computers by (hostname + laboratory_room) → display_name
+```
+
+#### [MODIFY] `BrowserActivityController::getOnlineStudents()`
+- Return `computer_name`, `gateway_ip`, `laboratory_room`, `display_name` on each student
+
+#### [MODIFY] [LabComputerController](file:///c:/Users/ranie/OneDrive/Desktop/Sia-Web/Backend-Laravel/app/Http/Controllers/Api/LabComputerController.php#10-146)
+- Update CRUD to match new schema (hostname + display_name + laboratory_room)
+- Open [index()](file:///c:/Users/ranie/OneDrive/Desktop/Sia-Web/Backend-Laravel/app/Http/Controllers/Api/LabComputerController.php#12-45) to teachers as well (currently admin-only)
+
+### Layer F: Frontend — Admin UI
+
+#### [NEW] Lab Management Page (Admin Dashboard)
+
+**Tab 1: Laboratory Rooms (Gateway Mappings)**
+| Gateway IP | Laboratory Name | Description | Actions |
+|---|---|---|---|
+| 192.168.1.1 | Laboratory 1 | | Edit / Delete |
+| 192.168.2.1 | Laboratory 2 | | Edit / Delete |
+
+**Tab 2: PC Computers**
+| Hostname | Display Name | Lab Room | Actions |
+|---|---|---|---|
+| PC1 | PC 1 | Laboratory 1 | Edit / Delete |
+| PC1 | PC 1 | Laboratory 2 | Edit / Delete |
+| PC2 | PC 2 | Laboratory 1 | Edit / Delete |
+
+> [!TIP]
+> Admin only needs to fill in the **Gateway Mappings** table (one row per lab). The PC table can be auto-populated when the first student heartbeats from a new PC (auto-discover mode), or filled in manually beforehand.
+
+#### [MODIFY] Admin + Teacher Browser Monitoring Dashboard
+- Each online student card shows:
+  - Computer hostname
+  - Laboratory room
+  - Full label: `PC1 — Laboratory 2`
+  - If gateway not mapped: show raw IP or "Unknown Lab"
+  - If PC not in table: show hostname + lab room (still useful)
+
+---
+
+## Auto-Discovery Mode (Optional Enhancement)
+
+When a student heartbeats from a PC that isn't in `lab_computers` yet, the system can:
+1. **Still resolve the lab** via `lab_gateways` (gateway IP → lab name) ✅
+2. Log an "unknown PC" entry with the raw hostname
+3. Admin/teacher still sees `PC1 — Laboratory 2` even without pre-configuration
+4. Admin can optionally add a display name later
+
+This means the system works **even if admin hasn't pre-configured all PCs** — just the gateway table needs to be filled.
+
+---
+
+## Database Schema (Final)
+
+```
+lab_gateways            lab_computers                  monitoring_sessions
+─────────────           ─────────────────              ──────────────────────
+id                      id                             ...
+gateway_ip (unique)     hostname                       computer_name
+laboratory_room         display_name                   gateway_ip
+description             laboratory_room                laboratory_room (cached)
+                        [UNIQUE: hostname+lab_room]    last_heartbeat
+```
+
+---
+
+## Summary of New API Endpoints
+
+| Method | Endpoint | Who | Purpose |
+|---|---|---|---|
+| GET | `/api/lab-gateways` | Admin, Teacher | List all gateway→lab mappings |
+| POST | `/api/lab-gateways` | Admin | Add a new lab gateway |
+| PATCH | `/api/lab-gateways/{id}` | Admin | Update lab gateway |
+| DELETE | `/api/lab-gateways/{id}` | Admin | Remove lab gateway |
+
+*(Existing lab-computers endpoints are updated, not replaced)*
+
+---
+
+## Verification Plan
+
+### Network Test
+1. Confirm each lab switch/router has a unique gateway IP
+
+### Backend API Tests (Postman)
+1. Create a gateway mapping: `POST /api/lab-gateways` `{ gateway_ip: "192.168.2.1", laboratory_room: "Laboratory 2" }`
+2. `POST /api/browser-activity/heartbeat` with `{ computer_name: "PC1", gateway_ip: "192.168.2.1" }` → expect session to show `laboratory_room: "Laboratory 2"`
+3. Repeat from a "Lab 1" gateway — verify `PC1 + 192.168.1.1 → Laboratory 1`
+4. `GET /api/browser-activity/online-students` → verify both students show correct lab
+
+### Frontend Test
+1. Admin logs in → Lab Management → adds two labs with different gateway IPs
+2. Two students log in from different labs on `PC1` → both show `PC1` but different lab rooms
+3. Dashboard shows `PC1 — Laboratory 1` and `PC1 — Laboratory 2` simultaneously ✅
