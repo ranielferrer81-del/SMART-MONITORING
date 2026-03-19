@@ -30,8 +30,8 @@ RUN mkdir -p storage/app/public/profile_pictures \
     bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache
 
-# Make import script executable
-RUN chmod +x database/import.sh
+# Make import script unix line endings and executable
+RUN sed -i 's/\r$//' database/import.sh && chmod +x database/import.sh
 
 # Create startup script
 RUN echo '#!/bin/bash\n\
