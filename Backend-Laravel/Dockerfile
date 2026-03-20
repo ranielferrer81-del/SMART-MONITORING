@@ -37,6 +37,13 @@ RUN sed -i 's/\r$//' database/import.sh && chmod +x database/import.sh
 RUN echo '#!/bin/bash\n\
 set -e\n\
 \n\
+# Clean variables from invisible Windows newlines if pasted from dashboard\n\
+export DB_HOST=$(echo -n "$DB_HOST" | tr -d "\r\n ")\n\
+export DB_PORT=$(echo -n "$DB_PORT" | tr -d "\r\n ")\n\
+export DB_DATABASE=$(echo -n "$DB_DATABASE" | tr -d "\r\n ")\n\
+export DB_USERNAME=$(echo -n "$DB_USERNAME" | tr -d "\r\n ")\n\
+export DB_PASSWORD=$(echo -n "$DB_PASSWORD" | tr -d "\r\n ")\n\
+\n\
 # Check if database has been seeded (users table exists)\n\
 TABLE_CHECK=$(mysql -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USERNAME" -p"$DB_PASSWORD" --skip-ssl "$DB_DATABASE" -e "SHOW TABLES LIKE '"'"'users'"'"';" 2>/dev/null | grep -c users || true)\n\
 \n\
