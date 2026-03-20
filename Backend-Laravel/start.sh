@@ -20,4 +20,4 @@ fi
 php artisan config:clear 2>&1 || true
 
 echo "=== Starting Laravel server ==="
-exec php -S 0.0.0.0:${PORT:-8000} -t public
+exec php artisan serve --host=0.0.0.0 --port=${PORT:-8000}
