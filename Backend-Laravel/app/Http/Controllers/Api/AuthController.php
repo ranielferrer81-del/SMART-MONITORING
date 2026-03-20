@@ -16,10 +16,11 @@ class AuthController extends Controller
 {
     public function login(Request $request)
     {
-        $validated = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required', 'string', 'min:3'],
-        ]);
+        try {
+            $validated = $request->validate([
+                'email' => ['required', 'email'],
+                'password' => ['required', 'string', 'min:3'],
+            ]);
 
         $email = strtolower(trim($validated['email']));
         /** @var \App\Models\User|null $user */
@@ -82,20 +83,26 @@ class AuthController extends Controller
             }
         }
 
-        return response()->json([
-            'ok' => true,
-            'user' => [
-                'id' => $user->id,
-                'email' => $user->email,
-                'fullName' => $user->full_name ?? $user->name ?? null,
-                'role' => $role,
-                'student_number' => $studentNumber,
-                'course' => $course,
-                'section' => $section,
-            ],
-            'token' => $token,
-            'route' => $route,
-        ]);
+            return response()->json([
+                'ok' => true,
+                'user' => [
+                    'id' => $user->id,
+                    'email' => $user->email,
+                    'fullName' => $user->full_name ?? $user->name ?? null,
+                    'role' => $role,
+                    'student_number' => $studentNumber,
+                    'course' => $course,
+                    'section' => $section,
+                ],
+                'token' => $token,
+                'route' => $route,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Backend Error: ' . $e->getMessage() . ' (Line ' . $e->getLine() . ')'
+            ], 500);
+        }
     }
 
     public function me(Request $request)

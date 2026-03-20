@@ -55,6 +55,11 @@ else\n\
 fi\n\
 \n\
 # Generate app key if not set\n\
+if [ -z "$APP_KEY" ]; then\n\
+  echo "APP_KEY is missing, generating one..."\n\
+  touch /app/.env\n\
+  php artisan key:generate --force\n\
+fi\n\
 php artisan config:clear\n\
 \n\
 echo "=== Starting Laravel server ==="\n\
