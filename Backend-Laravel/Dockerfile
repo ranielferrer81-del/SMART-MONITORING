@@ -32,8 +32,8 @@ RUN mkdir -p storage/app/public/profile_pictures \
 
 # NOTE: No storage:link needed - StorageController in web.php serves files via /storage/* route
 
-# Make import script executable
-RUN chmod +x database/import.sh
+# Make scripts executable
+RUN chmod +x database/import.sh entrypoint.sh
 
-# Start the application
-CMD php artisan serve --host=0.0.0.0 --port=${PORT:-8080}
+# Start the application via entrypoint (maps Railway env vars → .env → Laravel)
+CMD ["/app/entrypoint.sh"]

@@ -3,6 +3,15 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\StorageController;
 
+// Explicit CORS preflight handler for ALL routes - safety net
+Route::options('/{any}', function () {
+    return response('', 200)
+        ->header('Access-Control-Allow-Origin', '*')
+        ->header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
+        ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept')
+        ->header('Access-Control-Max-Age', '86400');
+})->where('any', '.*');
+
 Route::get('/', function () {
     return response()->json(['status' => 'ok', 'message' => 'Laravel is running']);
 });
@@ -35,3 +44,4 @@ Route::get('/run-migrations-for-railway', function () {
         return "Migration failed: " . $e->getMessage();
     }
 });
+
