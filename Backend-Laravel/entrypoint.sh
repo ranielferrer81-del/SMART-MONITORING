@@ -51,7 +51,7 @@ fi
 #    Laravel reads .env at boot; without it, env() returns nulls
 # ---------------------------------------------------------------
 echo "Writing .env file from environment variables..."
-cat > /app/.env << ENVFILE
+cat > ./.env << ENVFILE
 APP_NAME=${APP_NAME:-SIA}
 APP_ENV=${APP_ENV}
 APP_KEY=${APP_KEY}
