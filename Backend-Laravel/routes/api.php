@@ -5,6 +5,16 @@ use Illuminate\Support\Facades\DB;
 
 
 
+// Explicit CORS preflight handler for ALL API routes - safety net
+Route::options('/{any}', function () {
+    return response('', 200)
+        ->header('Access-Control-Allow-Origin', '*')
+        ->header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
+        ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept')
+        ->header('Access-Control-Max-Age', '86400');
+})->where('any', '.*');
+
+
 // TEMPORARY: Fix profile_picture columns for base64 storage - visit once then remove
 Route::get('/fix-profile-columns', function () {
     try {
