@@ -37,5 +37,8 @@ RUN mkdir -p storage/app/public/profile_pictures \
 RUN dos2unix entrypoint.sh database/import.sh || true
 RUN chmod +x database/import.sh entrypoint.sh
 
+# Expose port 8080 explicitly for Railway's proxy router
+EXPOSE 8080
+
 # Start the application via entrypoint (maps Railway env vars → .env → Laravel)
 CMD ["/app/entrypoint.sh"]
