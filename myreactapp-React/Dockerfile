@@ -12,6 +12,8 @@ RUN npm install
 COPY . .
 
 # Build the React app
+ARG REACT_APP_API_BASE
+ENV REACT_APP_API_BASE=$REACT_APP_API_BASE
 RUN CI=false npm run build
 
 # Start the server
