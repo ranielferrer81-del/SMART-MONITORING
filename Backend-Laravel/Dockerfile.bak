@@ -37,5 +37,6 @@ RUN mkdir -p storage/app/public/profile_pictures \
 # Make import script executable
 RUN chmod +x database/import.sh
 
-# Start the application
-CMD php artisan serve --host=0.0.0.0 --port=${PORT:-8000}
+# Railway typically forwards port 8080. Default to 8080 to avoid 502s.
+EXPOSE 8080
+CMD php artisan serve --host=0.0.0.0 --port=${PORT:-8080}
