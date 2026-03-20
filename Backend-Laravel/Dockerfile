@@ -44,13 +44,10 @@ RUN mkdir -p storage/framework/cache/data \
 RUN chown -R www-data:www-data storage bootstrap/cache
 RUN chmod -R 777 storage bootstrap/cache
 
-# Remove any leaked local .env file so Railway variables are strictly used
-RUN rm -f .env
+# Remove any leaked local configuration files
+RUN rm -f .env docker-entrypoint.sh start.sh Procfile || true
 
-# Copy our custom startup script that handles runtime variables
-COPY docker-entrypoint.sh /usr/local/bin/
-RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
-
-# Start the application using our script
-CMD ["/usr/local/bin/docker-entrypoint.sh"]
+# We embed the startup commands entirely inside the CMD string. 
+# This completely bypasses any missing files or formatting issues (like invisible Windows line-endings).
+# It dynamically assigns Apache to listen on Railway's $PORT, clears caches, and starts the server.
+CMD sh -c "sed -i \"s/Listen 80/Listen ${PORT:-8080}/g\" /etc/apache2/ports.conf && sed -i \"s/:80/:${PORT:-8080}/g\" /etc/apache2/sites-available/000-default.conf && php artisan config:clear && apache2-foreground"
