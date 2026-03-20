@@ -12,13 +12,19 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /app
 
-# Copy project files
-COPY . .
-
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
+# Copy composer files first for better caching
+COPY composer.json composer.lock ./
+
 # Install PHP dependencies
+RUN composer install --no-dev --optimize-autoloader --no-scripts
+
+# Copy project files
+COPY . .
+
+# Re-run composer to trigger post-install scripts (package:discover etc)
 RUN composer install --no-dev --optimize-autoloader
 
 # Create storage directories with proper permissions
@@ -30,10 +36,16 @@ RUN mkdir -p storage/app/public/profile_pictures \
     bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache
 
-# Make import script unix line endings and executable
-RUN sed -i 's/\r$//' database/import.sh && chmod +x database/import.sh
+# Fix line endings for shell scripts
+RUN sed -i 's/\r$//' database/import.sh 2>/dev/null || true && chmod +x database/import.sh 2>/dev/null || true
 
+# Copy and fix start script
 COPY start.sh /app/start.sh
 RUN sed -i 's/\r$//' /app/start.sh && chmod +x /app/start.sh
+
+# Remove any local .env that might have leaked in
+RUN rm -f /app/.env
+
+EXPOSE ${PORT:-8000}
 
 CMD ["/bin/bash", "/app/start.sh"]
