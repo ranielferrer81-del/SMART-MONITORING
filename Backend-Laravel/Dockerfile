@@ -2,10 +2,12 @@ FROM php:8.2-cli
 
 # Install system dependencies and dos2unix
 RUN apt-get update && apt-get install -y \
+    bash \
     git \
     unzip \
     libzip-dev \
     default-mysql-client \
+    openssl \
     dos2unix \
     && docker-php-ext-install pdo pdo_mysql zip \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
