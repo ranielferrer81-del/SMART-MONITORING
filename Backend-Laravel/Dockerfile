@@ -6,6 +6,7 @@ RUN apt-get update && apt-get install -y \
     unzip \
     libzip-dev \
     default-mysql-client \
+    dos2unix \
     && docker-php-ext-install pdo pdo_mysql zip \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
@@ -32,7 +33,8 @@ RUN mkdir -p storage/app/public/profile_pictures \
 
 # NOTE: No storage:link needed - StorageController in web.php serves files via /storage/* route
 
-# Make scripts executable
+# Make scripts executable and ensure UNIX line endings
+RUN dos2unix entrypoint.sh database/import.sh || true
 RUN chmod +x database/import.sh entrypoint.sh
 
 # Start the application via entrypoint (maps Railway env vars → .env → Laravel)
