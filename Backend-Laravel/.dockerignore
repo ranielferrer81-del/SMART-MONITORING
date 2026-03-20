@@ -1,0 +1,17 @@
+.env
+.env.backup
+.env.production
+env
+node_modules
+vendor
+.git
+.gitignore
+*.md
+*.txt
+*.log
+*.bak
+tests
+phpunit.xml
+.phpunit.cache
+.vscode
+.idea
