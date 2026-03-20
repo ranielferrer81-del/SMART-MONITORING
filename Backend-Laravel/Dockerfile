@@ -14,15 +14,13 @@ RUN apt-get update && apt-get install -y \
 RUN a2enmod rewrite
 
 # Configure Apache DocumentRoot to point to Laravel's public directory
-RUN cat > /etc/apache2/sites-available/000-default.conf <<EOF\n\
-<VirtualHost *:80>\n\
+RUN printf "<VirtualHost *:80>\n\
     DocumentRoot /var/www/html/public\n\
     <Directory /var/www/html/public>\n\
         AllowOverride All\n\
         Require all granted\n\
     </Directory>\n\
-</VirtualHost>\n\
-EOF
+</VirtualHost>\n" > /etc/apache2/sites-available/000-default.conf
 
 WORKDIR /var/www/html
 COPY . .
