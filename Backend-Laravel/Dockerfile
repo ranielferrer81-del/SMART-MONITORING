@@ -1,53 +1,46 @@
-FROM php:8.2-apache
+FROM php:8.2-cli
 
-# Install dependencies required by Laravel and Composer
+# Install dependencies needed by Laravel
 RUN apt-get update && apt-get install -y \
-    git \
-    unzip \
     libzip-dev \
+    zip \
+    unzip \
+    git \
     libonig-dev \
     && docker-php-ext-install pdo pdo_mysql zip mbstring \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Enable Apache mod_rewrite for Laravel routing
-RUN a2enmod rewrite
-
-# Change Apache document root to Laravel's public folder
-ENV APACHE_DOCUMENT_ROOT /var/www/html/public
-RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
-RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
-
 # Set working directory
-WORKDIR /var/www/html
+WORKDIR /app
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Copy composer files and install dependencies
-# We use --no-scripts here to prevent package:discover from running without the full app
+# Copy composer files
 COPY composer.json composer.lock ./
+
+# Install dependencies
 RUN composer install --no-dev --optimize-autoloader --no-scripts || true
 
-# Copy the rest of the application
+# Copy application files
 COPY . .
 
-# Run composer again to trigger package discovery now that the source code is present
+# Finish composer installation
 RUN composer install --no-dev --optimize-autoloader
 
-# Create required storage directories and set permissions
+# Create storage locations and give permissions
 RUN mkdir -p storage/framework/cache/data \
     storage/framework/sessions \
     storage/framework/views \
-    bootstrap/cache
+    bootstrap/cache \
+    && chmod -R 777 storage bootstrap/cache
 
-# Allow Apache to write to Laravel caches
-RUN chown -R www-data:www-data storage bootstrap/cache
-RUN chmod -R 777 storage bootstrap/cache
-
-# Remove any leaked local configuration files
+# Remove any configuration file that could overwrite environment variables
 RUN rm -f .env docker-entrypoint.sh start.sh Procfile || true
 
-# We embed the startup commands entirely inside the CMD string. 
-# This completely bypasses any missing files or formatting issues (like invisible Windows line-endings).
-# It dynamically assigns Apache to listen on Railway's $PORT, clears caches, and starts the server.
-CMD sh -c "sed -i \"s/Listen 80/Listen ${PORT:-8080}/g\" /etc/apache2/ports.conf && sed -i \"s/:80/:${PORT:-8080}/g\" /etc/apache2/sites-available/000-default.conf && php artisan config:clear && apache2-foreground"
+# Expose Railway's dynamic port
+EXPOSE 8080
+
+# We use the built-in php artisan serve command because Apache is causing MPM collision errors.
+# The CMD evaluates ${PORT} properly and binds globally to 0.0.0.0.
+CMD sh -c "php artisan config:clear && php artisan serve --host=0.0.0.0 --port=${PORT:-8080}"
