@@ -119,10 +119,13 @@ php artisan config:cache 2>/dev/null || true
 php artisan route:cache 2>/dev/null || true
 
 # ---------------------------------------------------------------
-# 7. Configure Apache to listen on Railway's injected $PORT
+# 7. Test database connection before starting the server
 # ---------------------------------------------------------------
-echo "Configuring Apache to listen on port ${PORT:-80}..."
-sed -i "s/80/${PORT:-80}/g" /etc/apache2/sites-available/000-default.conf /etc/apache2/ports.conf
+echo "Testing database connection..."
+php artisan tinker --execute="try { DB::connection()->getPdo(); echo 'DB OK: connected to ' . DB::connection()->getDatabaseName(); } catch(Exception \$e) { echo 'DB WARN: ' . \$e->getMessage(); }" 2>/dev/null || echo "DB test skipped (tinker not available)"
 
-echo "Starting Apache production server..."
-exec apache2-foreground
+# ---------------------------------------------------------------
+# 8. Start the server
+# ---------------------------------------------------------------
+echo "Starting Laravel server on port ${PORT:-8080}..."
+exec php artisan serve --host=0.0.0.0 --port=${PORT:-8080}
