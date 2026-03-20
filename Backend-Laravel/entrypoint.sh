@@ -18,14 +18,14 @@ export DB_DATABASE="${DB_DATABASE:-${MYSQLDATABASE:-railway}}"
 export DB_USERNAME="${DB_USERNAME:-${MYSQLUSER:-root}}"
 export DB_PASSWORD="${DB_PASSWORD:-${MYSQLPASSWORD:-${MYSQL_ROOT_PASSWORD:-}}}"
 
-# Always parse MYSQL_URL if it is provided by Railway, as it perfectly contains the password
+# Always parse MYSQL_URL if it is provided by Railway, as it contains full credentials.
+# Use PHP's URL parser to correctly handle encoded/special characters in passwords.
 if [ -n "$MYSQL_URL" ]; then
-    # MYSQL_URL format: mysql://user:pass@host:port/database
-    export DB_HOST=$(echo "$MYSQL_URL" | sed -E 's|.*@([^:]+):.*|\1|')
-    export DB_PORT=$(echo "$MYSQL_URL" | sed -E 's|.*:([0-9]+)/.*|\1|')
-    export DB_DATABASE=$(echo "$MYSQL_URL" | sed -E 's|.*/([^?]+).*|\1|')
-    export DB_USERNAME=$(echo "$MYSQL_URL" | sed -E 's|mysql://([^:]+):.*|\1|')
-    export DB_PASSWORD=$(echo "$MYSQL_URL" | sed -E 's|mysql://[^:]+:([^@]+)@.*|\1|')
+    export DB_HOST=$(php -r '$u=parse_url(getenv("MYSQL_URL")); echo $u["host"] ?? "";')
+    export DB_PORT=$(php -r '$u=parse_url(getenv("MYSQL_URL")); echo $u["port"] ?? "3306";')
+    export DB_DATABASE=$(php -r '$u=parse_url(getenv("MYSQL_URL")); echo isset($u["path"]) ? ltrim($u["path"], "/") : "";')
+    export DB_USERNAME=$(php -r '$u=parse_url(getenv("MYSQL_URL")); echo isset($u["user"]) ? rawurldecode($u["user"]) : "";')
+    export DB_PASSWORD=$(php -r '$u=parse_url(getenv("MYSQL_URL")); echo isset($u["pass"]) ? rawurldecode($u["pass"]) : "";')
 fi
 
 # ---------------------------------------------------------------
