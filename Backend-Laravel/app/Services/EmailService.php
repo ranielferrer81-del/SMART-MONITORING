@@ -14,6 +14,11 @@ class EmailService
      */
     public static function sendVerificationCode($toEmail, $code): bool
     {
+        $brevoKey = trim((string) config('services.brevo.key', ''));
+        $sendGridKey = trim((string) config('services.sendgrid.key', ''));
+        $mailgunKey = trim((string) config('services.mailgun.secret', ''));
+        $mailgunDomain = trim((string) config('services.mailgun.domain', ''));
+
         // Check mailer config - if set to 'log' or 'array', skip SMTP but still try API methods (Brevo, SendGrid, etc.)
         $mailer = config('mail.default');
         $skipSmtp = ($mailer === 'log' || $mailer === 'array');
@@ -23,6 +28,19 @@ class EmailService
 
         // Used when logging final failure (undefined if we never entered SMTP branch)
         $isPlaceholder = true;
+
+        // Brevo first when configured (HTTP API works reliably from Railway; env() in app code fails after config:cache)
+        if ($brevoKey !== '') {
+            try {
+                if (self::sendViaBrevo($toEmail, $code, $brevoKey)) {
+                    Log::info('✅ Email sent via Brevo API', ['to' => $toEmail]);
+
+                    return true;
+                }
+            } catch (\Exception $e) {
+                Log::warning('Brevo failed', ['error' => $e->getMessage()]);
+            }
+        }
 
         // Method 1: Try Laravel Mail (SMTP) - skip if MAIL_MAILER is log/array
         if (!$skipSmtp) {
@@ -60,8 +78,7 @@ class EmailService
         }
 
         // Method 2: Try SendGrid API (if configured)
-        $sendGridKey = env('SENDGRID_API_KEY');
-        if ($sendGridKey && $sendGridKey !== 'your-sendgrid-api-key' && !empty($sendGridKey) && strlen($sendGridKey) > 20) {
+        if ($sendGridKey && $sendGridKey !== 'your-sendgrid-api-key' && strlen($sendGridKey) > 20) {
             try {
                 if (self::sendViaSendGrid($toEmail, $code, $sendGridKey)) {
                     Log::info('✅ Email sent via SendGrid', ['to' => $toEmail]);
@@ -72,23 +89,8 @@ class EmailService
             }
         }
 
-        // Method 2.5: Try Brevo (Sendinblue) API (if configured)
-        $brevoKey = env('BREVO_API_KEY');
-        if ($brevoKey && !empty($brevoKey)) {
-            try {
-                if (self::sendViaBrevo($toEmail, $code, $brevoKey)) {
-                    Log::info('✅ Email sent via Brevo API', ['to' => $toEmail]);
-                    return true;
-                }
-            } catch (\Exception $e) {
-                Log::warning('Brevo failed', ['error' => $e->getMessage()]);
-            }
-        }
-
         // Method 3: Try Mailgun API (if configured)
-        $mailgunKey = env('MAILGUN_SECRET');
-        $mailgunDomain = env('MAILGUN_DOMAIN');
-        if ($mailgunKey && $mailgunDomain && $mailgunKey !== 'your-mailgun-api-key' && !empty($mailgunKey)) {
+        if ($mailgunKey && $mailgunDomain && $mailgunKey !== 'your-mailgun-api-key') {
             try {
                 if (self::sendViaMailgun($toEmail, $code, $mailgunDomain, $mailgunKey)) {
                     Log::info('✅ Email sent via Mailgun', ['to' => $toEmail]);
@@ -139,8 +141,8 @@ class EmailService
             'Accept' => 'application/json'
         ])->post('https://api.brevo.com/v3/smtp/email', [
                     'sender' => [
-                        'email' => env('MAIL_FROM_ADDRESS', 'noreply@sia-system.com'),
-                        'name' => env('MAIL_FROM_NAME', 'SIA System'),
+                        'email' => config('mail.from.address', 'noreply@sia-system.com'),
+                        'name' => config('mail.from.name', 'SIA System'),
                     ],
                     'to' => [
                         ['email' => $to]
@@ -171,8 +173,8 @@ class EmailService
                         ],
                     ],
                     'from' => [
-                        'email' => env('MAIL_FROM_ADDRESS', 'noreply@sia-system.com'),
-                        'name' => env('MAIL_FROM_NAME', 'SIA System'),
+                        'email' => config('mail.from.address', 'noreply@sia-system.com'),
+                        'name' => config('mail.from.name', 'SIA System'),
                     ],
                     'subject' => 'Email Verification Code - SIA System',
                     'content' => [
@@ -199,7 +201,7 @@ class EmailService
         $response = Http::withBasicAuth('api', $apiKey)
             ->asForm()
             ->post("https://api.mailgun.net/v3/{$domain}/messages", [
-                'from' => env('MAIL_FROM_ADDRESS', "noreply@{$domain}"),
+                'from' => config('mail.from.address') ?: "noreply@{$domain}",
                 'to' => $to,
                 'subject' => 'Email Verification Code - SIA System',
                 'html' => self::getEmailHtml($code),
@@ -267,8 +269,9 @@ class EmailService
 
         $headers = "MIME-Version: 1.0\r\n";
         $headers .= "Content-type: text/html; charset=UTF-8\r\n";
-        $headers .= "From: SIA System <" . (env('MAIL_FROM_ADDRESS') ?: 'noreply@sia-system.com') . ">\r\n";
-        $headers .= "Reply-To: " . (env('MAIL_FROM_ADDRESS') ?: 'noreply@sia-system.com') . "\r\n";
+        $fromAddr = config('mail.from.address') ?: 'noreply@sia-system.com';
+        $headers .= "From: SIA System <{$fromAddr}>\r\n";
+        $headers .= "Reply-To: {$fromAddr}\r\n";
         $headers .= "X-Mailer: PHP/" . phpversion() . "\r\n";
 
         $result = @mail($to, $subject, $message, $headers);

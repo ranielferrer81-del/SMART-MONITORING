@@ -35,4 +35,21 @@ return [
         ],
     ],
 
+    /*
+    | Used by App\Services\EmailService — must live here so values resolve after
+    | `php artisan config:cache` (env() is null in app code when config is cached).
+    */
+    'brevo' => [
+        'key' => env('BREVO_API_KEY'),
+    ],
+
+    'sendgrid' => [
+        'key' => env('SENDGRID_API_KEY'),
+    ],
+
+    'mailgun' => [
+        'domain' => env('MAILGUN_DOMAIN'),
+        'secret' => env('MAILGUN_SECRET'),
+    ],
+
 ];
