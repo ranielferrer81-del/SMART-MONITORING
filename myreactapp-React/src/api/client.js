@@ -2,6 +2,20 @@ import axios from 'axios';
 
 const API_BASE = process.env.REACT_APP_API_BASE || 'http://127.0.0.1:8000';
 
+/** Laravel 422 validation: surface first field message instead of generic axios text */
+function formatAxiosValidationError(error) {
+  const d = error.response?.data;
+  if (d?.errors && typeof d.errors === 'object') {
+    const first = Object.values(d.errors)
+      .flat()
+      .find((m) => typeof m === 'string' && m.length);
+    if (first) return first;
+  }
+  if (d?.message) return d.message;
+  if (error.message) return error.message;
+  return 'Request failed';
+}
+
 export const api = axios.create({
   baseURL: API_BASE,
   headers: { 'Content-Type': 'application/json' },
@@ -258,11 +272,14 @@ const PROFILE_UPLOAD_TIMEOUT_MS = 120000;
 export async function uploadProfilePicture(file) {
   const formData = new FormData();
   formData.append('profile_picture', file);
-  const res = await api.post('/api/student/profile-picture', formData, {
-    timeout: PROFILE_UPLOAD_TIMEOUT_MS,
-    // Let axios set multipart boundary — manual Content-Type breaks some uploads
-  });
-  return res.data;
+  try {
+    const res = await api.post('/api/student/profile-picture', formData, {
+      timeout: PROFILE_UPLOAD_TIMEOUT_MS,
+    });
+    return res.data;
+  } catch (error) {
+    throw new Error(formatAxiosValidationError(error));
+  }
 }
 
 export async function deleteProfilePicture() {
@@ -274,10 +291,14 @@ export async function deleteProfilePicture() {
 export async function uploadTeacherProfilePicture(file) {
   const formData = new FormData();
   formData.append('profile_picture', file);
-  const res = await api.post('/api/teacher/profile-picture', formData, {
-    timeout: PROFILE_UPLOAD_TIMEOUT_MS,
-  });
-  return res.data;
+  try {
+    const res = await api.post('/api/teacher/profile-picture', formData, {
+      timeout: PROFILE_UPLOAD_TIMEOUT_MS,
+    });
+    return res.data;
+  } catch (error) {
+    throw new Error(formatAxiosValidationError(error));
+  }
 }
 
 export async function deleteTeacherProfilePicture() {
@@ -323,7 +344,7 @@ export async function updateStudentProfile(data) {
     const res = await api.patch('/api/student/profile', data);
     return { ok: true, data: res.data };
   } catch (error) {
-    const message = error.response?.data?.message || 'Failed to update profile';
+    const message = formatAxiosValidationError(error);
     return { ok: false, error: message, raw: error.response?.data };
   }
 }

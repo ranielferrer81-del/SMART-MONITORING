@@ -55,7 +55,7 @@ class TeacherProfileController extends Controller
         }
 
         $request->validate([
-            'profile_picture' => ['required', 'image', 'mimes:jpeg,jpg,png', 'max:2048'], // Max 2MB
+            'profile_picture' => ['required', 'image', 'max:5120', 'mimes:jpeg,jpg,jpe,pjpeg,png,gif,webp'],
         ]);
 
         try {
@@ -70,7 +70,13 @@ class TeacherProfileController extends Controller
             $imageData = base64_encode(file_get_contents($file->getRealPath()));
             $mime = $file->getMimeType();
             if (! is_string($mime) || ! str_starts_with($mime, 'image/')) {
-                $mime = strtolower($file->getClientOriginalExtension()) === 'png' ? 'image/png' : 'image/jpeg';
+                $ext = strtolower($file->getClientOriginalExtension());
+                $mime = match ($ext) {
+                    'png' => 'image/png',
+                    'gif' => 'image/gif',
+                    'webp' => 'image/webp',
+                    default => 'image/jpeg',
+                };
             }
             $base64Image = 'data:'.$mime.';base64,'.$imageData;
 
