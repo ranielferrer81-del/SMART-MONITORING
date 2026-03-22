@@ -70,10 +70,8 @@ class EmailService
             Log::info('MAIL_MAILER is "' . $mailer . '" - skipping SMTP, will try API methods (Brevo, SendGrid, Mailgun)');
         }
 
-        // Used when logging final failure (undefined if we never entered SMTP branch)
+        // Used when logging final failure
         $isPlaceholder = true;
-
-        // 1) Laravel Mail over configured SMTP first (Railway write-env maps BREVO_API_KEY → smtp-relay.brevo.com).
         if (! $skipSmtp) {
             $mailUsername = config('mail.mailers.smtp.username');
             $mailPassword = config('mail.mailers.smtp.password');
@@ -89,26 +87,13 @@ class EmailService
                 strpos($mailPassword, 'null') !== false ||
                 empty($mailHost) ||
                 $mailHost === '127.0.0.1';
-
-            if (! $isPlaceholder) {
-                try {
-                    Mail::to($toEmail)->send(new VerificationCodeMail($code, $toEmail));
-                    Log::info('✅ Email sent via Laravel SMTP', [
-                        'to' => $toEmail,
-                        'host' => $mailHost,
-                        'username' => $mailUsername,
-                    ]);
-
-                    return true;
-                } catch (\Throwable $e) {
-                    Log::error('Laravel SMTP failed', ['error' => $e->getMessage(), 'host' => $mailHost]);
-                }
-            } else {
-                Log::warning('SMTP not configured (placeholder or empty) — trying HTTP/API mailers');
-            }
         }
 
-        // 2) Brevo REST + runtime Brevo SMTP if Laravel SMTP was skipped or failed
+        /*
+         * When BREVO_API_KEY is set, try Brevo *before* Laravel SMTP. Gmail/other SMTP can hang until
+         * MAIL_TIMEOUT or fail from IP/auth while Brevo REST succeeds immediately — the old order made
+         * Railway + Brevo setups look "broken" if MAIL_* still pointed at Gmail locally.
+         */
         if ($brevoKey !== '') {
             try {
                 if (self::sendViaBrevo($toEmail, $code, $brevoKey)) {
@@ -128,6 +113,27 @@ class EmailService
             } catch (\Throwable $e) {
                 Log::warning('Brevo SMTP failed', ['error' => $e->getMessage()]);
             }
+        }
+
+        // Laravel Mail over configured SMTP (Gmail, Brevo relay via MAIL_*, etc.)
+        // Always use the "smtp" mailer here — config("mail.default") may be "sendmail" (no binary in Docker/Railway).
+        if (! $skipSmtp && ! $isPlaceholder) {
+            $mailHost = config('mail.mailers.smtp.host');
+            $mailUsername = config('mail.mailers.smtp.username');
+            try {
+                Mail::mailer('smtp')->to($toEmail)->send(new VerificationCodeMail($code, $toEmail));
+                Log::info('✅ Email sent via Laravel SMTP', [
+                    'to' => $toEmail,
+                    'host' => $mailHost,
+                    'username' => $mailUsername,
+                ]);
+
+                return true;
+            } catch (\Throwable $e) {
+                Log::error('Laravel SMTP failed', ['error' => $e->getMessage(), 'host' => $mailHost]);
+            }
+        } elseif (! $skipSmtp && $isPlaceholder) {
+            Log::warning('SMTP not configured (placeholder or empty) — skipped Laravel SMTP');
         }
 
         // Method 2: Try SendGrid API (if configured)
@@ -154,7 +160,10 @@ class EmailService
             }
         }
 
-        // Method 4: PHP mail() as last resort (usually doesn't work on Windows/XAMPP)
+        // Method 4: PHP mail() — invokes sendmail; not present in Railway/Docker images (causes "sendmail: not found").
+        if (getenv('RAILWAY_ENVIRONMENT') !== false || getenv('RAILWAY_PROJECT_ID') !== false) {
+            Log::info('Skipping PHP mail() on Railway (no sendmail in container).');
+        } else {
         try {
             if (self::sendViaPHPMail($toEmail, $code)) {
                 Log::info('✅ Email sent via PHP mail()', ['to' => $toEmail]);
@@ -162,6 +171,7 @@ class EmailService
             }
         } catch (\Exception $e) {
             Log::warning('PHP mail() failed', ['error' => $e->getMessage()]);
+        }
         }
 
         Log::error('❌ ALL email methods failed - no email sent', [
@@ -230,7 +240,7 @@ class EmailService
             'from' => $fromEmail,
         ]);
 
-        throw new \Exception('Brevo API error: ' . $response->body());
+        return false;
     }
 
     /**
