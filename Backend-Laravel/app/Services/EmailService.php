@@ -89,31 +89,10 @@ class EmailService
                 $mailHost === '127.0.0.1';
         }
 
-        /*
-         * When BREVO_API_KEY is set, try Brevo *before* Laravel SMTP. Gmail/other SMTP can hang until
-         * MAIL_TIMEOUT or fail from IP/auth while Brevo REST succeeds immediately — the old order made
-         * Railway + Brevo setups look "broken" if MAIL_* still pointed at Gmail locally.
-         */
-        if ($brevoKey !== '') {
-            try {
-                if (self::sendViaBrevo($toEmail, $code, $brevoKey)) {
-                    Log::info('✅ Email sent via Brevo REST API', ['to' => $toEmail]);
-
-                    return true;
-                }
-            } catch (\Throwable $e) {
-                Log::warning('Brevo REST failed', ['error' => $e->getMessage()]);
-            }
-            try {
-                if (self::sendViaBrevoSmtp($toEmail, $code, $brevoKey)) {
-                    Log::info('✅ Email sent via Brevo SMTP relay (runtime mailer)', ['to' => $toEmail]);
-
-                    return true;
-                }
-            } catch (\Throwable $e) {
-                Log::warning('Brevo SMTP failed', ['error' => $e->getMessage()]);
-            }
-        }
+        // -------------------------------------------------------
+        // Method 1 (PRIMARY): Laravel SMTP — Gmail or other configured SMTP
+        // Try this FIRST because it's fast and reliable.
+        // -------------------------------------------------------
 
         // Laravel Mail over configured SMTP (Gmail, Brevo relay via MAIL_*, etc.)
         // Always use the "smtp" mailer here — config("mail.default") may be "sendmail" (no binary in Docker/Railway).
