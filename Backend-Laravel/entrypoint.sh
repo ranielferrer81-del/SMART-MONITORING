@@ -124,6 +124,9 @@ php artisan route:cache 2>/dev/null || true
 echo "Testing database connection..."
 php artisan tinker --execute="try { DB::connection()->getPdo(); echo 'DB OK: connected to ' . DB::connection()->getDatabaseName(); } catch(Exception \$e) { echo 'DB WARN: ' . \$e->getMessage(); }" 2>/dev/null || echo "DB test skipped (tinker not available)"
 
+echo "Running database migrations..."
+php artisan migrate --force --no-interaction
+
 # ---------------------------------------------------------------
 # 8. Start the server
 # ---------------------------------------------------------------

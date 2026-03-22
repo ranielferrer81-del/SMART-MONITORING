@@ -28,10 +28,14 @@ class TeacherProfileController extends Controller
                 return response()->json(['ok' => false, 'message' => 'Teacher profile not found'], 404);
             }
 
-            // Generate Base64 from uploaded file
+            // Generate Base64 from uploaded file (LONGTEXT column — see migration)
             $file = $request->file('profile_picture');
             $imageData = base64_encode(file_get_contents($file->getRealPath()));
-            $base64Image = 'data:image/' . $file->getClientOriginalExtension() . ';base64,' . $imageData;
+            $mime = $file->getMimeType();
+            if (! is_string($mime) || ! str_starts_with($mime, 'image/')) {
+                $mime = strtolower($file->getClientOriginalExtension()) === 'png' ? 'image/png' : 'image/jpeg';
+            }
+            $base64Image = 'data:'.$mime.';base64,'.$imageData;
 
             // Store base64 directly in the database (persists across Railway redeploys)
             DB::table('teacher_profiles')
