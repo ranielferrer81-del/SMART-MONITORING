@@ -24,19 +24,21 @@ export default function LoginForm({ onVerificationSent, onCancel }: LoginFormPro
     try {
       const result = await emailLogin(email.trim().toLowerCase(), password);
       if (result.ok) {
-        const emailSent = (result as any).email_sent !== false; // Default to true if not specified
-        const verificationCode = (result as any).verification_code;
+        const emailSent = result.email_sent;
+        const verificationCode = result.verification_code;
         
         // Set email status message
         if (emailSent) {
           setEmailStatus({
             sent: true,
-            message: 'Verification code has been sent to your email. Please check your inbox (and spam folder).'
+            message: result.message || 'Verification code has been sent to your email. Please check your inbox (and spam folder).'
           });
         } else {
           setEmailStatus({
             sent: false,
-            message: 'Cannot send verification code. Email service is not configured properly. Please contact support.'
+            message:
+              result.message ||
+              'Cannot send verification code. Email service is not configured properly. Please contact support.'
           });
         }
         

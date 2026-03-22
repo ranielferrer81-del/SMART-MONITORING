@@ -21,6 +21,9 @@ class EmailService
             Log::info('MAIL_MAILER is "' . $mailer . '" - skipping SMTP, will try API methods (Brevo, SendGrid, Mailgun)');
         }
 
+        // Used when logging final failure (undefined if we never entered SMTP branch)
+        $isPlaceholder = true;
+
         // Method 1: Try Laravel Mail (SMTP) - skip if MAIL_MAILER is log/array
         if (!$skipSmtp) {
             $mailUsername = config('mail.mailers.smtp.username');

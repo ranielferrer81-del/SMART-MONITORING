@@ -98,7 +98,10 @@ export async function loginRequest(payload: LoginPayload): Promise<LoginResult> 
   }
 }
 
-export async function emailLogin(email: string, password: string): Promise<{ ok: boolean; message: string; email: string }> {
+export async function emailLogin(
+  email: string,
+  password: string
+): Promise<{ ok: boolean; message: string; email: string; verification_code?: string | null; email_sent: boolean }> {
   try {
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -123,8 +126,8 @@ export async function emailLogin(email: string, password: string): Promise<{ ok:
       ok: true,
       message: data.message || 'Verification code sent to your email.',
       email: data.email || email.trim().toLowerCase(),
-      verification_code: data.verification_code || null, // For development/testing
-      email_sent: data.email_sent !== false, // Default to true if not specified
+      verification_code: data.verification_code || null,
+      email_sent: data.email_sent === true,
     };
   } catch (error) {
     throw new Error(extractErrorMessage(error));
@@ -161,7 +164,9 @@ export async function verifyEmailCode(email: string, code: string): Promise<Logi
   }
 }
 
-export async function resendVerificationCode(email: string): Promise<{ ok: boolean; message: string; email_sent?: boolean }> {
+export async function resendVerificationCode(
+  email: string
+): Promise<{ ok: boolean; message: string; email_sent: boolean; verification_code?: string | null }> {
   try {
     const { data } = await api.post('/api/resend-verification-code', {
       email: email.trim().toLowerCase(),
@@ -174,7 +179,8 @@ export async function resendVerificationCode(email: string): Promise<{ ok: boole
     return {
       ok: true,
       message: data.message || 'Verification code has been resent.',
-      email_sent: data.email_sent !== false, // Default to true if not specified
+      email_sent: data.email_sent === true,
+      verification_code: data.verification_code || null,
     };
   } catch (error) {
     throw new Error(extractErrorMessage(error));

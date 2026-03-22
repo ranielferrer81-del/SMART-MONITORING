@@ -426,10 +426,10 @@ export default function TeacherDashboard() {
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                               )}
                             </button>
-                            <input ref={fileInputRef} type="file" accept="image/jpeg,image/jpg,image/png" className="hidden" onChange={async (e) => {
+                            <input ref={fileInputRef} type="file" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" className="hidden" onChange={async (e) => {
                               const file = e.target.files?.[0];
                               if (!file) return;
-                              if (file.size > 2 * 1024 * 1024) { alert('File size must be less than 2MB'); return; }
+                              if (file.size > 5 * 1024 * 1024) { alert('File size must be less than 5MB'); return; }
                               setUploadingPicture(true);
                               try {
                                 const res = await uploadTeacherProfilePicture(file);

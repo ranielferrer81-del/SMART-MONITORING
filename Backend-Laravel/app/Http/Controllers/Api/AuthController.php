@@ -410,30 +410,12 @@ class AuthController extends Controller
             'current_time' => now()->toDateTimeString()
         ]);
 
-        // Send verification code via email AFTER returning the response
-        // This prevents Railway SMTP timeouts from blocking the login flow
-        $emailToSend = $email;
-        $codeToSend = $code;
-
-        app()->terminating(function () use ($emailToSend, $codeToSend) {
-            try {
-                $sent = EmailService::sendVerificationCode($emailToSend, $codeToSend);
-                if ($sent) {
-                    \Log::info('✅ Background email sent successfully', ['email' => $emailToSend]);
-                } else {
-                    \Log::warning('⚠️ Background email failed to send', ['email' => $emailToSend]);
-                }
-            } catch (\Exception $e) {
-                \Log::error('❌ Background email error', ['error' => $e->getMessage()]);
-            }
-        });
-
-        return response()->json([
-            'ok' => true,
-            'message' => 'Verification code has been sent to your email. Please check your inbox (and spam folder).',
-            'email' => $email,
-            'email_sent' => true,
-        ]);
+        return $this->jsonAfterVerificationSend(
+            $email,
+            $code,
+            'Verification code has been sent to your email. Please check your inbox (and spam folder).',
+            'We could not send the verification email. Configure MAIL_* on the server (e.g. Railway SMTP or BREVO_API_KEY), or enable AUTH_LOGIN_CODE_FALLBACK for a one-time code in the response.'
+        );
     }
 
     /**
@@ -651,28 +633,56 @@ class AuthController extends Controller
             'updated_at' => now(),
         ]);
 
-        // Send verification code via email AFTER returning the response
-        $emailToSend = $email;
-        $codeToSend = $code;
+        return $this->jsonAfterVerificationSend(
+            $email,
+            $code,
+            'Verification code has been resent to your email. Please check your inbox (and spam folder).',
+            'We could not send the verification email. Configure MAIL_* on the server (e.g. Railway SMTP or BREVO_API_KEY), or enable AUTH_LOGIN_CODE_FALLBACK for a one-time code in the response.',
+            false
+        );
+    }
 
-        app()->terminating(function () use ($emailToSend, $codeToSend) {
-            try {
-                $sent = EmailService::sendVerificationCode($emailToSend, $codeToSend);
-                if ($sent) {
-                    \Log::info('✅ Background resend email sent', ['email' => $emailToSend]);
-                } else {
-                    \Log::warning('⚠️ Background resend email failed', ['email' => $emailToSend]);
-                }
-            } catch (\Exception $e) {
-                \Log::error('❌ Background resend email error', ['error' => $e->getMessage()]);
-            }
-        });
+    /**
+     * Send verification email synchronously so email_sent matches reality.
+     * Optionally includes verification_code when send failed and APP_DEBUG or AUTH_LOGIN_CODE_FALLBACK is set.
+     */
+    private function jsonAfterVerificationSend(
+        string $email,
+        string $code,
+        string $successMessage,
+        string $failMessage,
+        bool $includeEmailField = true
+    ) {
+        try {
+            $sent = EmailService::sendVerificationCode($email, $code);
+        } catch (\Throwable $e) {
+            \Log::error('Verification email send threw', ['email' => $email, 'error' => $e->getMessage()]);
+            $sent = false;
+        }
 
-        return response()->json([
+        $showFallbackCode = ! $sent && (config('app.debug') || filter_var(env('AUTH_LOGIN_CODE_FALLBACK', false), FILTER_VALIDATE_BOOLEAN));
+
+        $message = $sent
+            ? $successMessage
+            : ($showFallbackCode
+                ? 'Email could not be sent. Use this verification code (shown because APP_DEBUG or AUTH_LOGIN_CODE_FALLBACK is enabled).'
+                : $failMessage);
+
+        $payload = [
             'ok' => true,
-            'message' => 'Verification code has been resent to your email. Please check your inbox (and spam folder).',
-            'email_sent' => true,
-        ]);
+            'message' => $message,
+            'email_sent' => $sent,
+        ];
+
+        if ($includeEmailField) {
+            $payload['email'] = $email;
+        }
+
+        if ($showFallbackCode) {
+            $payload['verification_code'] = $code;
+        }
+
+        return response()->json($payload);
     }
 }
 

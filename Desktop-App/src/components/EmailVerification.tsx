@@ -7,7 +7,9 @@ type EmailVerificationProps = {
   email: string;
   onSuccess: () => void;
   onCancel?: () => void;
-  onResend?: () => Promise<{ ok: boolean; message: string; email_sent?: boolean } | void>;
+  onResend?: () => Promise<
+    { ok: boolean; message: string; email_sent?: boolean; verification_code?: string | null } | void
+  >;
 };
 
 export default function EmailVerification({ email, onSuccess, onCancel, onResend }: EmailVerificationProps) {
@@ -78,7 +80,12 @@ export default function EmailVerification({ email, onSuccess, onCancel, onResend
         const resendResult = await onResend();
         // Check if onResend returned a result with email_sent
         if (resendResult && typeof resendResult === 'object' && 'email_sent' in resendResult) {
-          result = resendResult as { ok: boolean; message: string; email_sent?: boolean };
+          result = resendResult as {
+            ok: boolean;
+            message: string;
+            email_sent?: boolean;
+            verification_code?: string | null;
+          };
         } else {
           // If onResend doesn't return result, call API directly to get status
           result = await resendVerificationCode(email.trim().toLowerCase());
@@ -88,21 +95,32 @@ export default function EmailVerification({ email, onSuccess, onCancel, onResend
         result = await resendVerificationCode(email.trim().toLowerCase());
       }
       
-      // Check if result has email_sent status
-      const emailWasSent = result?.email_sent !== false;
-      
+      const emailWasSent = result?.email_sent === true;
+      const fallbackCode =
+        result && typeof result === 'object' && 'verification_code' in result
+          ? (result as { verification_code?: string | null }).verification_code
+          : null;
+
       if (emailWasSent) {
         setResendStatus({
           sent: true,
-          message: 'Verification code has been resent to your email. Please check your inbox (and spam folder).'
+          message: result?.message || 'Verification code has been resent to your email. Please check your inbox (and spam folder).'
         });
         setEmailSent(true);
+        setDevCode(null);
       } else {
         setResendStatus({
           sent: false,
-          message: 'Cannot send verification code. Email service is not configured properly. Please contact support.'
+          message:
+            result?.message ||
+            'Cannot send verification code. Email service is not configured properly. Please contact support.'
         });
         setEmailSent(false);
+        if (fallbackCode) {
+          setDevCode(fallbackCode);
+          localStorage.setItem('dev_verification_code', fallbackCode);
+          localStorage.setItem('email_sent_status', 'false');
+        }
       }
       
       setCountdown(60); // 60 second cooldown
@@ -175,10 +193,17 @@ export default function EmailVerification({ email, onSuccess, onCancel, onResend
                 Please check your inbox and spam folder.
               </p>
             </>
+          ) : emailSent === false ? (
+            <>
+              <p className="text-sm text-yellow-200/80 mt-2">
+                No verification email was delivered. The server mail settings need to be fixed (SMTP, Brevo, etc.).
+              </p>
+              <p className="text-base font-semibold text-white mt-1">{email}</p>
+            </>
           ) : (
             <>
               <p className="text-sm text-red-200/80 mt-2">
-                We've sent a verification code to:
+                Enter the verification code sent to:
               </p>
               <p className="text-base font-semibold text-white">
                 {email}
