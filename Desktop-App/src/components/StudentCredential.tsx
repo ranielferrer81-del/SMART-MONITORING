@@ -2,17 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { FaUserGraduate } from 'react-icons/fa';
 import { AuthenticatedUser, fetchCurrentUser } from '../api/client';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000';
-
-const buildPictureUrl = (picture: string | null): string | null => {
-  if (!picture) return null;
-  if (picture.startsWith('http')) return picture;
-  if (picture.startsWith('/storage/')) return `${API_BASE_URL}${picture}`;
-  if (picture.startsWith('storage/')) return `${API_BASE_URL}/${picture}`;
-  if (picture.startsWith('/')) return `${API_BASE_URL}${picture}`;
-  return `${API_BASE_URL}/storage/${picture}`;
-};
+import { resolveProfilePictureUrl } from '../utils/profilePictureUrl';
 
 type StudentCredentialProps = {
   onContinue: () => void;
@@ -48,7 +38,7 @@ export default function StudentCredential({ onContinue, user }: StudentCredentia
   const profilePictureUrl = useMemo(() => {
     // Prioritize profile picture from credentials (email login) over profile
     const picture = credentials?.profile_picture ?? profile?.profilePicture ?? null;
-    return buildPictureUrl(picture);
+    return resolveProfilePictureUrl(picture);
   }, [credentials?.profile_picture, profile?.profilePicture]);
 
   // Reset image error when profile picture URL changes

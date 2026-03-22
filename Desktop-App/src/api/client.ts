@@ -1,11 +1,7 @@
 import axios, { AxiosError } from 'axios';
+import { getViteApiBaseUrl } from '../config/apiBase';
 
-const normalizeBaseUrl = (url: string) => {
-  if (!url) return 'http://127.0.0.1:8000';
-  return url.endsWith('/') ? url.slice(0, -1) : url;
-};
-
-const API_BASE_URL = normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000');
+const API_BASE_URL = getViteApiBaseUrl();
 
 export const api = axios.create({
   baseURL: API_BASE_URL,

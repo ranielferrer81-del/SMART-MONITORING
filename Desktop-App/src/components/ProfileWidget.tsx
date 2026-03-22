@@ -2,17 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { LogOut, User } from 'lucide-react';
 import type { AuthenticatedUser } from '../api/client';
 import { fetchMonitoringStatus } from '../api/client';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000';
-
-const buildPictureUrl = (picture: string | null): string | null => {
-    if (!picture) return null;
-    if (picture.startsWith('http')) return picture;
-    if (picture.startsWith('/storage/')) return `${API_BASE_URL}${picture}`;
-    if (picture.startsWith('storage/')) return `${API_BASE_URL}/${picture}`;
-    if (picture.startsWith('/')) return `${API_BASE_URL}${picture}`;
-    return `${API_BASE_URL}/storage/${picture}`;
-};
+import { resolveProfilePictureUrl } from '../utils/profilePictureUrl';
 
 type ProfileWidgetProps = {
     user: AuthenticatedUser;
@@ -46,7 +36,7 @@ export default function ProfileWidget({ user, onLogout }: ProfileWidgetProps) {
     }, [isOpen]);
 
     const profilePictureUrl = useMemo(() => {
-        return buildPictureUrl(user.profilePicture);
+        return resolveProfilePictureUrl(user.profilePicture);
     }, [user.profilePicture]);
 
     // Reset image error when profile picture URL changes
