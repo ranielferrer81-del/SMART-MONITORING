@@ -644,7 +644,8 @@ class AuthController extends Controller
 
     /**
      * Send verification email synchronously so email_sent matches reality.
-     * Optionally includes verification_code when send failed and APP_DEBUG or AUTH_LOGIN_CODE_FALLBACK is set.
+     * When send fails, return verification_code by default: validate-email already required the correct password,
+     * so this unblocks login when Brevo/SMTP is misconfigured. Opt out with WITHHOLD_VERIFICATION_CODE_ON_MAIL_FAILURE=true.
      */
     private function jsonAfterVerificationSend(
         string $email,
@@ -660,12 +661,15 @@ class AuthController extends Controller
             $sent = false;
         }
 
-        $showFallbackCode = ! $sent && (config('app.debug') || filter_var(env('AUTH_LOGIN_CODE_FALLBACK', false), FILTER_VALIDATE_BOOLEAN));
+        $withholdCode = filter_var(env('WITHHOLD_VERIFICATION_CODE_ON_MAIL_FAILURE', false), FILTER_VALIDATE_BOOLEAN);
+        $legacyFallback = config('app.debug')
+            || filter_var(env('AUTH_LOGIN_CODE_FALLBACK', false), FILTER_VALIDATE_BOOLEAN);
+        $includeCodeInResponse = ! $sent && (! $withholdCode || $legacyFallback);
 
         $message = $sent
             ? $successMessage
-            : ($showFallbackCode
-                ? 'Email could not be sent. Use this verification code (shown because APP_DEBUG or AUTH_LOGIN_CODE_FALLBACK is enabled).'
+            : ($includeCodeInResponse
+                ? 'We could not send email. Use the verification code below to finish signing in. Configure Brevo/SMTP on the server to restore email delivery.'
                 : $failMessage);
 
         $payload = [
@@ -678,7 +682,7 @@ class AuthController extends Controller
             $payload['email'] = $email;
         }
 
-        if ($showFallbackCode) {
+        if ($includeCodeInResponse) {
             $payload['verification_code'] = $code;
         }
 
