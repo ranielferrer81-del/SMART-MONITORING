@@ -207,6 +207,30 @@ export const getOnlineStudents = async () => {
     }
 };
 
+// Permanently delete stored monitoring history for a student (admin only). Does not close tabs or browser.
+export const eraseStudentMonitoringHistory = async (studentId) => {
+    try {
+        const token = getAuthToken();
+        const response = await axios.post(
+            `${API_BASE}/api/browser-activity/student/${studentId}/clear-history`,
+            {},
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    Accept: 'application/json',
+                },
+            }
+        );
+
+        return { ok: true, data: response.data };
+    } catch (error) {
+        return {
+            ok: false,
+            error: error.response?.data?.message || error.message,
+        };
+    }
+};
+
 // Force close student browser
 export const forceCloseStudentBrowser = async (studentId) => {
     try {

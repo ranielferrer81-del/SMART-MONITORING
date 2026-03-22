@@ -545,6 +545,28 @@ class BrowserActivityController extends Controller
     }
 
     /**
+     * Delete stored monitoring history for a student without closing tabs or sending commands (Admin only).
+     */
+    public function clearStudentHistory(Request $request, int $studentId)
+    {
+        $user = Auth::user();
+
+        if ($user->role !== 'admin') {
+            return response()->json(['error' => 'Only administrators can erase monitoring history'], 403);
+        }
+
+        $deletedCount = BrowserActivity::where('student_user_id', $studentId)
+            ->whereNotIn('url', ['FORCE_CLOSE_COMMAND', 'FORCE_CLOSE_TAB_COMMAND'])
+            ->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Monitoring history removed from storage. Student browsers were not affected.',
+            'deleted_count' => $deletedCount,
+        ]);
+    }
+
+    /**
      * Force close student browser (Admin/Teacher only)
      */
     public function forceCloseBrowser(Request $request, int $studentId)

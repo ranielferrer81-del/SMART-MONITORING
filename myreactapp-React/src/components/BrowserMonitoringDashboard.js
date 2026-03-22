@@ -4,6 +4,7 @@ import {
     getOnlineStudents,
     getStudentBrowserActivity,
     getIncognitoAlerts,
+    eraseStudentMonitoringHistory,
     forceCloseStudentBrowser,
     forceCloseStudentTab
 } from '../api/browserMonitoring';
@@ -379,7 +380,54 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
                             <h3 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-slate-50 min-w-0 truncate">
                                 Activity for {currentViewStudent.full_name}
                             </h3>
-                            <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
+                            <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3 flex-shrink-0">
+                                {userRole === 'admin' && (
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (!window.confirm(`Clear the history list on this screen for ${currentViewStudent.full_name}?\n\nThis only hides the list here until you open it again. Nothing is deleted on the server.`)) {
+                                                    return;
+                                                }
+                                                setStudentActivity([]);
+                                            }}
+                                            className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-600 dark:hover:bg-slate-500 text-slate-800 dark:text-slate-50 rounded-lg font-semibold text-sm sm:text-base transition-colors"
+                                            title="Hide the list on this screen only; server data is unchanged"
+                                        >
+                                            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                            </svg>
+                                            <span className="hidden sm:inline">Clear view</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={async () => {
+                                                if (!window.confirm(`Permanently erase stored monitoring history for ${currentViewStudent.full_name}?\n\nThis removes saved log rows from the system only.\nIt does NOT close any tabs or the browser.`)) {
+                                                    return;
+                                                }
+                                                try {
+                                                    const result = await eraseStudentMonitoringHistory(currentViewStudent.id);
+                                                    if (result.ok) {
+                                                        setStudentActivity([]);
+                                                        const n = result.data?.deleted_count ?? 0;
+                                                        alert(`History erased.\n\n${n} record(s) removed from storage. The student’s tabs stay open.`);
+                                                    } else {
+                                                        alert(result.error || 'Failed to erase history');
+                                                    }
+                                                } catch (e) {
+                                                    alert(e.message || 'Failed to erase history');
+                                                }
+                                            }}
+                                            className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-semibold text-sm sm:text-base transition-colors shadow-md"
+                                            title="Delete stored monitoring log from the server; does not close student tabs"
+                                        >
+                                            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                            <span className="hidden sm:inline">Erase</span>
+                                        </button>
+                                    </>
+                                )}
                                 <button
                                     onClick={async () => {
                                         if (!window.confirm(`Are you sure you want to close ${currentViewStudent.full_name}'s browser and delete ALL their browsing history?\n\nThis will:\n- Close their entire browser\n- Delete all browsing history from the system\n- Free up database space`)) {

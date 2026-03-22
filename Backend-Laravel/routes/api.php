@@ -228,6 +228,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/monitoring-sessions/{sessionId}/end', [BrowserActivityController::class, 'endSession']);
     Route::get('/monitoring-sessions', [BrowserActivityController::class, 'getSessions']);
 
+    // Erase stored monitoring history only — no tab/browser close (Admin only)
+    Route::post('/browser-activity/student/{studentId}/clear-history', [BrowserActivityController::class, 'clearStudentHistory']);
+
     // Force close student browser (Admin/Teacher only)
     Route::post('/browser-activity/force-close/{studentId}', [BrowserActivityController::class, 'forceCloseBrowser']);
     // Force close specific student tab (Admin/Teacher only)
