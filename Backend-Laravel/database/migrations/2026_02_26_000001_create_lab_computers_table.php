@@ -10,6 +10,10 @@ return new class extends Migration {
      */
     public function up(): void
     {
+        if (Schema::hasTable('lab_computers')) {
+            return;
+        }
+
         Schema::create('lab_computers', function (Blueprint $table) {
             $table->id();
             $table->string('computer_name', 255)->unique(); // e.g., "LAB2-PC-15"

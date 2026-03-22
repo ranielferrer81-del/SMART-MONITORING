@@ -11,6 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Duplicate of 2024 migration name/table; skip if first migration already created the table.
+        if (Schema::hasTable('email_verification_codes')) {
+            return;
+        }
+
         Schema::create('email_verification_codes', function (Blueprint $table) {
             $table->id();
             $table->string('email', 191)->index();

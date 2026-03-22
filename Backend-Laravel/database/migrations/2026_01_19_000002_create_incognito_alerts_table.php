@@ -10,6 +10,10 @@ return new class extends Migration {
      */
     public function up(): void
     {
+        if (Schema::hasTable('incognito_alerts')) {
+            return;
+        }
+
         Schema::create('incognito_alerts', function (Blueprint $table) {
             $table->id();
             $table->unsignedInteger('student_user_id');

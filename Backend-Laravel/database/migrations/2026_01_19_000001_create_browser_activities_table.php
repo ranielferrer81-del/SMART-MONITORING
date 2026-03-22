@@ -10,6 +10,10 @@ return new class extends Migration {
      */
     public function up(): void
     {
+        if (Schema::hasTable('browser_activities')) {
+            return;
+        }
+
         Schema::create('browser_activities', function (Blueprint $table) {
             $table->id();
             $table->unsignedInteger('student_user_id');

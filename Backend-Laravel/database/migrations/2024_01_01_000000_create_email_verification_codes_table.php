@@ -10,6 +10,10 @@ return new class extends Migration {
      */
     public function up(): void
     {
+        if (Schema::hasTable('email_verification_codes')) {
+            return;
+        }
+
         Schema::create('email_verification_codes', function (Blueprint $table) {
             $table->id();
             $table->string('email')->index();
