@@ -174,6 +174,17 @@ class EmailService
         }
         }
 
+        // Method 5: Last-resort Gmail SMTP — reads credentials directly from env
+        // (bypasses config cache and any Brevo overrides)
+        try {
+            if (self::sendViaDirectGmailSmtp($toEmail, $code)) {
+                Log::info('✅ Email sent via direct Gmail SMTP fallback', ['to' => $toEmail]);
+                return true;
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Direct Gmail SMTP fallback failed', ['error' => $e->getMessage()]);
+        }
+
         Log::error('❌ ALL email methods failed - no email sent', [
             'to' => $toEmail,
             'smtp_configured' => !$isPlaceholder,
@@ -452,5 +463,71 @@ class EmailService
     {
         return self::inlineVerificationHtml($code);
     }
-}
 
+    /**
+     * Last-resort fallback: create a temporary mailer pointing at smtp.gmail.com
+     * using MAIL_USERNAME / MAIL_PASSWORD read directly from the process environment
+     * (bypasses config cache and any Brevo overrides in write-env.php).
+     */
+    private static function sendViaDirectGmailSmtp(string $toEmail, string $code): bool
+    {
+        // Read directly from environment — not from config() which may be cached/overridden
+        $username = trim((string) (getenv('MAIL_USERNAME') ?: config('mail.mailers.smtp.username', '')));
+        $password = trim((string) (getenv('MAIL_PASSWORD') ?: config('mail.mailers.smtp.password', '')));
+
+        if ($username === '' || $password === '') {
+            Log::info('Direct Gmail SMTP skipped: MAIL_USERNAME or MAIL_PASSWORD not set in env');
+            return false;
+        }
+
+        // Skip if the credentials look like placeholders
+        if (str_contains($username, 'your-') || str_contains($password, 'your-')) {
+            Log::info('Direct Gmail SMTP skipped: placeholder credentials');
+            return false;
+        }
+
+        // Determine host: if the username looks like a Gmail address, use smtp.gmail.com
+        $host = 'smtp.gmail.com';
+        $port = 587;
+        $encryption = 'tls';
+
+        // If username is not a Gmail address, use whatever MAIL_HOST is set
+        if (!str_contains($username, 'gmail.com')) {
+            $host = trim((string) (getenv('MAIL_HOST') ?: config('mail.mailers.smtp.host', 'smtp.gmail.com')));
+            $port = (int) (getenv('MAIL_PORT') ?: config('mail.mailers.smtp.port', 587));
+            $encryption = trim((string) (getenv('MAIL_ENCRYPTION') ?: config('mail.mailers.smtp.encryption', 'tls')));
+        }
+
+        $fromAddress = trim((string) (getenv('MAIL_FROM_ADDRESS') ?: config('mail.from.address', $username)));
+        if ($fromAddress === '' || str_contains(strtolower($fromAddress), 'example.com')) {
+            $fromAddress = $username;
+        }
+
+        $mailerName = 'gmail_fallback_' . substr(md5($username), 0, 6);
+        Config::set('mail.mailers.' . $mailerName, [
+            'transport'  => 'smtp',
+            'host'       => $host,
+            'port'       => $port,
+            'encryption' => $encryption,
+            'username'   => $username,
+            'password'   => $password,
+            'timeout'    => 30,
+        ]);
+
+        $html = self::inlineVerificationHtml($code);
+
+        Mail::mailer($mailerName)->html($html, function ($message) use ($toEmail, $fromAddress) {
+            $message->to($toEmail)
+                ->subject('Email Verification Code - SIA System')
+                ->from($fromAddress, 'SIA System');
+        });
+
+        Log::info('Direct Gmail SMTP fallback sent', [
+            'to'   => $toEmail,
+            'from' => $fromAddress,
+            'host' => $host,
+        ]);
+
+        return true;
+    }
+}

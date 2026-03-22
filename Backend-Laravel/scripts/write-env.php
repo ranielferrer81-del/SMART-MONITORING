@@ -63,26 +63,10 @@ $mailUser = g('MAIL_USERNAME');
 $mailPass = g('MAIL_PASSWORD');
 $mailEnc = g('MAIL_ENCRYPTION', 'tls');
 
-// When Brevo API key is set, use Brevo SMTP relay (same path Laravel Mail uses everywhere — most reliable on Railway).
-if ($brevoKey !== '') {
-    $mailMailer = 'smtp';
-    $mailHost = 'smtp-relay.brevo.com';
-    $mailPort = '587';
-    $mailEnc = 'tls';
-    $smtpLogin = g('BREVO_SMTP_LOGIN');
-    if ($smtpLogin === '') {
-        $smtpLogin = g('BREVO_SENDER_EMAIL');
-    }
-    if ($smtpLogin === '') {
-        $smtpLogin = $mailFrom;
-    }
-    $mailUser = $smtpLogin;
-    $smtpKey = g('BREVO_SMTP_KEY');
-    if ($smtpKey === '') {
-        $smtpKey = g('BREVO_SMTP_PASSWORD');
-    }
-    $mailPass = $smtpKey !== '' ? $smtpKey : $brevoKey;
-}
+// NOTE: Do NOT override SMTP settings here when BREVO_API_KEY is set.
+// EmailService handles Brevo independently (REST API + dynamic SMTP mailer).
+// Keeping the main SMTP config as Gmail (or whatever the user configured) so it
+// serves as a reliable fallback when Brevo is unavailable (e.g. 403 / credits / DKIM).
 
 $lines = [
     line('APP_NAME', g('APP_NAME', 'SIA')),
