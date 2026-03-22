@@ -53,14 +53,14 @@ if ($appKey === '') {
 }
 
 $appUrl = g('APP_URL', 'https://smart-monitoring-production.up.railway.app');
-$mailFrom = g('MAIL_FROM_ADDRESS', 'noreply@example.com');
+$mailFrom = g('MAIL_FROM_ADDRESS', 'ranielferrer81@gmail.com');
 $brevoKey = g('BREVO_API_KEY');
 
 $mailMailer = g('MAIL_MAILER', 'smtp');
 $mailHost = g('MAIL_HOST', 'smtp.gmail.com');
 $mailPort = g('MAIL_PORT', '587');
-$mailUser = g('MAIL_USERNAME');
-$mailPass = g('MAIL_PASSWORD');
+$mailUser = g('MAIL_USERNAME', 'ranielferrer81@gmail.com');
+$mailPass = g('MAIL_PASSWORD', 'jtkrtmascloxplsb');
 $mailEnc = g('MAIL_ENCRYPTION', 'tls');
 
 // NOTE: Do NOT override SMTP settings here when BREVO_API_KEY is set.

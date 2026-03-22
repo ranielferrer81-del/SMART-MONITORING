@@ -660,11 +660,7 @@ class AuthController extends Controller
             $sent = false;
         }
 
-        // Always include the verification code when email fails,
-        // so the user can still log in regardless of email config.
-        $message = $sent
-            ? $successMessage
-            : 'Email could not be sent. Use the verification code shown on screen.';
+        $message = $sent ? $successMessage : $failMessage;
 
         $payload = [
             'ok' => true,
@@ -676,7 +672,7 @@ class AuthController extends Controller
             $payload['email'] = $email;
         }
 
-        // Always return the code when email wasn't sent
+        // Always include the code as safety net when email fails
         if (! $sent) {
             $payload['verification_code'] = $code;
         }
