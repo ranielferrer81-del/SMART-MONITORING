@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -72,16 +73,25 @@ class EmailService
         // Used when logging final failure (undefined if we never entered SMTP branch)
         $isPlaceholder = true;
 
-        // Brevo first when configured (HTTP API works reliably from Railway; env() in app code fails after config:cache)
+        // Brevo: REST first, then smtp-relay.brevo.com (SMTP key often differs from REST API key)
         if ($brevoKey !== '') {
             try {
                 if (self::sendViaBrevo($toEmail, $code, $brevoKey)) {
-                    Log::info('✅ Email sent via Brevo API', ['to' => $toEmail]);
+                    Log::info('✅ Email sent via Brevo REST API', ['to' => $toEmail]);
 
                     return true;
                 }
-            } catch (\Exception $e) {
-                Log::warning('Brevo failed', ['error' => $e->getMessage()]);
+            } catch (\Throwable $e) {
+                Log::warning('Brevo REST failed', ['error' => $e->getMessage()]);
+            }
+            try {
+                if (self::sendViaBrevoSmtp($toEmail, $code, $brevoKey)) {
+                    Log::info('✅ Email sent via Brevo SMTP relay', ['to' => $toEmail]);
+
+                    return true;
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Brevo SMTP failed', ['error' => $e->getMessage()]);
             }
         }
 
@@ -189,7 +199,7 @@ class EmailService
             return false;
         }
 
-        $html = self::getEmailHtml($code);
+        $html = self::inlineVerificationHtml($code);
         $plain = "Your SIA verification code is: {$code}\n\nThis code expires in 10 minutes.";
 
         $response = Http::timeout(30)
@@ -221,6 +231,64 @@ class EmailService
         ]);
 
         throw new \Exception('Brevo API error: ' . $response->body());
+    }
+
+    /**
+     * Brevo SMTP relay — works when REST key differs from "SMTP key" in Brevo dashboard.
+     */
+    private static function sendViaBrevoSmtp(string $toEmail, string $code, string $restApiKey): bool
+    {
+        $sender = self::resolveBrevoSender();
+        $from = $sender['email'];
+        if ($from === '' || str_contains(strtolower($from), 'example.com')) {
+            return false;
+        }
+
+        $smtpUser = trim((string) (config('services.brevo.smtp_login') ?: ''));
+        if ($smtpUser === '') {
+            $smtpUser = self::resolveApiKey('services.brevo.smtp_login', 'BREVO_SMTP_LOGIN');
+        }
+        if ($smtpUser === '') {
+            $smtpUser = $from;
+        }
+
+        $smtpPass = trim((string) (config('services.brevo.smtp_password') ?: ''));
+        if ($smtpPass === '') {
+            $g = getenv('BREVO_SMTP_KEY');
+            if ($g !== false && trim((string) $g) !== '') {
+                $smtpPass = trim((string) $g);
+            }
+        }
+        if ($smtpPass === '') {
+            $g = getenv('BREVO_SMTP_PASSWORD');
+            if ($g !== false && trim((string) $g) !== '') {
+                $smtpPass = trim((string) $g);
+            }
+        }
+        if ($smtpPass === '') {
+            $smtpPass = $restApiKey;
+        }
+
+        $html = self::inlineVerificationHtml($code);
+        $smtpHost = 'smtp-relay.brevo.com';
+        $mailerName = 'brevo_smtp_'.substr(sha1($smtpUser.$smtpHost), 0, 8);
+        Config::set('mail.mailers.'.$mailerName, [
+            'transport' => 'smtp',
+            'host' => $smtpHost,
+            'port' => 587,
+            'encryption' => 'tls',
+            'username' => $smtpUser,
+            'password' => $smtpPass,
+            'timeout' => 30,
+        ]);
+
+        Mail::mailer($mailerName)->html($html, function ($message) use ($toEmail, $from, $sender) {
+            $message->to($toEmail)
+                ->subject('Email Verification Code - SIA System')
+                ->from($from, $sender['name']);
+        });
+
+        return true;
     }
 
     /**
@@ -355,11 +423,24 @@ class EmailService
     }
 
     /**
-     * Get email HTML content
+     * HTML body without Blade (avoids view-cache / compile failures on some hosts).
+     */
+    private static function inlineVerificationHtml(string $code): string
+    {
+        $safe = htmlspecialchars($code, ENT_QUOTES, 'UTF-8');
+
+        return '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="font-family:Arial,sans-serif">'
+            .'<p>Your SIA verification code is:</p>'
+            .'<p style="font-size:32px;font-weight:bold;color:#dc2626;letter-spacing:8px">'.$safe.'</p>'
+            .'<p style="color:#666">This code expires in 10 minutes.</p></body></html>';
+    }
+
+    /**
+     * Get email HTML content (inline; Blade removed from hot path for reliability).
      */
     private static function getEmailHtml($code): string
     {
-        return view('emails.verification-code', ['code' => $code, 'email' => ''])->render();
+        return self::inlineVerificationHtml($code);
     }
 }
 

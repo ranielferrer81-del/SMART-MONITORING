@@ -100,6 +100,17 @@ $brevoSender = g('BREVO_SENDER_EMAIL');
 if ($brevoSender !== '') {
     $lines[] = line('BREVO_SENDER_EMAIL', $brevoSender);
 }
+$smtpLogin = g('BREVO_SMTP_LOGIN');
+if ($smtpLogin !== '') {
+    $lines[] = line('BREVO_SMTP_LOGIN', $smtpLogin);
+}
+$smtpKey = g('BREVO_SMTP_KEY');
+if ($smtpKey === '') {
+    $smtpKey = g('BREVO_SMTP_PASSWORD');
+}
+if ($smtpKey !== '') {
+    $lines[] = line('BREVO_SMTP_KEY', $smtpKey);
+}
 
 file_put_contents(
     dirname(__DIR__) . DIRECTORY_SEPARATOR . '.env',
