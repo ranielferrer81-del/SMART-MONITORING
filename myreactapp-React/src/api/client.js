@@ -251,14 +251,16 @@ export async function fetchMe() {
   }
 }
 
+// Long timeout: large multipart + server base64 + DB (Railway can be slow on cold start)
+const PROFILE_UPLOAD_TIMEOUT_MS = 120000;
+
 // Student profile picture
 export async function uploadProfilePicture(file) {
   const formData = new FormData();
   formData.append('profile_picture', file);
   const res = await api.post('/api/student/profile-picture', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
+    timeout: PROFILE_UPLOAD_TIMEOUT_MS,
+    // Let axios set multipart boundary — manual Content-Type breaks some uploads
   });
   return res.data;
 }
@@ -273,9 +275,7 @@ export async function uploadTeacherProfilePicture(file) {
   const formData = new FormData();
   formData.append('profile_picture', file);
   const res = await api.post('/api/teacher/profile-picture', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
+    timeout: PROFILE_UPLOAD_TIMEOUT_MS,
   });
   return res.data;
 }
