@@ -28,6 +28,16 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  // Default Content-Type is application/json — that breaks multipart uploads: Laravel
+  // never sees profile_picture, validation fails with 422 "required". Browser must set
+  // multipart/form-data with boundary for FormData.
+  if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+    if (config.headers && typeof config.headers.delete === 'function') {
+      config.headers.delete('Content-Type');
+    } else {
+      delete config.headers['Content-Type'];
+    }
+  }
   return config;
 });
 
