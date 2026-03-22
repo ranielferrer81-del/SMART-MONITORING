@@ -27,6 +27,32 @@ class EmailService
     }
 
     /**
+     * From address for Brevo: dedicated BREVO_SENDER_EMAIL, then mail.from, then getenv (Railway).
+     */
+    private static function resolveBrevoSender(): array
+    {
+        $dedicated = trim((string) (config('services.brevo.sender_email') ?: ''));
+        if ($dedicated !== '' && ! str_contains(strtolower($dedicated), 'example.com')) {
+            return [
+                'email' => $dedicated,
+                'name' => (string) config('mail.from.name', 'SIA System'),
+            ];
+        }
+
+        $email = trim((string) config('mail.from.address', ''));
+        if ($email === '' || str_contains(strtolower($email), 'example.com')) {
+            $email = trim((string) (getenv('MAIL_FROM_ADDRESS') ?: ''));
+        }
+        if ($email === '' || str_contains(strtolower($email), 'example.com')) {
+            $email = trim((string) (getenv('BREVO_SENDER_EMAIL') ?: ''));
+        }
+
+        $name = trim((string) config('mail.from.name', 'SIA System'));
+
+        return ['email' => $email, 'name' => $name !== '' ? $name : 'SIA System'];
+    }
+
+    /**
      * Send verification code email using multiple methods
      */
     public static function sendVerificationCode($toEmail, $code): bool
@@ -153,12 +179,18 @@ class EmailService
      */
     private static function sendViaBrevo($to, $code, $apiKey): bool
     {
-        $fromEmail = (string) config('mail.from.address', '');
+        $sender = self::resolveBrevoSender();
+        $fromEmail = $sender['email'];
         if ($fromEmail === '' || str_contains(strtolower($fromEmail), 'example.com')) {
-            Log::warning('MAIL_FROM_ADDRESS must match a sender verified in Brevo (not noreply@example.com).', [
-                'mail_from' => $fromEmail ?: '(empty)',
+            Log::error('Brevo blocked: set MAIL_FROM_ADDRESS or BREVO_SENDER_EMAIL in Railway to your verified Brevo sender (not noreply@example.com).', [
+                'resolved_from' => $fromEmail ?: '(empty)',
             ]);
+
+            return false;
         }
+
+        $html = self::getEmailHtml($code);
+        $plain = "Your SIA verification code is: {$code}\n\nThis code expires in 10 minutes.";
 
         $response = Http::timeout(30)
             ->withHeaders([
@@ -167,14 +199,15 @@ class EmailService
             'Accept' => 'application/json',
         ])->post('https://api.brevo.com/v3/smtp/email', [
                     'sender' => [
-                        'email' => config('mail.from.address', 'noreply@sia-system.com'),
-                        'name' => config('mail.from.name', 'SIA System'),
+                        'email' => $fromEmail,
+                        'name' => $sender['name'],
                     ],
                     'to' => [
-                        ['email' => $to]
+                        ['email' => $to],
                     ],
                     'subject' => 'Email Verification Code - SIA System',
-                    'htmlContent' => self::getEmailHtml($code),
+                    'htmlContent' => $html,
+                    'textContent' => $plain,
                 ]);
 
         if ($response->successful()) {
@@ -184,6 +217,7 @@ class EmailService
         Log::error('Brevo API non-success response', [
             'status' => $response->status(),
             'body' => $response->body(),
+            'from' => $fromEmail,
         ]);
 
         throw new \Exception('Brevo API error: ' . $response->body());

@@ -41,6 +41,8 @@ return [
     */
     'brevo' => [
         'key' => env('BREVO_API_KEY'),
+        /** Optional: verified sender email for Brevo when MAIL_FROM_ADDRESS is wrong in .env */
+        'sender_email' => env('BREVO_SENDER_EMAIL'),
     ],
 
     'sendgrid' => [

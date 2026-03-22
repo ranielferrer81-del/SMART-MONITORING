@@ -47,46 +47,10 @@ if [ -z "$APP_KEY" ]; then
 fi
 
 # ---------------------------------------------------------------
-# 4. Write all environment variables to .env
-#    Laravel reads .env at boot; without it, env() returns nulls
+# 4. Write .env via PHP (bash heredocs break secrets with $, quotes, etc.)
 # ---------------------------------------------------------------
-echo "Writing .env file from environment variables..."
-cat > ./.env << ENVFILE
-APP_NAME=${APP_NAME:-SIA}
-APP_ENV=${APP_ENV}
-APP_KEY=${APP_KEY}
-APP_DEBUG=${APP_DEBUG}
-APP_URL=${APP_URL}
-
-LOG_CHANNEL=stack
-LOG_LEVEL=debug
-
-DB_CONNECTION=${DB_CONNECTION}
-DB_HOST=${DB_HOST}
-DB_PORT=${DB_PORT}
-DB_DATABASE=${DB_DATABASE}
-DB_USERNAME=${DB_USERNAME}
-DB_PASSWORD=${DB_PASSWORD}
-
-SESSION_DRIVER=${SESSION_DRIVER}
-SESSION_LIFETIME=120
-
-CACHE_STORE=${CACHE_STORE}
-
-QUEUE_CONNECTION=sync
-FILESYSTEM_DISK=local
-
-MAIL_MAILER=${MAIL_MAILER:-smtp}
-MAIL_HOST=${MAIL_HOST:-smtp.gmail.com}
-MAIL_PORT=${MAIL_PORT:-587}
-MAIL_USERNAME=${MAIL_USERNAME:-}
-MAIL_PASSWORD=${MAIL_PASSWORD:-}
-MAIL_ENCRYPTION=${MAIL_ENCRYPTION:-tls}
-MAIL_FROM_ADDRESS="${MAIL_FROM_ADDRESS:-noreply@example.com}"
-MAIL_FROM_NAME="${MAIL_FROM_NAME:-SIA}"
-
-BREVO_API_KEY=${BREVO_API_KEY:-}
-ENVFILE
+echo "Writing .env via scripts/write-env.php..."
+php scripts/write-env.php
 
 echo "=== .env written ==="
 
@@ -120,6 +84,7 @@ echo "-------------------------------"
 # 6. Laravel boot sequence
 # ---------------------------------------------------------------
 echo "Clearing stale caches..."
+rm -f bootstrap/cache/config.php 2>/dev/null || true
 php artisan config:clear 2>/dev/null || true
 php artisan cache:clear 2>/dev/null || true
 php artisan route:clear 2>/dev/null || true
