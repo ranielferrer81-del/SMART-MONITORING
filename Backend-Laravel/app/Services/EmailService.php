@@ -10,14 +10,31 @@ use App\Mail\VerificationCodeMail;
 class EmailService
 {
     /**
+     * Resolve API keys from config or the process environment (Railway injects env; config cache can omit keys).
+     */
+    private static function resolveApiKey(string $configKey, string $envName): string
+    {
+        $v = config($configKey);
+        if (is_string($v) && trim($v) !== '') {
+            return trim($v);
+        }
+        $g = getenv($envName);
+        if ($g !== false && trim((string) $g) !== '') {
+            return trim((string) $g);
+        }
+
+        return '';
+    }
+
+    /**
      * Send verification code email using multiple methods
      */
     public static function sendVerificationCode($toEmail, $code): bool
     {
-        $brevoKey = trim((string) config('services.brevo.key', ''));
-        $sendGridKey = trim((string) config('services.sendgrid.key', ''));
-        $mailgunKey = trim((string) config('services.mailgun.secret', ''));
-        $mailgunDomain = trim((string) config('services.mailgun.domain', ''));
+        $brevoKey = self::resolveApiKey('services.brevo.key', 'BREVO_API_KEY');
+        $sendGridKey = self::resolveApiKey('services.sendgrid.key', 'SENDGRID_API_KEY');
+        $mailgunKey = self::resolveApiKey('services.mailgun.secret', 'MAILGUN_SECRET');
+        $mailgunDomain = self::resolveApiKey('services.mailgun.domain', 'MAILGUN_DOMAIN');
 
         // Check mailer config - if set to 'log' or 'array', skip SMTP but still try API methods (Brevo, SendGrid, etc.)
         $mailer = config('mail.default');
@@ -114,8 +131,9 @@ class EmailService
         Log::error('❌ ALL email methods failed - no email sent', [
             'to' => $toEmail,
             'smtp_configured' => !$isPlaceholder,
-            'sendgrid_configured' => !empty($sendGridKey) && strlen($sendGridKey) > 20,
-            'mailgun_configured' => !empty($mailgunKey)
+            'brevo_configured' => $brevoKey !== '',
+            'sendgrid_configured' => strlen($sendGridKey) > 20,
+            'mailgun_configured' => $mailgunKey !== '' && $mailgunDomain !== '',
         ]);
         return false;
     }
@@ -135,10 +153,18 @@ class EmailService
      */
     private static function sendViaBrevo($to, $code, $apiKey): bool
     {
-        $response = Http::withHeaders([
+        $fromEmail = (string) config('mail.from.address', '');
+        if ($fromEmail === '' || str_contains(strtolower($fromEmail), 'example.com')) {
+            Log::warning('MAIL_FROM_ADDRESS must match a sender verified in Brevo (not noreply@example.com).', [
+                'mail_from' => $fromEmail ?: '(empty)',
+            ]);
+        }
+
+        $response = Http::timeout(30)
+            ->withHeaders([
             'api-key' => $apiKey,
             'Content-Type' => 'application/json',
-            'Accept' => 'application/json'
+            'Accept' => 'application/json',
         ])->post('https://api.brevo.com/v3/smtp/email', [
                     'sender' => [
                         'email' => config('mail.from.address', 'noreply@sia-system.com'),
@@ -154,6 +180,11 @@ class EmailService
         if ($response->successful()) {
             return true;
         }
+
+        Log::error('Brevo API non-success response', [
+            'status' => $response->status(),
+            'body' => $response->body(),
+        ]);
 
         throw new \Exception('Brevo API error: ' . $response->body());
     }

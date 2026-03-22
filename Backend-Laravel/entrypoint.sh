@@ -103,6 +103,17 @@ echo "CACHE_STORE = $CACHE_STORE"
 echo "SESSION_DRIVER = $SESSION_DRIVER"
 echo "APP_KEY     = ${APP_KEY:0:10}..."
 echo "PORT        = ${PORT:-8080}"
+echo "BREVO_API_KEY = (${#BREVO_API_KEY} chars)  # must be set in Railway if using Brevo"
+echo "MAIL_FROM_ADDRESS = ${MAIL_FROM_ADDRESS:-<unset, will use default>}"
+echo "MAIL_USERNAME = (${#MAIL_USERNAME} chars)"
+if [ -z "$BREVO_API_KEY" ]; then
+  echo "WARNING: BREVO_API_KEY is empty — add it in Railway Variables for transactional email."
+fi
+case "${MAIL_FROM_ADDRESS:-}" in
+  *example.com*|""|noreply@example.com)
+    echo "WARNING: MAIL_FROM_ADDRESS should match a sender verified in Brevo (not noreply@example.com) or Brevo may reject sends."
+    ;;
+esac
 echo "-------------------------------"
 
 # ---------------------------------------------------------------
@@ -124,7 +135,8 @@ if ! php artisan migrate --force --no-interaction; then
 fi
 
 echo "Optimizing for production..."
-php artisan config:cache 2>/dev/null || true
+# Do NOT run config:cache here: it bakes env at boot time and breaks mail keys / MAIL_FROM
+# if they change in Railway without a full redeploy. Route cache is safe.
 php artisan route:cache 2>/dev/null || true
 
 # ---------------------------------------------------------------
