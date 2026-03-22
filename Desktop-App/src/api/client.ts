@@ -3,13 +3,21 @@ import { getViteApiBaseUrl } from '../config/apiBase';
 
 const API_BASE_URL = getViteApiBaseUrl();
 
+/** Default for most API calls */
+const DEFAULT_TIMEOUT_MS = 15000;
+/**
+ * validate-email / resend send mail on the server before responding; Brevo/SMTP + cold start
+ * often needs more than the default window.
+ */
+const EMAIL_AUTH_TIMEOUT_MS = 120_000;
+
 export const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',
   },
-  timeout: 15000,
+  timeout: DEFAULT_TIMEOUT_MS,
 });
 
 api.interceptors.request.use((config) => {
@@ -113,10 +121,14 @@ export async function emailLogin(
       throw new Error('Password is required.');
     }
 
-    const { data } = await api.post('/api/validate-email', {
-      email: email.trim().toLowerCase(),
-      password: password
-    });
+    const { data } = await api.post(
+      '/api/validate-email',
+      {
+        email: email.trim().toLowerCase(),
+        password: password,
+      },
+      { timeout: EMAIL_AUTH_TIMEOUT_MS }
+    );
 
     if (!data?.ok) {
       throw new Error(data?.message || 'Failed to send verification code.');
@@ -168,9 +180,13 @@ export async function resendVerificationCode(
   email: string
 ): Promise<{ ok: boolean; message: string; email_sent: boolean; verification_code?: string | null }> {
   try {
-    const { data } = await api.post('/api/resend-verification-code', {
-      email: email.trim().toLowerCase(),
-    });
+    const { data } = await api.post(
+      '/api/resend-verification-code',
+      {
+        email: email.trim().toLowerCase(),
+      },
+      { timeout: EMAIL_AUTH_TIMEOUT_MS }
+    );
 
     if (!data?.ok) {
       throw new Error(data?.message || 'Failed to resend verification code.');
