@@ -73,30 +73,8 @@ class EmailService
         // Used when logging final failure (undefined if we never entered SMTP branch)
         $isPlaceholder = true;
 
-        // Brevo: REST first, then smtp-relay.brevo.com (SMTP key often differs from REST API key)
-        if ($brevoKey !== '') {
-            try {
-                if (self::sendViaBrevo($toEmail, $code, $brevoKey)) {
-                    Log::info('✅ Email sent via Brevo REST API', ['to' => $toEmail]);
-
-                    return true;
-                }
-            } catch (\Throwable $e) {
-                Log::warning('Brevo REST failed', ['error' => $e->getMessage()]);
-            }
-            try {
-                if (self::sendViaBrevoSmtp($toEmail, $code, $brevoKey)) {
-                    Log::info('✅ Email sent via Brevo SMTP relay', ['to' => $toEmail]);
-
-                    return true;
-                }
-            } catch (\Throwable $e) {
-                Log::warning('Brevo SMTP failed', ['error' => $e->getMessage()]);
-            }
-        }
-
-        // Method 1: Try Laravel Mail (SMTP) - skip if MAIL_MAILER is log/array
-        if (!$skipSmtp) {
+        // 1) Laravel Mail over configured SMTP first (Railway write-env maps BREVO_API_KEY → smtp-relay.brevo.com).
+        if (! $skipSmtp) {
             $mailUsername = config('mail.mailers.smtp.username');
             $mailPassword = config('mail.mailers.smtp.password');
             $mailHost = config('mail.mailers.smtp.host');
@@ -112,21 +90,43 @@ class EmailService
                 empty($mailHost) ||
                 $mailHost === '127.0.0.1';
 
-            if (!$isPlaceholder) {
+            if (! $isPlaceholder) {
                 try {
                     Mail::to($toEmail)->send(new VerificationCodeMail($code, $toEmail));
-                    Log::info('✅ Email sent successfully via SMTP', [
+                    Log::info('✅ Email sent via Laravel SMTP', [
                         'to' => $toEmail,
                         'host' => $mailHost,
-                        'username' => $mailUsername
+                        'username' => $mailUsername,
                     ]);
+
                     return true;
-                } catch (\Exception $e) {
-                    Log::error('❌ SMTP failed', ['error' => $e->getMessage()]);
-                    // Fall through to try API methods
+                } catch (\Throwable $e) {
+                    Log::error('Laravel SMTP failed', ['error' => $e->getMessage(), 'host' => $mailHost]);
                 }
             } else {
-                Log::warning('SMTP not configured - trying API methods');
+                Log::warning('SMTP not configured (placeholder or empty) — trying HTTP/API mailers');
+            }
+        }
+
+        // 2) Brevo REST + runtime Brevo SMTP if Laravel SMTP was skipped or failed
+        if ($brevoKey !== '') {
+            try {
+                if (self::sendViaBrevo($toEmail, $code, $brevoKey)) {
+                    Log::info('✅ Email sent via Brevo REST API', ['to' => $toEmail]);
+
+                    return true;
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Brevo REST failed', ['error' => $e->getMessage()]);
+            }
+            try {
+                if (self::sendViaBrevoSmtp($toEmail, $code, $brevoKey)) {
+                    Log::info('✅ Email sent via Brevo SMTP relay (runtime mailer)', ['to' => $toEmail]);
+
+                    return true;
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Brevo SMTP failed', ['error' => $e->getMessage()]);
             }
         }
 

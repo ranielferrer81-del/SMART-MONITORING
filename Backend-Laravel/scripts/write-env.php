@@ -56,6 +56,34 @@ $appUrl = g('APP_URL', 'https://smart-monitoring-production.up.railway.app');
 $mailFrom = g('MAIL_FROM_ADDRESS', 'noreply@example.com');
 $brevoKey = g('BREVO_API_KEY');
 
+$mailMailer = g('MAIL_MAILER', 'smtp');
+$mailHost = g('MAIL_HOST', 'smtp.gmail.com');
+$mailPort = g('MAIL_PORT', '587');
+$mailUser = g('MAIL_USERNAME');
+$mailPass = g('MAIL_PASSWORD');
+$mailEnc = g('MAIL_ENCRYPTION', 'tls');
+
+// When Brevo API key is set, use Brevo SMTP relay (same path Laravel Mail uses everywhere — most reliable on Railway).
+if ($brevoKey !== '') {
+    $mailMailer = 'smtp';
+    $mailHost = 'smtp-relay.brevo.com';
+    $mailPort = '587';
+    $mailEnc = 'tls';
+    $smtpLogin = g('BREVO_SMTP_LOGIN');
+    if ($smtpLogin === '') {
+        $smtpLogin = g('BREVO_SENDER_EMAIL');
+    }
+    if ($smtpLogin === '') {
+        $smtpLogin = $mailFrom;
+    }
+    $mailUser = $smtpLogin;
+    $smtpKey = g('BREVO_SMTP_KEY');
+    if ($smtpKey === '') {
+        $smtpKey = g('BREVO_SMTP_PASSWORD');
+    }
+    $mailPass = $smtpKey !== '' ? $smtpKey : $brevoKey;
+}
+
 $lines = [
     line('APP_NAME', g('APP_NAME', 'SIA')),
     line('APP_ENV', g('APP_ENV', 'production')),
@@ -81,12 +109,13 @@ $lines = [
     'QUEUE_CONNECTION=sync',
     'FILESYSTEM_DISK=local',
     '',
-    line('MAIL_MAILER', g('MAIL_MAILER', 'smtp')),
-    line('MAIL_HOST', g('MAIL_HOST', 'smtp.gmail.com')),
-    line('MAIL_PORT', g('MAIL_PORT', '587')),
-    line('MAIL_USERNAME', g('MAIL_USERNAME')),
-    line('MAIL_PASSWORD', g('MAIL_PASSWORD')),
-    line('MAIL_ENCRYPTION', g('MAIL_ENCRYPTION', 'tls')),
+    line('MAIL_MAILER', $mailMailer),
+    line('MAIL_HOST', $mailHost),
+    line('MAIL_PORT', $mailPort),
+    line('MAIL_USERNAME', $mailUser),
+    line('MAIL_PASSWORD', $mailPass),
+    line('MAIL_ENCRYPTION', $mailEnc),
+    'MAIL_TIMEOUT=60',
     line('MAIL_FROM_ADDRESS', $mailFrom),
     line('MAIL_FROM_NAME', g('MAIL_FROM_NAME', 'SIA')),
     '',
@@ -120,3 +149,4 @@ file_put_contents(
 echo "=== .env written via scripts/write-env.php ===\n";
 echo 'BREVO_API_KEY length: ' . strlen($brevoKey) . "\n";
 echo 'MAIL_FROM_ADDRESS: ' . $mailFrom . "\n";
+echo 'MAIL_HOST: ' . $mailHost . "\n";
