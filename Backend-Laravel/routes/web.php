@@ -47,53 +47,81 @@ Route::get('/run-migrations-for-railway', function () {
 
 // Temporary diagnostic route to debug email sending on Railway
 Route::get('/test-email-debug', function () {
+    $brevoKey = config('services.brevo.key') ?: getenv('BREVO_API_KEY');
+    $senderEmail = config('services.brevo.sender') ?: getenv('BREVO_SENDER_EMAIL') ?: config('mail.from.address') ?: getenv('MAIL_FROM_ADDRESS');
+
     $config = [
         'MAIL_MAILER' => config('mail.default'),
         'MAIL_HOST' => config('mail.mailers.smtp.host'),
         'MAIL_PORT' => config('mail.mailers.smtp.port'),
         'MAIL_USERNAME' => config('mail.mailers.smtp.username') ? substr(config('mail.mailers.smtp.username'), 0, 10) . '...' : '(empty)',
         'MAIL_PASSWORD_LENGTH' => strlen(config('mail.mailers.smtp.password') ?? ''),
-        'MAIL_ENCRYPTION' => config('mail.mailers.smtp.encryption'),
         'MAIL_FROM_ADDRESS' => config('mail.from.address'),
-        'MAIL_FROM_NAME' => config('mail.from.name'),
-        'BREVO_API_KEY_SET' => !empty(config('services.brevo.key')),
-        'ENV_MAIL_USERNAME' => getenv('MAIL_USERNAME') ? substr(getenv('MAIL_USERNAME'), 0, 10) . '...' : '(not in env)',
-        'ENV_MAIL_PASSWORD_LEN' => strlen(getenv('MAIL_PASSWORD') ?: ''),
+        'BREVO_API_KEY_LENGTH' => strlen($brevoKey ?: ''),
+        'BREVO_SENDER_EMAIL' => $senderEmail,
+        'SMTP_NOTE' => 'SMTP ports blocked on Railway - only REST APIs work',
     ];
 
-    $testResult = 'Not attempted';
-    $errorDetail = null;
+    $results = [];
 
-    try {
-        \Illuminate\Support\Facades\Config::set('mail.mailers.test_gmail', [
-            'transport' => 'smtp',
-            'host' => 'smtp.gmail.com',
-            'port' => 587,
-            'encryption' => 'tls',
-            'username' => config('mail.mailers.smtp.username'),
-            'password' => config('mail.mailers.smtp.password'),
-            'timeout' => 15,
+    // Test 1: Brevo REST API
+    if ($brevoKey) {
+        $payload = json_encode([
+            'sender' => ['email' => $senderEmail, 'name' => 'SIA System'],
+            'to' => [['email' => $senderEmail]],
+            'subject' => 'Railway Email Test',
+            'htmlContent' => '<p>Test email from Railway diagnostic.</p>',
         ]);
 
-        $from = config('mail.from.address', config('mail.mailers.smtp.username'));
-        $html = '<p>Test email from Railway diagnostic endpoint.</p>';
+        $ch = curl_init('https://api.brevo.com/v3/smtp/email');
+        curl_setopt_array($ch, [
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $payload,
+            CURLOPT_HTTPHEADER => [
+                'api-key: ' . $brevoKey,
+                'Content-Type: application/json',
+                'Accept: application/json',
+            ],
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 15,
+        ]);
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        curl_close($ch);
 
-        \Illuminate\Support\Facades\Mail::mailer('test_gmail')->html($html, function ($message) use ($from) {
-            $message->to($from)
-                ->subject('Railway Email Test')
-                ->from($from, 'SIA System Test');
-        });
+        $results['brevo_rest'] = [
+            'http_code' => $httpCode,
+            'response' => json_decode($response, true) ?: $response,
+            'curl_error' => $curlError ?: null,
+            'sender_used' => $senderEmail,
+        ];
+    } else {
+        $results['brevo_rest'] = 'BREVO_API_KEY not set';
+    }
 
-        $testResult = 'SUCCESS - Email sent!';
-    } catch (\Throwable $e) {
-        $testResult = 'FAILED';
-        $errorDetail = $e->getMessage();
+    // Test 2: Brevo account info
+    if ($brevoKey) {
+        $ch = curl_init('https://api.brevo.com/v3/account');
+        curl_setopt_array($ch, [
+            CURLOPT_HTTPHEADER => ['api-key: ' . $brevoKey, 'Accept: application/json'],
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 10,
+        ]);
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        $acct = json_decode($response, true);
+        $results['brevo_account'] = [
+            'http_code' => $httpCode,
+            'email' => $acct['email'] ?? null,
+            'plan' => $acct['plan'] ?? null,
+        ];
     }
 
     return response()->json([
         'config' => $config,
-        'test_result' => $testResult,
-        'error' => $errorDetail,
+        'results' => $results,
     ], 200, [], JSON_PRETTY_PRINT);
 });
 
