@@ -5,12 +5,7 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { BrowserRouter } from 'react-router-dom';
 
-// Set background image on body element
-document.body.style.backgroundImage = 'url(/Image1.jpg)';
-document.body.style.backgroundSize = 'cover';
-document.body.style.backgroundPosition = 'center';
-document.body.style.backgroundRepeat = 'no-repeat';
-document.body.style.backgroundAttachment = 'fixed';
+// Background is CSS gradients in index.css (avoids 404 on missing /Image1.jpg in production)
 
 // Create overlay element
 const overlay = document.createElement('div');
