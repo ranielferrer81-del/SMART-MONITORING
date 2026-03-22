@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -10,6 +11,42 @@ use Illuminate\Support\Facades\Storage;
 
 class TeacherProfileController extends Controller
 {
+    private function isProfilePictureValueTooLongForColumn(QueryException $e): bool
+    {
+        $m = $e->getMessage();
+
+        return str_contains($m, 'profile_picture')
+            && (str_contains($m, '1406') || str_contains($m, '22001') || str_contains($m, 'Data too long'));
+    }
+
+    private function persistTeacherProfilePicture(int $userId, string $base64Image): void
+    {
+        try {
+            DB::table('teacher_profiles')
+                ->where('user_id', $userId)
+                ->update([
+                    'profile_picture' => $base64Image,
+                    'updated_at' => now(),
+                ]);
+        } catch (QueryException $e) {
+            if (! $this->isProfilePictureValueTooLongForColumn($e)) {
+                throw $e;
+            }
+            try {
+                DB::statement('ALTER TABLE teacher_profiles MODIFY profile_picture LONGTEXT NULL');
+            } catch (\Throwable) {
+                // If ALTER is not permitted, rethrow original
+                throw $e;
+            }
+            DB::table('teacher_profiles')
+                ->where('user_id', $userId)
+                ->update([
+                    'profile_picture' => $base64Image,
+                    'updated_at' => now(),
+                ]);
+        }
+    }
+
     public function uploadProfilePicture(Request $request)
     {
         $user = Auth::user();
@@ -38,12 +75,7 @@ class TeacherProfileController extends Controller
             $base64Image = 'data:'.$mime.';base64,'.$imageData;
 
             // Store base64 directly in the database (persists across Railway redeploys)
-            DB::table('teacher_profiles')
-                ->where('user_id', $user->id)
-                ->update([
-                    'profile_picture' => $base64Image,
-                    'updated_at' => now(),
-                ]);
+            $this->persistTeacherProfilePicture($user->id, $base64Image);
 
             return response()->json([
                 'ok' => true,

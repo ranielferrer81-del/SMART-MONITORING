@@ -114,6 +114,15 @@ php artisan cache:clear 2>/dev/null || true
 php artisan route:clear 2>/dev/null || true
 php artisan view:clear 2>/dev/null || true
 
+# ---------------------------------------------------------------
+# 6b. Migrations (e.g. profile_picture LONGTEXT) — must not abort boot (set -e).
+# Use `if ! cmd` so migrate failure logs a warning but php artisan serve still runs.
+# ---------------------------------------------------------------
+echo "Running database migrations..."
+if ! php artisan migrate --force --no-interaction; then
+    echo "WARNING: php artisan migrate failed — check DB/logs. API will still start; run migrate manually if needed."
+fi
+
 echo "Optimizing for production..."
 php artisan config:cache 2>/dev/null || true
 php artisan route:cache 2>/dev/null || true
@@ -123,12 +132,6 @@ php artisan route:cache 2>/dev/null || true
 # ---------------------------------------------------------------
 echo "Testing database connection..."
 php artisan tinker --execute="try { DB::connection()->getPdo(); echo 'DB OK: connected to ' . DB::connection()->getDatabaseName(); } catch(Exception \$e) { echo 'DB WARN: ' . \$e->getMessage(); }" 2>/dev/null || echo "DB test skipped (tinker not available)"
-
-# Do NOT run migrations here: with set -e, a failed migrate prevents php artisan serve from
-# starting → Railway returns 502 for all routes; browsers then report "CORS" because 502
-# responses often omit Access-Control-Allow-Origin. Run migrations once via Railway Shell:
-#   php artisan migrate --force
-# or use your release-phase / one-off job if you add one later.
 
 # ---------------------------------------------------------------
 # 8. Start the server
