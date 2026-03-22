@@ -277,6 +277,12 @@ class BrowserActivityController extends Controller
         $query = BrowserActivity::where('student_user_id', $studentId)
             ->with(['student', 'session']);
 
+        // Same table holds real visits and pending extension commands (FORCE_CLOSE_*). Students must still
+        // receive those rows for the Chrome extension; admin/teacher history UI should not show them.
+        if (in_array($user->role, ['admin', 'teacher'], true)) {
+            $query->whereNotIn('url', ['FORCE_CLOSE_COMMAND', 'FORCE_CLOSE_TAB_COMMAND']);
+        }
+
         // Apply filters
         if ($request->has('session_id')) {
             $query->where('session_id', $request->session_id);
@@ -353,7 +359,8 @@ class BrowserActivityController extends Controller
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
-        $query = BrowserActivity::with(['student', 'session']);
+        $query = BrowserActivity::with(['student', 'session'])
+            ->whereNotIn('url', ['FORCE_CLOSE_COMMAND', 'FORCE_CLOSE_TAB_COMMAND']);
 
         // If teacher, only show their students
         if ($user->role === 'teacher') {
