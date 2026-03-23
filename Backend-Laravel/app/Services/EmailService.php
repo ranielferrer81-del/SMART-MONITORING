@@ -166,6 +166,9 @@ class EmailService
         if (! $skipSmtp && ! $isPlaceholder) {
             $mailHost = config('mail.mailers.smtp.host');
             $mailUsername = config('mail.mailers.smtp.username');
+            self::noteDiagnostic('smtp_attempted', true);
+            self::noteDiagnostic('smtp_host', (string) $mailHost);
+            self::noteDiagnostic('smtp_username_set', !empty($mailUsername));
             try {
                 Mail::mailer('smtp')->to($toEmail)->send(new VerificationCodeMail($code, $toEmail));
                 Log::info('✅ Email sent via Laravel SMTP', [
@@ -174,12 +177,17 @@ class EmailService
                     'username' => $mailUsername,
                 ]);
 
+                self::noteDiagnostic('smtp_result', 'success');
                 return true;
             } catch (\Throwable $e) {
+                self::noteDiagnostic('smtp_error', Str::limit($e->getMessage(), 400));
                 Log::error('Laravel SMTP failed', ['error' => $e->getMessage(), 'host' => $mailHost]);
             }
         } elseif (! $skipSmtp && $isPlaceholder) {
+            self::noteDiagnostic('smtp_skipped', 'placeholder_or_missing_creds');
             Log::warning('SMTP not configured (placeholder or empty) — skipped Laravel SMTP');
+        } elseif ($skipSmtp) {
+            self::noteDiagnostic('smtp_skipped', 'mail_default_not_smtp');
         }
 
         // Method 2: Try SendGrid API (if configured)
@@ -284,11 +292,6 @@ class EmailService
                     'to' => [
                         ['email' => $to],
                     ],
-                    'replyTo' => [
-                        'email' => $fromEmail,
-                        'name' => $sender['name'],
-                    ],
-                    'tags' => ['transactional', 'verification', 'sia-login'],
                     'subject' => $subject,
                     'htmlContent' => $html,
                     'textContent' => $plain,
