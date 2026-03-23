@@ -12,6 +12,15 @@ use App\Mail\VerificationCodeMail;
 
 class EmailService
 {
+    private static function hasSendmailBinary(): bool
+    {
+        // Many container/PAAS environments do not include sendmail.
+        // Checking prevents "/usr/bin/sendmail: not found" seen in your Railway logs.
+        return file_exists('/usr/sbin/sendmail')
+            || file_exists('/usr/bin/sendmail')
+            || file_exists('/sbin/sendmail');
+    }
+
     /** Populated on failed sends; consumed by AuthController when MAIL_DIAGNOSTICS_IN_RESPONSE / debug. */
     private static array $lastSendDiagnostics = [];
 
@@ -437,6 +446,11 @@ class EmailService
         // It often returns true even when email is not sent
         if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
             Log::warning('PHP mail() skipped on Windows - not reliable', ['to' => $to]);
+            return false;
+        }
+
+        if (!self::hasSendmailBinary()) {
+            Log::warning('PHP mail() skipped because sendmail binary is missing', ['to' => $to]);
             return false;
         }
 
