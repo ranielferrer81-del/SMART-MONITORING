@@ -144,6 +144,16 @@ if ($smtpKey !== '') {
     $lines[] = line('BREVO_SMTP_KEY', $smtpKey);
 }
 
+// Optional: return verification code in API JSON when Brevo/inbox delivery fails (set on Railway).
+$authFallback = g('AUTH_LOGIN_CODE_FALLBACK', '');
+if ($authFallback !== '') {
+    $lines[] = line('AUTH_LOGIN_CODE_FALLBACK', $authFallback);
+}
+$mailDiagResp = g('MAIL_DIAGNOSTICS_IN_RESPONSE', '');
+if ($mailDiagResp !== '') {
+    $lines[] = line('MAIL_DIAGNOSTICS_IN_RESPONSE', $mailDiagResp);
+}
+
 file_put_contents(
     dirname(__DIR__) . DIRECTORY_SEPARATOR . '.env',
     implode("\n", $lines) . "\n"

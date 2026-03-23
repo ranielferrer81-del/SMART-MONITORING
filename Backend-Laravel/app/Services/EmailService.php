@@ -257,6 +257,9 @@ class EmailService
 
         self::noteDiagnostic('brevo_from', $fromEmail);
 
+        $brand = (string) config('app.name', 'SIA');
+        $subject = $brand.': Your verification code (login)';
+
         try {
             $response = Http::timeout(45)
                 ->connectTimeout(15)
@@ -272,7 +275,12 @@ class EmailService
                     'to' => [
                         ['email' => $to],
                     ],
-                    'subject' => 'Email Verification Code - SIA System',
+                    'replyTo' => [
+                        'email' => $fromEmail,
+                        'name' => $sender['name'],
+                    ],
+                    'tags' => ['transactional', 'verification', 'sia-login'],
+                    'subject' => $subject,
                     'htmlContent' => $html,
                     'textContent' => $plain,
                 ]);
@@ -350,10 +358,13 @@ class EmailService
             'timeout' => 30,
         ]);
 
-        Mail::mailer($mailerName)->html($html, function ($message) use ($toEmail, $from, $sender) {
+        $brand = (string) config('app.name', 'SIA');
+        $subj = $brand.': Your verification code (login)';
+        Mail::mailer($mailerName)->html($html, function ($message) use ($toEmail, $from, $sender, $subj) {
             $message->to($toEmail)
-                ->subject('Email Verification Code - SIA System')
-                ->from($from, $sender['name']);
+                ->subject($subj)
+                ->from($from, $sender['name'])
+                ->replyTo($from, $sender['name']);
         });
 
         return true;

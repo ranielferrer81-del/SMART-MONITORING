@@ -33,7 +33,19 @@ class VerificationCodeMail extends Mailable
             .'<p style="font-size:32px;font-weight:bold;color:#dc2626;letter-spacing:8px">'.$safe.'</p>'
             .'<p style="color:#666">This code expires in 10 minutes.</p></body></html>';
 
-        return $this->subject('Email Verification Code - SIA System')->html($html);
+        $brand = config('app.name', 'SIA');
+        $from = (string) config('mail.from.address', '');
+        $name = (string) config('mail.from.name', 'SIA System');
+
+        $m = $this
+            ->subject($brand.': Your verification code (login)')
+            ->html($html);
+
+        if ($from !== '') {
+            $m->replyTo($from, $name);
+        }
+
+        return $m;
     }
 }
 

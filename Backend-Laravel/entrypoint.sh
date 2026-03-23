@@ -87,6 +87,11 @@ case "${MAIL_FROM_ADDRESS:-}" in
     echo "WARNING: MAIL_FROM_ADDRESS should match a sender verified in Brevo (not noreply@example.com) or Brevo may reject sends."
     ;;
 esac
+case "${MAIL_FROM_ADDRESS:-}" in
+  *@gmail.com|*@googlemail.com|*@yahoo.*|*@hotmail.*|*@outlook.*|*@live.*)
+    echo "NOTE: Freemail as From-address often hits Spam via Brevo. Fix: add your own domain in Brevo + DKIM/DMARC. Temporary unblock: AUTH_LOGIN_CODE_FALLBACK=true (returns code in API when send fails)."
+    ;;
+esac
 echo "-------------------------------"
 
 # ---------------------------------------------------------------
