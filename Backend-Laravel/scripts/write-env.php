@@ -150,9 +150,3 @@ echo "=== .env written via scripts/write-env.php ===\n";
 echo 'BREVO_API_KEY length: ' . strlen($brevoKey) . "\n";
 echo 'MAIL_FROM_ADDRESS: ' . $mailFrom . "\n";
 echo 'MAIL_HOST: ' . $mailHost . "\n";
-);
-
-echo "=== .env written via scripts/write-env.php ===\n";
-echo 'BREVO_API_KEY length: ' . strlen($brevoKey) . "\n";
-echo 'MAIL_FROM_ADDRESS: ' . $mailFrom . "\n";
-echo 'MAIL_HOST: ' . $mailHost . "\n";
