@@ -53,20 +53,36 @@ if ($appKey === '') {
 }
 
 $appUrl = g('APP_URL', 'https://smart-monitoring-production.up.railway.app');
-$mailFrom = g('MAIL_FROM_ADDRESS', 'ranielferrer81@gmail.com');
+$mailFrom = g('MAIL_FROM_ADDRESS', 'noreply@example.com');
 $brevoKey = g('BREVO_API_KEY');
 
 $mailMailer = g('MAIL_MAILER', 'smtp');
 $mailHost = g('MAIL_HOST', 'smtp.gmail.com');
 $mailPort = g('MAIL_PORT', '587');
-$mailUser = g('MAIL_USERNAME', 'ranielferrer81@gmail.com');
-$mailPass = g('MAIL_PASSWORD', 'jtkrtmascloxplsb');
+$mailUser = g('MAIL_USERNAME');
+$mailPass = g('MAIL_PASSWORD');
 $mailEnc = g('MAIL_ENCRYPTION', 'tls');
 
-// NOTE: Do NOT override SMTP settings here when BREVO_API_KEY is set.
-// EmailService handles Brevo independently (REST API + dynamic SMTP mailer).
-// Keeping the main SMTP config as Gmail (or whatever the user configured) so it
-// serves as a reliable fallback when Brevo is unavailable (e.g. 403 / credits / DKIM).
+// When Brevo API key is set, use Brevo SMTP relay (same path Laravel Mail uses everywhere — most reliable on Railway).
+if ($brevoKey !== '') {
+    $mailMailer = 'smtp';
+    $mailHost = 'smtp-relay.brevo.com';
+    $mailPort = '587';
+    $mailEnc = 'tls';
+    $smtpLogin = g('BREVO_SMTP_LOGIN');
+    if ($smtpLogin === '') {
+        $smtpLogin = g('BREVO_SENDER_EMAIL');
+    }
+    if ($smtpLogin === '') {
+        $smtpLogin = $mailFrom;
+    }
+    $mailUser = $smtpLogin;
+    $smtpKey = g('BREVO_SMTP_KEY');
+    if ($smtpKey === '') {
+        $smtpKey = g('BREVO_SMTP_PASSWORD');
+    }
+    $mailPass = $smtpKey !== '' ? $smtpKey : $brevoKey;
+}
 
 $lines = [
     line('APP_NAME', g('APP_NAME', 'SIA')),
@@ -125,15 +141,15 @@ if ($smtpKey !== '') {
     $lines[] = line('BREVO_SMTP_KEY', $smtpKey);
 }
 
-// Add Resend support
-$resendKey = g('RESEND_API_KEY');
-if ($resendKey !== '') {
-    $lines[] = line('RESEND_API_KEY', $resendKey);
-}
-
 file_put_contents(
     dirname(__DIR__) . DIRECTORY_SEPARATOR . '.env',
     implode("\n", $lines) . "\n"
+);
+
+echo "=== .env written via scripts/write-env.php ===\n";
+echo 'BREVO_API_KEY length: ' . strlen($brevoKey) . "\n";
+echo 'MAIL_FROM_ADDRESS: ' . $mailFrom . "\n";
+echo 'MAIL_HOST: ' . $mailHost . "\n";
 );
 
 echo "=== .env written via scripts/write-env.php ===\n";

@@ -660,7 +660,13 @@ class AuthController extends Controller
             $sent = false;
         }
 
-        $message = $sent ? $successMessage : $failMessage;
+        $showFallbackCode = ! $sent && (config('app.debug') || filter_var(env('AUTH_LOGIN_CODE_FALLBACK', false), FILTER_VALIDATE_BOOLEAN));
+
+        $message = $sent
+            ? $successMessage
+            : ($showFallbackCode
+                ? 'Email could not be sent. Use this verification code (APP_DEBUG or AUTH_LOGIN_CODE_FALLBACK is enabled).'
+                : $failMessage);
 
         $payload = [
             'ok' => true,
@@ -672,8 +678,7 @@ class AuthController extends Controller
             $payload['email'] = $email;
         }
 
-        // Always include the code as safety net when email fails
-        if (! $sent) {
+        if ($showFallbackCode) {
             $payload['verification_code'] = $code;
         }
 

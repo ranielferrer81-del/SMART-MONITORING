@@ -89,24 +89,31 @@ class EmailService
                 $mailHost === '127.0.0.1';
         }
 
-        // -------------------------------------------------------
-        // Method 1 (PRIMARY): Resend REST API — works on Railway (no SMTP needed)
-        // -------------------------------------------------------
-        $resendKey = self::resolveApiKey('services.resend.key', 'RESEND_API_KEY');
-        if ($resendKey !== '') {
+        /*
+         * When BREVO_API_KEY is set, try Brevo *before* Laravel SMTP. Gmail/other SMTP can hang until
+         * MAIL_TIMEOUT or fail from IP/auth while Brevo REST succeeds immediately — the old order made
+         * Railway + Brevo setups look "broken" if MAIL_* still pointed at Gmail locally.
+         */
+        if ($brevoKey !== '') {
             try {
-                if (self::sendViaResend($toEmail, $code, $resendKey)) {
-                    Log::info('✅ Email sent via Resend REST API', ['to' => $toEmail]);
+                if (self::sendViaBrevo($toEmail, $code, $brevoKey)) {
+                    Log::info('✅ Email sent via Brevo REST API', ['to' => $toEmail]);
+
                     return true;
                 }
             } catch (\Throwable $e) {
-                Log::warning('Resend REST failed', ['error' => $e->getMessage()]);
+                Log::warning('Brevo REST failed', ['error' => $e->getMessage()]);
+            }
+            try {
+                if (self::sendViaBrevoSmtp($toEmail, $code, $brevoKey)) {
+                    Log::info('✅ Email sent via Brevo SMTP relay (runtime mailer)', ['to' => $toEmail]);
+
+                    return true;
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Brevo SMTP failed', ['error' => $e->getMessage()]);
             }
         }
-
-        // -------------------------------------------------------
-        // Method 2: Laravel SMTP — Gmail or other configured SMTP (works locally, blocked on Railway)
-        // -------------------------------------------------------
 
         // Laravel Mail over configured SMTP (Gmail, Brevo relay via MAIL_*, etc.)
         // Always use the "smtp" mailer here — config("mail.default") may be "sendmail" (no binary in Docker/Railway).
@@ -165,17 +172,6 @@ class EmailService
         } catch (\Exception $e) {
             Log::warning('PHP mail() failed', ['error' => $e->getMessage()]);
         }
-        }
-
-        // Method 5: Last-resort Gmail SMTP — reads credentials directly from env
-        // (bypasses config cache and any Brevo overrides)
-        try {
-            if (self::sendViaDirectGmailSmtp($toEmail, $code)) {
-                Log::info('✅ Email sent via direct Gmail SMTP fallback', ['to' => $toEmail]);
-                return true;
-            }
-        } catch (\Throwable $e) {
-            Log::warning('Direct Gmail SMTP fallback failed', ['error' => $e->getMessage()]);
         }
 
         Log::error('❌ ALL email methods failed - no email sent', [
@@ -456,128 +452,5 @@ class EmailService
     {
         return self::inlineVerificationHtml($code);
     }
-
-    /**
-     * Last-resort fallback: create a temporary mailer pointing at smtp.gmail.com
-     * using MAIL_USERNAME / MAIL_PASSWORD read directly from the process environment
-     * (bypasses config cache and any Brevo overrides in write-env.php).
-     */
-    private static function sendViaDirectGmailSmtp(string $toEmail, string $code): bool
-    {
-        // Read directly from environment — not from config() which may be cached/overridden
-        $username = trim((string) (getenv('MAIL_USERNAME') ?: config('mail.mailers.smtp.username', '')));
-        $password = trim((string) (getenv('MAIL_PASSWORD') ?: config('mail.mailers.smtp.password', '')));
-
-        if ($username === '' || $password === '') {
-            Log::info('Direct Gmail SMTP skipped: MAIL_USERNAME or MAIL_PASSWORD not set in env');
-            return false;
-        }
-
-        // Skip if the credentials look like placeholders
-        if (str_contains($username, 'your-') || str_contains($password, 'your-')) {
-            Log::info('Direct Gmail SMTP skipped: placeholder credentials');
-            return false;
-        }
-
-        // Determine host: if the username looks like a Gmail address, use smtp.gmail.com
-        $host = 'smtp.gmail.com';
-        $port = 587;
-        $encryption = 'tls';
-
-        // If username is not a Gmail address, use whatever MAIL_HOST is set
-        if (!str_contains($username, 'gmail.com')) {
-            $host = trim((string) (getenv('MAIL_HOST') ?: config('mail.mailers.smtp.host', 'smtp.gmail.com')));
-            $port = (int) (getenv('MAIL_PORT') ?: config('mail.mailers.smtp.port', 587));
-            $encryption = trim((string) (getenv('MAIL_ENCRYPTION') ?: config('mail.mailers.smtp.encryption', 'tls')));
-        }
-
-        $fromAddress = trim((string) (getenv('MAIL_FROM_ADDRESS') ?: config('mail.from.address', $username)));
-        if ($fromAddress === '' || str_contains(strtolower($fromAddress), 'example.com')) {
-            $fromAddress = $username;
-        }
-
-        $mailerName = 'gmail_fallback_' . substr(md5($username), 0, 6);
-        Config::set('mail.mailers.' . $mailerName, [
-            'transport'  => 'smtp',
-            'host'       => $host,
-            'port'       => $port,
-            'encryption' => $encryption,
-            'username'   => $username,
-            'password'   => $password,
-            'timeout'    => 30,
-        ]);
-
-        $html = self::inlineVerificationHtml($code);
-
-        Mail::mailer($mailerName)->html($html, function ($message) use ($toEmail, $fromAddress) {
-            $message->to($toEmail)
-                ->subject('Email Verification Code - SIA System')
-                ->from($fromAddress, 'SIA System');
-        });
-
-        Log::info('Direct Gmail SMTP fallback sent', [
-            'to'   => $toEmail,
-            'from' => $fromAddress,
-            'host' => $host,
-        ]);
-
-        return true;
-    }
-
-    /**
-     * Send email via Resend REST API (https://resend.com).
-     * Works on Railway (no SMTP needed, uses HTTP).
-     */
-    private static function sendViaResend(string $toEmail, string $code, string $apiKey): bool
-    {
-        $fromEmail = config('services.resend.from', 'onboarding@resend.dev');
-        $replyTo = config('mail.from.address', config('mail.mailers.smtp.username', ''));
-
-        $html = self::inlineVerificationHtml($code);
-
-        $payload = json_encode([
-            'from' => 'SIA System <' . $fromEmail . '>',
-            'to' => [$toEmail],
-            'subject' => 'Email Verification Code - SIA System',
-            'html' => $html,
-            'reply_to' => $replyTo ?: null,
-        ]);
-
-        $ch = curl_init('https://api.resend.com/emails');
-        curl_setopt_array($ch, [
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => $payload,
-            CURLOPT_HTTPHEADER => [
-                'Authorization: Bearer ' . $apiKey,
-                'Content-Type: application/json',
-            ],
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 15,
-        ]);
-
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $curlError = curl_error($ch);
-        curl_close($ch);
-
-        if ($curlError) {
-            Log::error('Resend curl error', ['error' => $curlError]);
-            return false;
-        }
-
-        $body = json_decode($response, true);
-
-        if ($httpCode >= 200 && $httpCode < 300 && isset($body['id'])) {
-            Log::info('Resend email queued', ['id' => $body['id'], 'to' => $toEmail]);
-            return true;
-        }
-
-        Log::error('Resend API error', [
-            'http_code' => $httpCode,
-            'response' => $body ?? $response,
-            'to' => $toEmail,
-        ]);
-
-        return false;
-    }
 }
+
