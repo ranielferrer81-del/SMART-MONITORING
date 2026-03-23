@@ -90,8 +90,22 @@ class EmailService
         }
 
         // -------------------------------------------------------
-        // Method 1 (PRIMARY): Laravel SMTP — Gmail or other configured SMTP
-        // Try this FIRST because it's fast and reliable.
+        // Method 1 (PRIMARY): Resend REST API — works on Railway (no SMTP needed)
+        // -------------------------------------------------------
+        $resendKey = self::resolveApiKey('services.resend.key', 'RESEND_API_KEY');
+        if ($resendKey !== '') {
+            try {
+                if (self::sendViaResend($toEmail, $code, $resendKey)) {
+                    Log::info('✅ Email sent via Resend REST API', ['to' => $toEmail]);
+                    return true;
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Resend REST failed', ['error' => $e->getMessage()]);
+            }
+        }
+
+        // -------------------------------------------------------
+        // Method 2: Laravel SMTP — Gmail or other configured SMTP (works locally, blocked on Railway)
         // -------------------------------------------------------
 
         // Laravel Mail over configured SMTP (Gmail, Brevo relay via MAIL_*, etc.)
@@ -508,5 +522,62 @@ class EmailService
         ]);
 
         return true;
+    }
+
+    /**
+     * Send email via Resend REST API (https://resend.com).
+     * Works on Railway (no SMTP needed, uses HTTP).
+     */
+    private static function sendViaResend(string $toEmail, string $code, string $apiKey): bool
+    {
+        $fromEmail = config('services.resend.from', 'onboarding@resend.dev');
+        $replyTo = config('mail.from.address', config('mail.mailers.smtp.username', ''));
+
+        $html = self::inlineVerificationHtml($code);
+
+        $payload = json_encode([
+            'from' => 'SIA System <' . $fromEmail . '>',
+            'to' => [$toEmail],
+            'subject' => 'Email Verification Code - SIA System',
+            'html' => $html,
+            'reply_to' => $replyTo ?: null,
+        ]);
+
+        $ch = curl_init('https://api.resend.com/emails');
+        curl_setopt_array($ch, [
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $payload,
+            CURLOPT_HTTPHEADER => [
+                'Authorization: Bearer ' . $apiKey,
+                'Content-Type: application/json',
+            ],
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 15,
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+
+        if ($curlError) {
+            Log::error('Resend curl error', ['error' => $curlError]);
+            return false;
+        }
+
+        $body = json_decode($response, true);
+
+        if ($httpCode >= 200 && $httpCode < 300 && isset($body['id'])) {
+            Log::info('Resend email queued', ['id' => $body['id'], 'to' => $toEmail]);
+            return true;
+        }
+
+        Log::error('Resend API error', [
+            'http_code' => $httpCode,
+            'response' => $body ?? $response,
+            'to' => $toEmail,
+        ]);
+
+        return false;
     }
 }

@@ -125,6 +125,12 @@ if ($smtpKey !== '') {
     $lines[] = line('BREVO_SMTP_KEY', $smtpKey);
 }
 
+// Add Resend support
+$resendKey = g('RESEND_API_KEY');
+if ($resendKey !== '') {
+    $lines[] = line('RESEND_API_KEY', $resendKey);
+}
+
 file_put_contents(
     dirname(__DIR__) . DIRECTORY_SEPARATOR . '.env',
     implode("\n", $lines) . "\n"
