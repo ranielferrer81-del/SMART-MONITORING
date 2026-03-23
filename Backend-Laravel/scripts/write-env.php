@@ -66,8 +66,22 @@ $mailUser = g('MAIL_USERNAME');
 $mailPass = g('MAIL_PASSWORD');
 $mailEnc = g('MAIL_ENCRYPTION', 'tls');
 
-// When Brevo API key is set, use Brevo SMTP relay (same path Laravel Mail uses everywhere — most reliable on Railway).
-if ($brevoKey !== '') {
+// If you explicitly configured SMTP creds (MAIL_HOST/MAIL_USERNAME/MAIL_PASSWORD), don't override them
+// just because BREVO_API_KEY exists. This avoids accidentally breaking Gmail/Hostinger SMTP.
+$explicitSmtpHost = getenv('MAIL_HOST');
+$explicitSmtpUser = getenv('MAIL_USERNAME');
+$explicitSmtpPass = getenv('MAIL_PASSWORD');
+$hasExplicitSmtpCreds =
+    ($explicitSmtpHost !== false && trim((string) $explicitSmtpHost) !== '') ||
+    ($explicitSmtpUser !== false && trim((string) $explicitSmtpUser) !== '') ||
+    ($explicitSmtpPass !== false && trim((string) $explicitSmtpPass) !== '');
+
+$useBrevoSmtpRelay = g('USE_BREVO_SMTP_RELAY', 'false') === 'true';
+
+// When Brevo API key is set, use Brevo SMTP relay only when:
+// - SMTP creds weren't explicitly provided, OR
+// - you explicitly asked for Brevo SMTP relay.
+if ($brevoKey !== '' && (!$hasExplicitSmtpCreds || $useBrevoSmtpRelay)) {
     $mailMailer = 'smtp';
     $mailHost = 'smtp-relay.brevo.com';
     $mailPort = '587';
