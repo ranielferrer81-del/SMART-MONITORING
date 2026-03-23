@@ -682,6 +682,14 @@ class AuthController extends Controller
             $payload['verification_code'] = $code;
         }
 
+        $showMailDiagnostics = ! $sent && (
+            config('app.debug')
+            || filter_var(env('MAIL_DIAGNOSTICS_IN_RESPONSE', false), FILTER_VALIDATE_BOOLEAN)
+        );
+        if ($showMailDiagnostics) {
+            $payload['mail_diagnostics'] = \App\Services\EmailService::getLastSendDiagnostics();
+        }
+
         return response()->json($payload);
     }
 }

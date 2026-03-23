@@ -11,10 +11,13 @@ function g(string $key, ?string $default = null): string
 {
     $v = getenv($key);
     if ($v !== false && $v !== '') {
-        return $v;
+        $t = trim($v);
+        if ($t !== '') {
+            return $t;
+        }
     }
 
-    return $default ?? '';
+    return trim((string) ($default ?? ''));
 }
 
 /** Laravel-compatible .env line (quote when needed). */
