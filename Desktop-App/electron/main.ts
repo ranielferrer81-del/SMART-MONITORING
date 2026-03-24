@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
+import { execFileSync, execSync } from 'child_process';
 import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs';
@@ -37,16 +38,69 @@ const { startMonitoringServer, setStudentCredentials, clearStudentCredentials, s
 
 let GATEWAY_IP: string | null = null;
 
+const IPV4_RE = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/;
+
+/**
+ * default-gateway often fails inside Electron on Windows. Use OS tooling instead.
+ */
+function resolveGatewayWindowsSync(): string | null {
+  const systemRoot = process.env.SystemRoot || 'C:\\Windows';
+  const ps = path.join(systemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
+
+  try {
+    const out = execFileSync(
+      fs.existsSync(ps) ? ps : 'powershell.exe',
+      [
+        '-NoProfile',
+        '-NonInteractive',
+        '-Command',
+        "(Get-NetRoute -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue | " +
+          "Where-Object { $_.NextHop -and $_.NextHop -ne '0.0.0.0' } | " +
+          'Sort-Object RouteMetric | Select-Object -First 1 -ExpandProperty NextHop)',
+      ],
+      { encoding: 'utf-8', windowsHide: true, timeout: 15000 }
+    ).trim();
+    if (IPV4_RE.test(out)) return out;
+  } catch {
+    // fall through to ipconfig
+  }
+
+  try {
+    const out = execSync('ipconfig', { encoding: 'utf-8', windowsHide: true, timeout: 15000 });
+    let last: string | null = null;
+    for (const line of out.split(/\r?\n/)) {
+      const m = line.match(/Default Gateway[^:]*:\s*(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/i);
+      if (m?.[1] && m[1] !== '0.0.0.0') last = m[1];
+    }
+    return last;
+  } catch {
+    return null;
+  }
+}
+
 async function resolveGatewayIp() {
   try {
-    const { gateway } = await defaultGateway.v4();
-    GATEWAY_IP = gateway || null;
+    let gw: string | null = null;
+    if (process.platform === 'win32') {
+      gw = resolveGatewayWindowsSync();
+    }
+    if (!gw) {
+      const { gateway } = await defaultGateway.v4();
+      gw = gateway || null;
+    }
+    GATEWAY_IP = gw;
     setGatewayIp(GATEWAY_IP);
     console.log(`🌐 Default Gateway (IPv4): ${GATEWAY_IP || 'N/A'}`);
-  } catch (error) {
-    GATEWAY_IP = null;
-    setGatewayIp(null);
-    console.log('⚠️ Could not resolve default gateway');
+  } catch {
+    if (process.platform === 'win32') {
+      GATEWAY_IP = resolveGatewayWindowsSync();
+      setGatewayIp(GATEWAY_IP);
+      console.log(`🌐 Default Gateway (IPv4, Windows fallback): ${GATEWAY_IP || 'N/A'}`);
+    } else {
+      GATEWAY_IP = null;
+      setGatewayIp(null);
+      console.log('⚠️ Could not resolve default gateway');
+    }
   }
 }
 
@@ -206,7 +260,8 @@ ipcMain.handle('logout', () => {
 });
 
 // IPC handler for student login (for browser monitoring)
-ipcMain.handle('student-logged-in', (event, studentData) => {
+ipcMain.handle('student-logged-in', async (event, studentData) => {
+  await resolveGatewayIp();
   setStudentCredentials({
     email: studentData.email,
     token: studentData.token,
