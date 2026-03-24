@@ -37,6 +37,9 @@ Route::get('/run-migrations-for-railway', function () {
             '--path' => [
                 'database/migrations/2026_02_26_000001_create_lab_computers_table.php',
                 'database/migrations/2026_02_26_000002_add_computer_name_to_monitoring_sessions_table.php',
+                'database/migrations/2026_03_24_000001_create_lab_gateways_table.php',
+                'database/migrations/2026_03_24_000002_update_lab_computers_for_composite_identity.php',
+                'database/migrations/2026_03_24_000003_add_gateway_fields_to_monitoring_sessions_table.php',
             ],
         ]);
         return "Migration successful! Result: " . \Illuminate\Support\Facades\Artisan::output();

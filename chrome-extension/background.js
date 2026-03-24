@@ -21,6 +21,7 @@ const STORAGE_KEYS = {
     LAST_LOGOUT_SIGNAL: 'last_logout_signal',
     MANUAL_LOGOUT: 'manual_logout', // Flag to track manual logout
     COMPUTER_NAME: 'computer_name', // PC hostname for lab tracking
+    GATEWAY_IP: 'gateway_ip',       // Default gateway IP for lab tracking
     API_BASE_URL: 'api_base_url'    // Dynamic API URL from Desktop App
 };
 
@@ -138,6 +139,7 @@ async function autoLoginWithDesktopApp(credentials) {
             [STORAGE_KEYS.AUTO_ACTIVATED]: true,
             [STORAGE_KEYS.LAST_LOGOUT_SIGNAL]: currentLogoutSignal,
             [STORAGE_KEYS.COMPUTER_NAME]: credentials.computerName || null,
+            [STORAGE_KEYS.GATEWAY_IP]: credentials.gatewayIp || null,
             [STORAGE_KEYS.API_BASE_URL]: dynamicApiBaseUrl || DEFAULT_API_BASE_URL
         });
 
@@ -612,7 +614,8 @@ async function sendHeartbeat() {
         STORAGE_KEYS.TOKEN,
         STORAGE_KEYS.IS_MONITORING,
         STORAGE_KEYS.USER,
-        STORAGE_KEYS.COMPUTER_NAME
+        STORAGE_KEYS.COMPUTER_NAME,
+        STORAGE_KEYS.GATEWAY_IP
     ]);
 
     if (!result[STORAGE_KEYS.TOKEN] || !result[STORAGE_KEYS.IS_MONITORING]) {
@@ -647,7 +650,8 @@ async function sendHeartbeat() {
             },
             body: JSON.stringify({
                 open_tabs: openTabs,
-                computer_name: result[STORAGE_KEYS.COMPUTER_NAME] || null
+                computer_name: result[STORAGE_KEYS.COMPUTER_NAME] || null,
+                gateway_ip: result[STORAGE_KEYS.GATEWAY_IP] || null
             })
         });
 

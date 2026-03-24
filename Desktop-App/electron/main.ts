@@ -8,6 +8,7 @@ import { createRequire } from 'module';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const require = createRequire(import.meta.url);
+const defaultGateway = require('default-gateway');
 
 // Get the Windows Computer Name (Hostname) for lab tracking
 const COMPUTER_NAME = os.hostname();
@@ -32,7 +33,22 @@ try {
 console.log(`🌐 API Base URL: ${API_BASE_URL}`);
 
 // Import monitoring server (using require for CommonJS module)
-const { startMonitoringServer, setStudentCredentials, clearStudentCredentials, setComputerName, setApiBaseUrl } = require('./monitoring-server.cjs');
+const { startMonitoringServer, setStudentCredentials, clearStudentCredentials, setComputerName, setGatewayIp, setApiBaseUrl } = require('./monitoring-server.cjs');
+
+let GATEWAY_IP: string | null = null;
+
+async function resolveGatewayIp() {
+  try {
+    const { gateway } = await defaultGateway.v4();
+    GATEWAY_IP = gateway || null;
+    setGatewayIp(GATEWAY_IP);
+    console.log(`🌐 Default Gateway (IPv4): ${GATEWAY_IP || 'N/A'}`);
+  } catch (error) {
+    GATEWAY_IP = null;
+    setGatewayIp(null);
+    console.log('⚠️ Could not resolve default gateway');
+  }
+}
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
 try {
@@ -196,7 +212,8 @@ ipcMain.handle('student-logged-in', (event, studentData) => {
     token: studentData.token,
     userId: studentData.userId,
     fullName: studentData.fullName,
-    computerName: COMPUTER_NAME
+    computerName: COMPUTER_NAME,
+    gatewayIp: GATEWAY_IP
   });
 });
 
@@ -206,8 +223,9 @@ ipcMain.handle('student-logged-out', () => {
 });
 
 // This method will be called when Electron has finished initialization
-app.on('ready', () => {
+app.on('ready', async () => {
   createWindow();
+  await resolveGatewayIp();
   setComputerName(COMPUTER_NAME); // Set the hostname for the monitoring server
   setApiBaseUrl(API_BASE_URL);    // Set the API URL for heartbeats
   startMonitoringServer(); // Start monitoring server on port 9876

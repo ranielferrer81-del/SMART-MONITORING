@@ -12,6 +12,8 @@ class MonitoringSession extends Model
         'session_end',
         'device_info',
         'computer_name',
+        'gateway_ip',
+        'laboratory_room',
         'is_active',
         'session_name',
         'created_by',

@@ -4,11 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class LabComputer extends Model
+class LabGateway extends Model
 {
     protected $fillable = [
-        'computer_name',
-        'display_name',
+        'gateway_ip',
         'laboratory_room',
+        'description',
     ];
 }

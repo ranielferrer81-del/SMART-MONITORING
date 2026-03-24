@@ -10,13 +10,13 @@ use App\Models\LabComputer;
 class LabComputerController extends Controller
 {
     /**
-     * List all lab computer mappings (Admin only)
+     * List all lab computer mappings (Admin/Teacher)
      */
     public function index(Request $request)
     {
         $user = Auth::user();
 
-        if ($user->role !== 'admin') {
+        if (!in_array($user->role, ['admin', 'teacher'], true)) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
@@ -32,6 +32,7 @@ class LabComputerController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('computer_name', 'like', "%{$search}%")
+                    ->orWhere('display_name', 'like', "%{$search}%")
                     ->orWhere('laboratory_room', 'like', "%{$search}%");
             });
         }
@@ -55,13 +56,28 @@ class LabComputerController extends Controller
         }
 
         $request->validate([
-            'computer_name' => 'required|string|max:255|unique:lab_computers,computer_name',
+            'computer_name' => 'required|string|max:255',
+            'display_name' => 'nullable|string|max:255',
             'laboratory_room' => 'required|string|max:255',
         ]);
 
+        $normalizedComputerName = strtoupper(trim($request->computer_name));
+        $normalizedLabRoom = trim($request->laboratory_room);
+
+        $exists = LabComputer::where('computer_name', $normalizedComputerName)
+            ->where('laboratory_room', $normalizedLabRoom)
+            ->exists();
+
+        if ($exists) {
+            return response()->json([
+                'error' => 'This computer name already exists in the selected laboratory room.'
+            ], 422);
+        }
+
         $computer = LabComputer::create([
-            'computer_name' => strtoupper(trim($request->computer_name)),
-            'laboratory_room' => trim($request->laboratory_room),
+            'computer_name' => $normalizedComputerName,
+            'display_name' => $request->display_name ? trim($request->display_name) : $normalizedComputerName,
+            'laboratory_room' => $normalizedLabRoom,
         ]);
 
         return response()->json([
@@ -84,16 +100,39 @@ class LabComputerController extends Controller
         $computer = LabComputer::findOrFail($id);
 
         $request->validate([
-            'computer_name' => 'sometimes|required|string|max:255|unique:lab_computers,computer_name,' . $id,
+            'computer_name' => 'sometimes|required|string|max:255',
+            'display_name' => 'nullable|string|max:255',
             'laboratory_room' => 'sometimes|required|string|max:255',
         ]);
 
+        $nextComputerName = $request->has('computer_name')
+            ? strtoupper(trim($request->computer_name))
+            : $computer->computer_name;
+        $nextLabRoom = $request->has('laboratory_room')
+            ? trim($request->laboratory_room)
+            : $computer->laboratory_room;
+
+        $exists = LabComputer::where('computer_name', $nextComputerName)
+            ->where('laboratory_room', $nextLabRoom)
+            ->where('id', '!=', $id)
+            ->exists();
+
+        if ($exists) {
+            return response()->json([
+                'error' => 'This computer name already exists in the selected laboratory room.'
+            ], 422);
+        }
+
         if ($request->has('computer_name')) {
-            $computer->computer_name = strtoupper(trim($request->computer_name));
+            $computer->computer_name = $nextComputerName;
         }
 
         if ($request->has('laboratory_room')) {
-            $computer->laboratory_room = trim($request->laboratory_room);
+            $computer->laboratory_room = $nextLabRoom;
+        }
+
+        if ($request->exists('display_name')) {
+            $computer->display_name = $request->display_name ? trim($request->display_name) : $computer->computer_name;
         }
 
         $computer->save();

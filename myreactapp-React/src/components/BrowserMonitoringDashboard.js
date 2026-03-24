@@ -262,8 +262,11 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
                                 {students.map((student) => {
                                     // Get computer info from online students data
                                     const onlineInfo = onlineStudents.find(s => s.id === student.id);
-                                    const computerName = onlineInfo?.computer_name || null;
-                                    const labRoom = onlineInfo?.laboratory_room || null;
+                                    const computerName = onlineInfo?.display_name || onlineInfo?.computer_name || null;
+                                    const fallbackUnknownLab = onlineInfo?.gateway_ip
+                                        ? `Unknown Lab (${onlineInfo.gateway_ip})`
+                                        : 'Unknown Lab';
+                                    const labRoom = onlineInfo?.laboratory_room || fallbackUnknownLab;
 
                                     return (
                                         <tr key={student.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
@@ -315,7 +318,7 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
                                                 )}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                                {isStudentOnline(student.id) && labRoom ? (
+                                                {isStudentOnline(student.id) ? (
                                                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 font-medium text-xs border border-purple-200 dark:border-purple-800">
                                                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />

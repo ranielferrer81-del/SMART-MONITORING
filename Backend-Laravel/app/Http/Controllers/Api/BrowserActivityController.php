@@ -10,6 +10,7 @@ use App\Models\BrowserActivity;
 use App\Models\MonitoringSession;
 use App\Models\IncognitoAlert;
 use App\Models\LabComputer;
+use App\Models\LabGateway;
 
 class BrowserActivityController extends Controller
 {
@@ -94,8 +95,15 @@ class BrowserActivityController extends Controller
             return response()->json(['error' => 'Only students can send heartbeats'], 403);
         }
 
-        // Get computer_name from the request (sent by Chrome Extension)
+        $request->validate([
+            'computer_name' => 'nullable|string|max:255',
+            'gateway_ip' => 'nullable|ip',
+        ]);
+
+        // Keep backward compatibility: both fields are optional.
         $computerName = $request->input('computer_name');
+        $gatewayIp = $request->input('gateway_ip');
+        $labContext = $this->resolveLabContext($computerName, $gatewayIp, true);
 
         // Get or create active session
         $activeSession = MonitoringSession::where('student_user_id', $user->id)
@@ -104,9 +112,24 @@ class BrowserActivityController extends Controller
             ->first();
 
         if ($activeSession) {
-            // Update computer_name if provided and changed
-            if ($computerName && $activeSession->computer_name !== $computerName) {
-                $activeSession->computer_name = $computerName;
+            $hasChanges = false;
+
+            if ($computerName && $activeSession->computer_name !== $labContext['computer_name']) {
+                $activeSession->computer_name = $labContext['computer_name'];
+                $hasChanges = true;
+            }
+
+            if ($gatewayIp !== null && $activeSession->gateway_ip !== $labContext['gateway_ip']) {
+                $activeSession->gateway_ip = $labContext['gateway_ip'];
+                $hasChanges = true;
+            }
+
+            if ($gatewayIp !== null && $activeSession->laboratory_room !== $labContext['laboratory_room']) {
+                $activeSession->laboratory_room = $labContext['laboratory_room'];
+                $hasChanges = true;
+            }
+
+            if ($hasChanges) {
                 $activeSession->save();
             } else {
                 $activeSession->touch(); // Updates updated_at
@@ -119,7 +142,9 @@ class BrowserActivityController extends Controller
                 'is_active' => true,
                 'session_name' => 'Auto-started Session',
                 'created_by' => $user->id,
-                'computer_name' => $computerName,
+                'computer_name' => $labContext['computer_name'],
+                'gateway_ip' => $labContext['gateway_ip'],
+                'laboratory_room' => $labContext['laboratory_room'],
             ]);
         }
 
@@ -204,16 +229,11 @@ class BrowserActivityController extends Controller
             $student->current_session_id = $session->id;
             $student->profile_picture = $profile ? $profile->profile_picture : null;
 
-            // Attach computer name and laboratory room from the session
+            $labContext = $this->resolveLabContext($session->computer_name, $session->gateway_ip, false);
             $student->computer_name = $session->computer_name;
-            $student->laboratory_room = null;
-
-            if ($session->computer_name) {
-                $labComputer = LabComputer::where('computer_name', strtoupper($session->computer_name))->first();
-                if ($labComputer) {
-                    $student->laboratory_room = $labComputer->laboratory_room;
-                }
-            }
+            $student->gateway_ip = $session->gateway_ip;
+            $student->display_name = $labContext['display_name'];
+            $student->laboratory_room = $labContext['laboratory_room'];
 
             return $student;
         })->filter()->unique('id')->values();
@@ -692,5 +712,53 @@ class BrowserActivityController extends Controller
             'message' => 'Commands cleared successfully',
             'deleted_count' => $deletedCount
         ]);
+    }
+
+    private function resolveLabContext(?string $computerName, ?string $gatewayIp, bool $autoDiscover): array
+    {
+        $normalizedComputerName = $computerName ? strtoupper(trim($computerName)) : null;
+        $normalizedGatewayIp = $gatewayIp ? trim($gatewayIp) : null;
+
+        $mappedLabRoom = null;
+        if ($normalizedGatewayIp) {
+            $mappedLabRoom = LabGateway::where('gateway_ip', $normalizedGatewayIp)->value('laboratory_room');
+        }
+
+        $displayName = null;
+        $resolvedLabRoom = $mappedLabRoom;
+
+        if ($normalizedComputerName && $mappedLabRoom) {
+            $labComputer = LabComputer::where('computer_name', $normalizedComputerName)
+                ->where('laboratory_room', $mappedLabRoom)
+                ->first();
+
+            if ($labComputer) {
+                $displayName = $labComputer->display_name ?: $labComputer->computer_name;
+            } elseif ($autoDiscover) {
+                $labComputer = LabComputer::firstOrCreate(
+                    [
+                        'computer_name' => $normalizedComputerName,
+                        'laboratory_room' => $mappedLabRoom,
+                    ],
+                    [
+                        'display_name' => $normalizedComputerName,
+                    ]
+                );
+                $displayName = $labComputer->display_name;
+            }
+        }
+
+        if (!$resolvedLabRoom) {
+            $resolvedLabRoom = $normalizedGatewayIp
+                ? "Unknown Lab ({$normalizedGatewayIp})"
+                : 'Unknown Lab';
+        }
+
+        return [
+            'computer_name' => $normalizedComputerName,
+            'gateway_ip' => $normalizedGatewayIp,
+            'laboratory_room' => $resolvedLabRoom,
+            'display_name' => $displayName ?: $normalizedComputerName,
+        ];
     }
 }

@@ -149,6 +149,7 @@ use App\Http\Controllers\Api\StudentProfileController;
 use App\Http\Controllers\Api\TeacherProfileController;
 use App\Http\Controllers\Api\BrowserActivityController;
 use App\Http\Controllers\Api\LabComputerController;
+use App\Http\Controllers\Api\LabGatewayController;
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/validate-barcode', [AuthController::class, 'validateBarcode']);
@@ -242,5 +243,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/lab-computers/{id}', [LabComputerController::class, 'update']);
     Route::delete('/lab-computers/{id}', [LabComputerController::class, 'destroy']);
     Route::get('/lab-computers/rooms', [LabComputerController::class, 'rooms']);
+
+    // Lab Gateway Management (gateway-to-room mapping)
+    Route::get('/lab-gateways', [LabGatewayController::class, 'index']);
+    Route::post('/lab-gateways', [LabGatewayController::class, 'store']);
+    Route::patch('/lab-gateways/{id}', [LabGatewayController::class, 'update']);
+    Route::delete('/lab-gateways/{id}', [LabGatewayController::class, 'destroy']);
 });
 

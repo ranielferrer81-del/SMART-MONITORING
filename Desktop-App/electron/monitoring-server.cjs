@@ -12,6 +12,8 @@ let currentStudentCredentials = null;
 let logoutSignal = 0;
 // Store the computer hostname for lab tracking
 let computerName = null;
+// Store network gateway IP for lab resolution
+let gatewayIp = null;
 // Heartbeat interval reference
 let heartbeatInterval = null;
 
@@ -28,6 +30,7 @@ server.get('/monitoring-credentials', (req, res) => {
             credentials: {
                 ...currentStudentCredentials,
                 computerName: computerName,  // Include hostname for lab tracking
+                gatewayIp: gatewayIp,        // Include gateway IP for lab tracking
                 apiBaseUrl: apiBaseUrl        // Tell the extension which backend to use
             }
         });
@@ -65,12 +68,13 @@ async function sendDirectHeartbeat() {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                computer_name: computerName
+                computer_name: computerName,
+                gateway_ip: gatewayIp
             })
         });
 
         if (response.ok) {
-            console.log('💓 Desktop heartbeat sent (computer:', computerName + ')');
+            console.log('💓 Desktop heartbeat sent (computer:', computerName, 'gateway:', gatewayIp, ')');
         } else {
             console.error('❌ Desktop heartbeat failed:', response.status);
         }
@@ -162,6 +166,12 @@ function setComputerName(name) {
     console.log('🖥️ Computer Name set:', computerName);
 }
 
+// Set gateway IP (called from main.ts on startup and refresh)
+function setGatewayIp(ip) {
+    gatewayIp = ip || null;
+    console.log('🌐 Gateway IP set:', gatewayIp || 'N/A');
+}
+
 // Set API base URL (called from main.ts, reads from .env)
 function setApiBaseUrl(url) {
     if (url) {
@@ -176,5 +186,6 @@ module.exports = {
     setStudentCredentials,
     clearStudentCredentials,
     setComputerName,
+    setGatewayIp,
     setApiBaseUrl
 };
