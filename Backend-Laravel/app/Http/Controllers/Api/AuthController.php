@@ -643,10 +643,67 @@ class AuthController extends Controller
     }
 
     /**
-     * Send verification email synchronously so email_sent matches reality.
-     * verification_code in JSON only when APP_DEBUG or AUTH_LOGIN_CODE_FALLBACK (dev/support).
+     * Complete the validate-email / resend response.
+     *
+     * By default the outbound mail runs after the HTTP response is sent (QUEUE-less async via
+     * dispatch()->afterResponse()). That keeps Railway from holding the request open ~90s while
+     * SMTP/Brevo connects — which was causing desktop timeouts and proxy “stuck” requests.
+     *
+     * Set VERIFICATION_EMAIL_SYNC=true in .env only when you need synchronous sends (e.g. local
+     * debugging with mail_diagnostics in the same JSON body).
      */
     private function jsonAfterVerificationSend(
+        string $email,
+        string $code,
+        string $successMessage,
+        string $failMessage,
+        bool $includeEmailField = true
+    ) {
+        $sync = filter_var(env('VERIFICATION_EMAIL_SYNC', false), FILTER_VALIDATE_BOOLEAN);
+
+        if ($sync) {
+            return $this->jsonAfterVerificationSendSync(
+                $email,
+                $code,
+                $successMessage,
+                $failMessage,
+                $includeEmailField
+            );
+        }
+
+        dispatch(static function () use ($email, $code): void {
+            try {
+                $sent = EmailService::sendVerificationCode($email, $code);
+                if (! $sent) {
+                    \Log::warning('Verification email (async): all transports returned false', ['email' => $email]);
+                }
+            } catch (\Throwable $e) {
+                \Log::error('Verification email (async) threw', ['email' => $email, 'error' => $e->getMessage()]);
+            }
+        })->afterResponse();
+
+        $payload = [
+            'ok' => true,
+            'message' => $successMessage,
+            // Optimistic: true — real send runs after response; avoids blocking the client on SMTP hangs.
+            'email_sent' => true,
+        ];
+
+        if ($includeEmailField) {
+            $payload['email'] = $email;
+        }
+
+        if (config('app.debug') || filter_var(env('AUTH_LOGIN_CODE_FALLBACK', false), FILTER_VALIDATE_BOOLEAN)) {
+            $payload['verification_code'] = $code;
+        }
+
+        return response()->json($payload);
+    }
+
+    /**
+     * Synchronous path (legacy): wait for mail before returning — can exceed client timeouts on slow SMTP.
+     */
+    private function jsonAfterVerificationSendSync(
         string $email,
         string $code,
         string $successMessage,
