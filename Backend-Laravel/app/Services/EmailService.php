@@ -110,7 +110,13 @@ class EmailService
 
         // Check mailer config - if set to 'log' or 'array', skip SMTP but still try API methods (Brevo, SendGrid, etc.)
         $mailer = config('mail.default');
+        $runningOnRailway = (getenv('RAILWAY_ENVIRONMENT') !== false || getenv('RAILWAY_PROJECT_ID') !== false);
         $skipSmtp = ($mailer === 'log' || $mailer === 'array');
+        // On Railway with Brevo configured, avoid long SMTP fallback hangs.
+        if ($runningOnRailway && $brevoKey !== '') {
+            $skipSmtp = true;
+            self::noteDiagnostic('smtp_skipped_reason', 'railway_with_brevo');
+        }
         if ($skipSmtp) {
             Log::info('MAIL_MAILER is "' . $mailer . '" - skipping SMTP, will try API methods (Brevo, SendGrid, Mailgun)');
         }
@@ -278,8 +284,8 @@ class EmailService
         $subject = $brand.': Your verification code (login)';
 
         try {
-            $response = Http::timeout(45)
-                ->connectTimeout(15)
+            $response = Http::timeout(20)
+                ->connectTimeout(8)
                 ->withHeaders([
                     'api-key' => $apiKey,
                     'Content-Type' => 'application/json',
@@ -387,7 +393,9 @@ class EmailService
      */
     private static function sendViaSendGrid($to, $code, $apiKey): bool
     {
-        $response = Http::withHeaders([
+        $response = Http::timeout(20)
+            ->connectTimeout(8)
+            ->withHeaders([
             'Authorization' => 'Bearer ' . $apiKey,
             'Content-Type' => 'application/json',
         ])->post('https://api.sendgrid.com/v3/mail/send', [
@@ -422,7 +430,9 @@ class EmailService
      */
     private static function sendViaMailgun($to, $code, $domain, $apiKey): bool
     {
-        $response = Http::withBasicAuth('api', $apiKey)
+        $response = Http::timeout(20)
+            ->connectTimeout(8)
+            ->withBasicAuth('api', $apiKey)
             ->asForm()
             ->post("https://api.mailgun.net/v3/{$domain}/messages", [
                 'from' => config('mail.from.address') ?: "noreply@{$domain}",

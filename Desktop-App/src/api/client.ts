@@ -9,7 +9,7 @@ const DEFAULT_TIMEOUT_MS = 15000;
  * validate-email / resend send mail on the server before responding; Brevo/SMTP + cold start
  * often needs more than the default window.
  */
-const EMAIL_AUTH_TIMEOUT_MS = 120_000;
+const EMAIL_AUTH_TIMEOUT_MS = 45_000;
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -73,6 +73,9 @@ const normalizeUser = (payload: Record<string, unknown>): AuthenticatedUser => (
 const extractErrorMessage = (error: unknown) => {
   if (typeof error === 'string') return error;
   if (error instanceof AxiosError) {
+    if (error.code === 'ECONNABORTED') {
+      return 'Login request timed out while sending verification code. Please try again in a few seconds.';
+    }
     return (
       error.response?.data?.message ||
       error.response?.data?.error ||
