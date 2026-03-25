@@ -659,7 +659,11 @@ class AuthController extends Controller
         string $failMessage,
         bool $includeEmailField = true
     ) {
-        $sync = filter_var(env('VERIFICATION_EMAIL_SYNC', false), FILTER_VALIDATE_BOOLEAN);
+        // Never force synchronous email sending on non-local environments.
+        // The sync path can set `email_sent=false` and/or block the request,
+        // which then makes the desktop UI show the "email service not configured" warning.
+        $sync = filter_var(env('VERIFICATION_EMAIL_SYNC', false), FILTER_VALIDATE_BOOLEAN)
+            && app()->environment('local');
 
         if ($sync) {
             return $this->jsonAfterVerificationSendSync(

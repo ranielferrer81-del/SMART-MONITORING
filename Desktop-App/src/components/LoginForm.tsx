@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Lock, Loader2, X } from 'lucide-react';
-import { emailLogin } from '../api/client';
+import { emailLogin, warmupBackend } from '../api/client';
 
 type LoginFormProps = {
   onVerificationSent: (email: string, devCode?: string | null, emailSent?: boolean) => void;
@@ -14,6 +14,10 @@ export default function LoginForm({ onVerificationSent, onCancel }: LoginFormPro
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [emailStatus, setEmailStatus] = useState<{ sent: boolean; message: string } | null>(null);
+
+  useEffect(() => {
+    void warmupBackend();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

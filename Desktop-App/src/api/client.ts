@@ -9,7 +9,8 @@ const DEFAULT_TIMEOUT_MS = 15000;
  * validate-email / resend send mail on the server before responding; Brevo/SMTP + cold start
  * often needs more than the default window.
  */
-const EMAIL_AUTH_TIMEOUT_MS = 45_000;
+const EMAIL_AUTH_TIMEOUT_MS = 120_000;
+const COLD_START_WARMUP_TIMEOUT_MS = 120_000;
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -151,6 +152,22 @@ export async function emailLogin(
     };
   } catch (error) {
     throw new Error(extractErrorMessage(error));
+  }
+}
+
+export async function warmupBackend(): Promise<void> {
+  try {
+    // Intentionally hit a lightweight public endpoint to wake Railway from cold start.
+    await api.post(
+      '/api/validate-email',
+      {
+        email: 'warmup.invalid@example.com',
+        password: 'warmup',
+      },
+      { timeout: COLD_START_WARMUP_TIMEOUT_MS }
+    );
+  } catch {
+    // Any response/error is acceptable; this call exists only to warm the backend container.
   }
 }
 

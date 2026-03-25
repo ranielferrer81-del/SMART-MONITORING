@@ -65,12 +65,9 @@ function startDesktopAppPolling() {
 
     setInterval(async () => {
         try {
-            // Check if already logged in
-            const result = await chrome.storage.local.get([STORAGE_KEYS.TOKEN, STORAGE_KEYS.MANUAL_LOGOUT]);
-
-            if (result[STORAGE_KEYS.TOKEN]) {
-                return; // Already logged in, skip polling
-            }
+            // Always ask Desktop App for credentials, but only re-sync when the token changed.
+            const result = await chrome.storage.local.get([STORAGE_KEYS.TOKEN]);
+            const storedToken = result[STORAGE_KEYS.TOKEN];
 
             // [BUG FIX] MODIFIED BY ANTIGRAVITY
             // The following check was preventing the extension from detecting a NEW student login
@@ -96,6 +93,10 @@ function startDesktopAppPolling() {
                 const data = await response.json();
 
                 if (data.success && data.credentials) {
+                    // If extension already has the same token, don't re-login every 5s.
+                    if (storedToken && storedToken === data.credentials.token) {
+                        return;
+                    }
                     console.log('✅ Desktop App credentials detected! Auto-logging in...');
                     await autoLoginWithDesktopApp(data.credentials);
                 }

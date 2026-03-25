@@ -38,8 +38,9 @@ export default function EmailVerification({ email, onSuccess, onCancel, onResend
     
     setEmailSent(wasEmailSent);
     
-    // Only show code if email was NOT sent
-    if (storedCode && !wasEmailSent) {
+    // Show dev/test code whenever the backend returned it.
+    // Backend may set `email_sent: true` optimistically while the real async send happens later.
+    if (storedCode) {
       setDevCode(storedCode);
       localStorage.removeItem('dev_verification_code');
       localStorage.removeItem('email_sent_status');
@@ -169,19 +170,7 @@ export default function EmailVerification({ email, onSuccess, onCancel, onResend
           <h2 className="text-3xl font-extrabold text-white drop-shadow-lg">
             Enter Verification Code
           </h2>
-          {emailSent === false && devCode ? (
-            <>
-              <p className="text-sm text-yellow-200/80 mt-2">
-                ⚠️ Cannot send verification code. Use this code for testing:
-              </p>
-              <p className="text-base font-semibold text-yellow-300">
-                {devCode}
-              </p>
-              <p className="text-xs text-yellow-300 mt-2">
-                Email service is not configured properly. Please contact support.
-              </p>
-            </>
-          ) : emailSent === true ? (
+          {emailSent === true ? (
             <>
               <p className="text-sm text-green-200/80 mt-2">
                 ✅ Verification code has been sent to:
@@ -192,6 +181,20 @@ export default function EmailVerification({ email, onSuccess, onCancel, onResend
               <p className="text-xs text-green-200/60 mt-1">
                 Please check your inbox and spam folder.
               </p>
+            </>
+          ) : devCode ? (
+            <>
+              <p className="text-sm text-yellow-200/80 mt-2">
+                Use this verification code:
+              </p>
+              <p className="text-base font-semibold text-yellow-300">
+                {devCode}
+              </p>
+              {emailSent === false && (
+                <p className="text-xs text-yellow-300 mt-2">
+                  Email service is not configured properly. Please contact support.
+                </p>
+              )}
             </>
           ) : emailSent === false ? (
             <>
