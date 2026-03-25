@@ -17,6 +17,9 @@ export default function EmailVerification({ email, onSuccess, onCancel, onResend
   const [isLoading, setIsLoading] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Only show the scary "mail not configured" warning after the user actually fails verification.
+  // This prevents false alarms when the backend reports email_sent=false but the OTP still arrives.
+  const [verificationFailed, setVerificationFailed] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [devCode, setDevCode] = useState<string | null>(null);
   const [emailSent, setEmailSent] = useState<boolean | null>(null);
@@ -38,23 +41,27 @@ export default function EmailVerification({ email, onSuccess, onCancel, onResend
     
     setEmailSent(wasEmailSent);
     
-    // Show dev/test code whenever the backend returned it.
-    // Backend may set `email_sent: true` optimistically while the real async send happens later.
-    if (storedCode) {
+    // Only show the "use this code" UI when backend explicitly indicates
+    // that the email was NOT delivered for that request.
+    // This prevents stale localStorage from showing the code prompt
+    // when email actually works.
+    if (storedCode && emailSentStatus === 'false') {
       setDevCode(storedCode);
       localStorage.removeItem('dev_verification_code');
       localStorage.removeItem('email_sent_status');
-    } else {
-      // Clean up if email was sent
-      localStorage.removeItem('dev_verification_code');
-      localStorage.removeItem('email_sent_status');
+      return;
     }
+
+    setDevCode(null);
+    localStorage.removeItem('dev_verification_code');
+    localStorage.removeItem('email_sent_status');
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
+    setVerificationFailed(false);
 
     try {
       await verifyEmailCode(email.trim().toLowerCase(), code.trim());
@@ -62,6 +69,7 @@ export default function EmailVerification({ email, onSuccess, onCancel, onResend
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Invalid verification code. Please try again.';
       setError(message);
+      setVerificationFailed(true);
     } finally {
       setIsLoading(false);
     }
@@ -73,6 +81,7 @@ export default function EmailVerification({ email, onSuccess, onCancel, onResend
     setIsResending(true);
     setError(null);
     setResendStatus(null);
+    setVerificationFailed(false);
     try {
       let result;
       
@@ -128,6 +137,7 @@ export default function EmailVerification({ email, onSuccess, onCancel, onResend
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to resend code. Please try again.';
       setError(message);
+      setVerificationFailed(true);
       setResendStatus({
         sent: false,
         message: 'Failed to resend verification code. Please try again later.'
@@ -185,9 +195,9 @@ export default function EmailVerification({ email, onSuccess, onCancel, onResend
           ) : devCode ? (
             <>
               <p className="text-sm text-white/80 mt-2">
-                Use this verification code:
+                Verification code:
               </p>
-              <p className="text-base font-semibold text-white">
+              <p className="text-base font-semibold text-white tracking-wider">
                 {devCode}
               </p>
               <p className="text-xs text-white/60 mt-2">
@@ -196,10 +206,23 @@ export default function EmailVerification({ email, onSuccess, onCancel, onResend
             </>
           ) : emailSent === false ? (
             <>
-              <p className="text-sm text-yellow-200/80 mt-2">
-                No verification email was delivered. The server mail settings need to be fixed (SMTP, Brevo, etc.).
-              </p>
-              <p className="text-base font-semibold text-white mt-1">{email}</p>
+              {verificationFailed ? (
+                <>
+                  <p className="text-sm text-yellow-200/80 mt-2">
+                    Verification failed and the email seems not to have arrived. Check server mail settings (SMTP/Brevo) or resend the code.
+                  </p>
+                  <p className="text-base font-semibold text-white mt-1">{email}</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-white/80 mt-2">
+                    If you don't see the code yet, it may take a moment. You can resend it below.
+                  </p>
+                  <p className="text-xs text-white/60 mt-2">
+                    Tip: check spam/junk folder too.
+                  </p>
+                </>
+              )}
             </>
           ) : (
             <>
