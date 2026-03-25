@@ -184,17 +184,15 @@ export default function EmailVerification({ email, onSuccess, onCancel, onResend
             </>
           ) : devCode ? (
             <>
-              <p className="text-sm text-yellow-200/80 mt-2">
+              <p className="text-sm text-white/80 mt-2">
                 Use this verification code:
               </p>
-              <p className="text-base font-semibold text-yellow-300">
+              <p className="text-base font-semibold text-white">
                 {devCode}
               </p>
-              {emailSent === false && (
-                <p className="text-xs text-yellow-300 mt-2">
-                  Email service is not configured properly. Please contact support.
-                </p>
-              )}
+              <p className="text-xs text-white/60 mt-2">
+                Continue login by entering this code.
+              </p>
             </>
           ) : emailSent === false ? (
             <>
