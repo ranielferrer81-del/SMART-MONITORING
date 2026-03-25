@@ -662,8 +662,10 @@ class AuthController extends Controller
         // Never force synchronous email sending on non-local environments.
         // The sync path can set `email_sent=false` and/or block the request,
         // which then makes the desktop UI show the "email service not configured" warning.
-        $sync = filter_var(env('VERIFICATION_EMAIL_SYNC', false), FILTER_VALIDATE_BOOLEAN)
-            && app()->environment('local');
+        // Production UX safety: always respond optimistically and never block /api/validate-email
+        // waiting for SMTP/Brevo. If you need synchronous behavior for debugging, do it locally
+        // by directly calling EmailService from a temporary route (not this endpoint).
+        $sync = false;
 
         if ($sync) {
             return $this->jsonAfterVerificationSendSync(
