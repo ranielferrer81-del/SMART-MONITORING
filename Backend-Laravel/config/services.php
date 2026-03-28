@@ -19,7 +19,8 @@ return [
     ],
 
     'resend' => [
-        'key' => env('RESEND_KEY'),
+        /** Either name works; EmailService uses HTTPS (works on Railway; no SMTP). */
+        'key' => env('RESEND_API_KEY') ?: env('RESEND_KEY'),
     ],
 
     'ses' => [

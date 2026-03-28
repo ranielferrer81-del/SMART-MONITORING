@@ -155,6 +155,13 @@ $lines = [
 if ($brevoKey !== '') {
     $lines[] = line('BREVO_API_KEY', $brevoKey);
 }
+$resendApi = g('RESEND_API_KEY');
+if ($resendApi === '') {
+    $resendApi = g('RESEND_KEY');
+}
+if ($resendApi !== '') {
+    $lines[] = line('RESEND_API_KEY', $resendApi);
+}
 $brevoSender = g('BREVO_SENDER_EMAIL');
 if ($brevoSender !== '') {
     $lines[] = line('BREVO_SENDER_EMAIL', $brevoSender);

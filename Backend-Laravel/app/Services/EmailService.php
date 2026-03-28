@@ -38,7 +38,7 @@ class EmailService
         $d = self::$lastSendDiagnostics;
 
         if (! empty($d['brevo_ip_restriction'])) {
-            return 'Brevo blocked this API key from your server IP (IP allowlist is on). In Brevo: SMTP & API → API keys → open your key → disable IP restriction (Railway IPs change). Then redeploy. You can still use the code below to log in.';
+            return 'Brevo blocked this server (IP allowlist on the API key). Fix: add RESEND_API_KEY in Railway (resend.com — HTTPS, no IP list), or turn off IP restriction on your Brevo key. You can still use the code below to log in.';
         }
 
         if (! empty($d['brevo_blocked'])) {
@@ -186,6 +186,28 @@ class EmailService
         }
 
         /*
+         * Railway: Brevo REST may return 401 (IP allowlist). Resend uses HTTPS only (no SMTP) and does not use Brevo’s IP list.
+         * When RESEND_API_KEY is set, try Resend first on Railway so login email works without changing Brevo.
+         */
+        $tryResendFirstOnRailway = $runningOnRailway
+            && $resendKey !== ''
+            && strlen($resendKey) > 8
+            && filter_var(env('RAILWAY_TRY_RESEND_FIRST', true), FILTER_VALIDATE_BOOLEAN);
+
+        if ($tryResendFirstOnRailway) {
+            try {
+                if (self::sendViaResend($toEmail, $code, $resendKey)) {
+                    Log::info('✅ Email sent via Resend API (preferred on Railway)', ['to' => $toEmail]);
+
+                    return true;
+                }
+            } catch (\Throwable $e) {
+                self::noteDiagnostic('resend_error', Str::limit($e->getMessage(), 400));
+                Log::warning('Resend (Railway first) failed', ['error' => $e->getMessage()]);
+            }
+        }
+
+        /*
          * When BREVO_API_KEY is set, try Brevo *before* Laravel SMTP. Gmail/other SMTP can hang until
          * MAIL_TIMEOUT or fail from IP/auth while Brevo REST succeeds immediately — the old order made
          * Railway + Brevo setups look "broken" if MAIL_* still pointed at Gmail locally.
@@ -213,6 +235,20 @@ class EmailService
                     self::noteDiagnostic('brevo_smtp_error', Str::limit($e->getMessage(), 400));
                     Log::warning('Brevo SMTP failed', ['error' => $e->getMessage()]);
                 }
+            }
+        }
+
+        // Resend HTTPS API (fallback when Brevo failed or when not tried first — same key as above)
+        if ($resendKey !== '' && strlen($resendKey) > 8 && ! $tryResendFirstOnRailway) {
+            try {
+                if (self::sendViaResend($toEmail, $code, $resendKey)) {
+                    Log::info('✅ Email sent via Resend API', ['to' => $toEmail]);
+
+                    return true;
+                }
+            } catch (\Throwable $e) {
+                self::noteDiagnostic('resend_error', Str::limit($e->getMessage(), 400));
+                Log::warning('Resend failed', ['error' => $e->getMessage()]);
             }
         }
 
@@ -437,6 +473,48 @@ class EmailService
             'body' => $body,
             'from' => $fromEmail,
         ]);
+
+        return false;
+    }
+
+    /**
+     * Resend REST API (HTTPS :443) — reliable on Railway where Brevo may 401 (IP allowlist) and SMTP is blocked.
+     */
+    private static function sendViaResend(string $to, string $code, string $apiKey): bool
+    {
+        $sender = self::resolveBrevoSender();
+        $fromEmail = $sender['email'];
+        if ($fromEmail === '' || str_contains(strtolower($fromEmail), 'example.com')) {
+            self::noteDiagnostic('resend_blocked', 'Set MAIL_FROM_ADDRESS or BREVO_SENDER_EMAIL to a domain verified in Resend (or use Resend’s test sender per their docs).');
+
+            return false;
+        }
+
+        $html = self::inlineVerificationHtml($code);
+        $brand = (string) config('app.name', 'SIA');
+        $subject = $brand.': Your verification code (login)';
+        $fromHeader = $sender['name'].' <'.$fromEmail.'>';
+
+        $response = Http::timeout(25)
+            ->connectTimeout(10)
+            ->withToken($apiKey)
+            ->acceptJson()
+            ->post('https://api.resend.com/emails', [
+                'from' => $fromHeader,
+                'to' => [$to],
+                'subject' => $subject,
+                'html' => $html,
+            ]);
+
+        if ($response->successful()) {
+            self::noteDiagnostic('resend_rest', 'ok HTTP '.$response->status());
+
+            return true;
+        }
+
+        $snippet = Str::limit($response->body(), 500);
+        self::noteDiagnostic('resend_rest_error', 'HTTP '.$response->status().': '.$snippet);
+        Log::error('Resend API non-success', ['status' => $response->status(), 'body' => $response->body()]);
 
         return false;
     }
