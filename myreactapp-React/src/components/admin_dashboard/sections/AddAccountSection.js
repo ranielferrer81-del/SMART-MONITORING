@@ -6,15 +6,11 @@ const AddAccountSection = ({
 }) => {
     return (
         <div className="space-y-6">
-            <div className="bg-white/40 backdrop-blur-xl shadow-2xl rounded-2xl border border-slate-200/60 p-4 lg:p-6 dark:bg-slate-900/40 dark:border-slate-800/60">
-                <div className="mb-6">
-                    <h3 className="text-xl font-semibold text-slate-800 mb-2 dark:text-slate-100">Create New Account</h3>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">Fill in the details below to create a new user account</p>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="rounded-2xl border border-slate-200/80 bg-white/50 p-5 shadow-[0_8px_40px_rgba(0,0,0,0.06)] backdrop-blur-xl dark:border-slate-700/50 dark:bg-slate-900/35 dark:shadow-[0_8px_40px_rgba(0,0,0,0.45)] lg:p-8">
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-slate-300">Account Type</label>
-                        <select value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))} className="w-full border-gray-300 rounded-md shadow-sm focus:ring-rose-500 focus:border-rose-500 py-2 px-3 dark:bg-slate-900/30 dark:border-slate-700/50 dark:text-slate-100">
+                        <select value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))} className="w-full rounded-xl border border-slate-300/90 py-2.5 px-3 shadow-sm focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 dark:border-slate-600 dark:bg-slate-900/40 dark:text-slate-100">
                             <option value="student">Student</option><option value="teacher">Professor</option><option value="admin">Admin</option>
                         </select>
                     </div>

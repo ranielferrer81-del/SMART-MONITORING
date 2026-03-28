@@ -6,26 +6,20 @@ const SubjectCardsSection = ({
 }) => {
     return (
         <div className="space-y-6">
-            {/* Subject Management Actions */}
-            <div className="flex justify-between items-center">
-                <h3 className="text-2xl font-bold bg-gradient-to-r from-rose-600 to-red-600 bg-clip-text text-transparent">
-                    Subject Management
-                </h3>
-                <div className="flex items-center space-x-4">
-                    <div className="flex items-center space-x-2">
-                        <div className="w-3 h-3 bg-rose-500 rounded-full"></div>
-                        <span className="text-sm text-slate-600 font-medium">{subjects.length} Subject{subjects.length !== 1 ? 's' : ''}</span>
+            <div className="flex flex-wrap items-center justify-end gap-3">
+                    <div className="flex items-center gap-2 rounded-full border border-slate-200/70 bg-white/40 px-3 py-1.5 text-sm backdrop-blur-sm dark:border-slate-600/60 dark:bg-slate-900/40">
+                        <span className="h-2 w-2 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.7)]" />
+                        <span className="font-medium text-slate-600 dark:text-slate-300">{subjects.length} subject{subjects.length !== 1 ? 's' : ''}</span>
                     </div>
                     <button
                         onClick={refreshSubjects}
-                        className="bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-2"
+                        className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-rose-500/20 transition hover:from-rose-500 hover:to-red-500 hover:shadow-lg"
                     >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
                         <span>Refresh</span>
                     </button>
-                </div>
             </div>
 
             {/* Dynamic Subjects Cards */}
@@ -35,7 +29,7 @@ const SubjectCardsSection = ({
                         {subjects.map((subject, index) => (
                             <div
                                 key={subject.id}
-                                className="bg-white/40 backdrop-blur-xl overflow-hidden shadow-lg rounded-lg hover:shadow-2xl transition-all duration-500 transform hover:scale-105 cursor-pointer border-2 border-transparent hover:border-rose-300/50 dark:bg-slate-900/40 dark:hover:border-rose-700/50"
+                                className="cursor-pointer overflow-hidden rounded-2xl border border-slate-200/70 bg-white/45 shadow-md backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:border-rose-300/60 hover:shadow-xl dark:border-slate-700/50 dark:bg-slate-900/45 dark:hover:border-rose-600/40"
                                 onClick={() => setShowStudentsModal(subject.id)}
                             >
                                 <div className="p-6">

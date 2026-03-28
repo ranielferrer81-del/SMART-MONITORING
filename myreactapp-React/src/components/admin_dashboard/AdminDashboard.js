@@ -760,19 +760,19 @@ export default function AdminDashboard() {
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto relative z-10 w-full">
         <div className="p-4 lg:p-8">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6 lg:mb-8">
-            <div className="flex items-center space-x-4">
+          {/* Header — single title + subtitle per page (no duplicate headings in child sections) */}
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between mb-8 lg:mb-10 pb-6 border-b border-slate-200/70 dark:border-slate-700/50">
+            <div className="flex items-start gap-4 min-w-0 flex-1">
               <button
                 onClick={() => setMobileMenuOpen(true)}
-                className="lg:hidden p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300"
+                className="lg:hidden shrink-0 mt-1 p-2 rounded-xl hover:bg-slate-100/80 dark:hover:bg-slate-800/80 text-slate-600 dark:text-slate-300"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               </button>
-              <div>
-                <h2 className="text-xl lg:text-3xl font-bold bg-gradient-to-r from-rose-600 to-red-600 bg-clip-text text-transparent dark:from-rose-400 dark:to-red-400">
+              <div className="min-w-0 space-y-1.5">
+                <h2 className="text-2xl lg:text-3xl font-bold tracking-tight bg-gradient-to-r from-rose-500 via-rose-600 to-red-600 bg-clip-text text-transparent dark:from-rose-400 dark:via-rose-500 dark:to-red-400">
                   {activeSection === 'accounts'
                     ? 'Account Management'
                     : activeSection === 'add-account'
@@ -783,14 +783,16 @@ export default function AdminDashboard() {
                           ? 'Browser Monitoring'
                           : 'Subject Management'}
                 </h2>
-                <p className="text-xs lg:text-sm text-slate-500 dark:text-slate-400 mt-1">
-                  {activeSection === 'monitoring'
-                    ? 'Monitor student browser activity and sessions'
-                    : 'Administer accounts, subjects, and enrollments with ease'}
+                <p className="text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
+                  {activeSection === 'accounts' && 'Search, filter, and manage professor and student accounts in one place.'}
+                  {activeSection === 'add-account' && 'Create a new user with the right role, credentials, and course details.'}
+                  {activeSection === 'subjects' && 'Browse your subject catalog, sections, and who is enrolled.'}
+                  {activeSection === 'manage-subjects' && 'Define subjects and assign professors to courses and sections.'}
+                  {activeSection === 'monitoring' && 'Pick a course and section to view live browser activity and sessions.'}
                 </p>
               </div>
             </div>
-            <div className="flex items-center space-x-2 lg:space-x-4">
+            <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3 lg:space-x-0 lg:gap-3 shrink-0">
               <div className="hidden lg:flex items-center space-x-3 bg-gradient-to-r from-rose-50 to-red-50 dark:from-rose-900/30 dark:to-red-900/30 px-4 py-2 rounded-xl">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                 <div className="text-sm text-slate-700 dark:text-slate-300">

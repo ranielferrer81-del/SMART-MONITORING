@@ -101,31 +101,22 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0">
-                <div>
-                    <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-50">
-                        Browser Monitoring
-                    </h2>
-                    <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                        Select a course and section to view student monitoring status
-                    </p>
-                </div>
-                {(selectedCourse || selectedSection) && (
+            {(selectedCourse || selectedSection) && (
+                <div className="flex justify-end">
                     <button
                         onClick={goBack}
-                        className="px-4 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-50 rounded-lg transition-colors flex items-center gap-2"
+                        className="flex items-center gap-2 rounded-xl border border-slate-200/80 bg-white/50 px-4 py-2 text-sm font-medium text-slate-800 shadow-sm backdrop-blur-sm transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800/80 dark:text-slate-100 dark:hover:bg-slate-700"
                     >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                         </svg>
                         Back
                     </button>
-                )}
-            </div>
+                </div>
+            )}
 
             {/* Breadcrumb */}
-            <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+            <div className="inline-flex w-full max-w-full flex-wrap items-center gap-2 rounded-xl border border-slate-200/60 bg-white/30 px-3 py-2 text-sm text-slate-600 shadow-sm backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-900/30 dark:text-slate-400">
                 <span className={!selectedCourse ? 'font-semibold text-rose-600 dark:text-rose-400' : 'cursor-pointer hover:text-rose-600'} onClick={() => { setSelectedCourse(null); setSelectedSection(null); setStudents([]); }}>
                     Courses
                 </span>
@@ -158,7 +149,7 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
                             <div
                                 key={course}
                                 onClick={() => handleCourseClick(course)}
-                                className="bg-white/10 backdrop-blur-sm border-2 border-slate-200/60 dark:border-slate-800/60 rounded-2xl p-6 cursor-pointer hover:border-rose-400 dark:hover:border-rose-600 hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                                className="cursor-pointer rounded-2xl border border-slate-200/70 bg-white/15 p-6 shadow-md backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5 hover:border-rose-400/80 hover:shadow-xl dark:border-slate-700/60 dark:bg-slate-900/40 dark:hover:border-rose-500/60"
                             >
                                 <div className="flex items-center justify-between mb-4">
                                     <h3 className="text-3xl font-bold text-rose-600 dark:text-rose-400">

@@ -74,12 +74,8 @@ const AccountManagementSection = ({
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <h3 className="text-2xl font-bold bg-gradient-to-r from-rose-600 to-red-600 bg-clip-text text-transparent">Account Management</h3>
-            </div>
-
             {/* Search Bar */}
-            <div className="mb-6 bg-white/40 backdrop-blur-xl border border-slate-200/60 rounded-2xl p-4 shadow-lg dark:bg-slate-900/40 dark:border-slate-800/60">
+            <div className="mb-2 rounded-2xl border border-slate-200/80 bg-white/50 p-4 shadow-sm backdrop-blur-xl dark:border-slate-700/50 dark:bg-slate-900/30 dark:shadow-[0_4px_24px_rgba(0,0,0,0.35)]">
                 <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
@@ -102,8 +98,8 @@ const AccountManagementSection = ({
             {/* Tables per tab */}
             <div className="overflow-x-auto">
                 {tab === 'teachers' && (
-                    <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
-                        <thead className="bg-gray-50/40 backdrop-blur-sm dark:bg-slate-800/40">
+                    <table className="min-w-full divide-y divide-gray-200 overflow-hidden rounded-2xl border border-slate-200/80 shadow-sm dark:divide-slate-700 dark:border-slate-700/50">
+                        <thead className="bg-slate-50/90 backdrop-blur-sm dark:bg-slate-800/60">
                             <tr>
                                 <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-300">Photo</th>
                                 <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-300">Name</th>
