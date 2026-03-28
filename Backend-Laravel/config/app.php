@@ -141,4 +141,7 @@ return [
         ? filter_var(env('EMAIL_TRY_RESEND_FIRST'), FILTER_VALIDATE_BOOLEAN)
         : filter_var(env('RAILWAY_TRY_RESEND_FIRST', true), FILTER_VALIDATE_BOOLEAN),
 
+    /** Try Laravel SMTP before API mailers (set true for demos with Gmail / Brevo relay MAIL_*). */
+    'email_otp_try_smtp_first' => filter_var(env('EMAIL_OTP_TRY_SMTP_FIRST', false), FILTER_VALIDATE_BOOLEAN),
+
 ];

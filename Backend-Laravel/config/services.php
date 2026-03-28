@@ -23,6 +23,11 @@ return [
         'key' => env('RESEND_API_KEY') ?: env('RESEND_KEY'),
         'from_email' => env('RESEND_FROM_EMAIL'),
         'from_name' => env('RESEND_FROM_NAME'),
+        /**
+         * When no verified domain / MAIL_FROM is still example.com, use Resend's onboarding From so OTP can send.
+         * Set false once RESEND_FROM_EMAIL is on a verified domain.
+         */
+        'use_onboarding_sender' => filter_var(env('RESEND_USE_ONBOARDING_SENDER', true), FILTER_VALIDATE_BOOLEAN),
     ],
 
     'ses' => [

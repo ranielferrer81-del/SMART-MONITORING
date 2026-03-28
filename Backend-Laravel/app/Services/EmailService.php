@@ -164,11 +164,19 @@ class EmailService
             $name = (string) config('mail.from.name', 'SIA System');
         }
 
+        $useOnboarding = (bool) config('services.resend.use_onboarding_sender', true);
+        if ($useOnboarding && ($email === '' || str_contains(strtolower($email), 'example.com'))) {
+            $email = 'onboarding@resend.dev';
+            if ($name === '' || str_contains(strtolower($name), 'example')) {
+                $name = (string) config('app.name', 'SIA');
+            }
+        }
+
         return ['email' => $email, 'name' => $name !== '' ? $name : 'SIA System'];
     }
 
     /**
-     * Resend API requires a real From address (verified domain). Skip Resend when only placeholder/example is set.
+     * Resend needs a usable From (verified domain, or onboarding@resend.dev when enabled in config).
      */
     private static function resolveResendSenderHasValidAddress(): bool
     {
@@ -229,7 +237,7 @@ class EmailService
          * that write-env.php sets (smtp-relay.brevo.com) when REST fails — users with correct MAIL_* were still stuck.
          * Only skip slow/unconfigured SMTP (Gmail default, etc.), not smtp-relay.brevo.com.
          */
-        if ($runningOnRailway && $brevoKey !== '') {
+        if ($runningOnRailway && $brevoKey !== '' && ! (bool) config('app.email_otp_try_smtp_first', false)) {
             $isBrevoRelay = str_contains($smtpHostCfg, 'brevo');
             $looksLikeGmailOrUnset = $smtpHostCfg === '' || str_contains($smtpHostCfg, 'gmail') || $smtpHostCfg === 'smtp.gmail.com';
             if (! $isBrevoRelay && $looksLikeGmailOrUnset) {
@@ -258,6 +266,29 @@ class EmailService
                 strpos($mailPassword, 'null') !== false ||
                 empty($mailHost) ||
                 $mailHost === '127.0.0.1';
+        }
+
+        $smtpTriedInOtpFlow = false;
+        if ((bool) config('app.email_otp_try_smtp_first', false) && ! $skipSmtp && ! $isPlaceholder && ! self::verificationOtpBudgetExceeded($otpBudgetDeadline)) {
+            $smtpTriedInOtpFlow = true;
+            $mailHost = config('mail.mailers.smtp.host');
+            $mailUsername = config('mail.mailers.smtp.username');
+            self::noteDiagnostic('smtp_otp_first', true);
+            self::noteDiagnostic('smtp_host', (string) $mailHost);
+            try {
+                Mail::mailer('smtp')->to($toEmail)->send(new VerificationCodeMail($code, $toEmail));
+                Log::info('✅ Email sent via Laravel SMTP (EMAIL_OTP_TRY_SMTP_FIRST)', [
+                    'to' => $toEmail,
+                    'host' => $mailHost,
+                    'username' => $mailUsername,
+                ]);
+                self::noteDiagnostic('smtp_result', 'success');
+
+                return true;
+            } catch (\Throwable $e) {
+                self::noteDiagnostic('smtp_error', Str::limit($e->getMessage(), 400));
+                Log::warning('SMTP-first OTP attempt failed, will try API mailers', ['error' => $e->getMessage()]);
+            }
         }
 
         /*
@@ -336,7 +367,7 @@ class EmailService
 
         // Laravel Mail over configured SMTP (Gmail, Brevo relay via MAIL_*, etc.)
         // Always use the "smtp" mailer here — config("mail.default") may be "sendmail" (no binary in Docker/Railway).
-        if (! $skipSmtp && ! $isPlaceholder) {
+        if (! $smtpTriedInOtpFlow && ! $skipSmtp && ! $isPlaceholder) {
             if (self::verificationOtpBudgetExceeded($otpBudgetDeadline)) {
                 self::noteDiagnostic('verification_time_budget', 'skipped_laravel_smtp');
                 Log::info('Verification mail: skipped Laravel SMTP (OTP time budget) — fast JSON + fallback code');
