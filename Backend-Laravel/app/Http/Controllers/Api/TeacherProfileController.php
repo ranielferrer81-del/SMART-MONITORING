@@ -62,7 +62,7 @@ class TeacherProfileController extends Controller
             // Get teacher profile
             $teacherProfile = DB::table('teacher_profiles')->where('user_id', $user->id)->first();
             if (!$teacherProfile) {
-                return response()->json(['ok' => false, 'message' => 'Teacher profile not found'], 404);
+                return response()->json(['ok' => false, 'message' => 'Professor profile not found'], 404);
             }
 
             // Generate Base64 from uploaded file (LONGTEXT column — see migration)
@@ -108,7 +108,7 @@ class TeacherProfileController extends Controller
         try {
             $teacherProfile = DB::table('teacher_profiles')->where('user_id', $user->id)->first();
             if (!$teacherProfile) {
-                return response()->json(['ok' => false, 'message' => 'Teacher profile not found'], 404);
+                return response()->json(['ok' => false, 'message' => 'Professor profile not found'], 404);
             }
 
             // Delete file if exists

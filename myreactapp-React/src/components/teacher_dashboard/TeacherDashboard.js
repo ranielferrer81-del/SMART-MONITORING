@@ -364,10 +364,10 @@ export default function TeacherDashboard() {
                   </button>
                   <div>
                     <h2 className="text-xl lg:text-3xl font-bold bg-gradient-to-r from-rose-600 to-red-600 bg-clip-text text-transparent dark:from-rose-400 dark:to-red-400">
-                      {activeSection === 'profile' ? 'My Profile' : activeSection === 'subjects' ? 'My Subjects' : activeSection === 'monitoring' ? 'Browser Monitoring' : 'Teacher Dashboard'}
+                      {activeSection === 'profile' ? 'My Profile' : activeSection === 'subjects' ? 'My Subjects' : activeSection === 'monitoring' ? 'Browser Monitoring' : 'Professor Dashboard'}
                     </h2>
                     <p className="text-xs lg:text-sm text-slate-700 dark:text-slate-200 font-medium mt-1">
-                      {activeSection === 'profile' ? 'View your teacher profile and information' : activeSection === 'subjects' ? 'View and manage the subjects assigned to you' : activeSection === 'monitoring' ? 'Monitor student browser activity in your subjects' : 'Teacher Dashboard'}
+                      {activeSection === 'profile' ? 'View your professor profile and information' : activeSection === 'subjects' ? 'View and manage the subjects assigned to you' : activeSection === 'monitoring' ? 'Monitor student browser activity in your subjects' : 'Professor Dashboard'}
                     </p>
                   </div>
                 </div>
@@ -441,7 +441,7 @@ export default function TeacherDashboard() {
                             }} />
                           </div>
                           <div className="flex-1">
-                            <h4 className="text-xl font-semibold text-slate-800 dark:text-slate-100">{teacherInfo.name || 'Teacher'}</h4>
+                            <h4 className="text-xl font-semibold text-slate-800 dark:text-slate-100">{teacherInfo.name || 'Professor'}</h4>
                             <p className="text-sm text-slate-600 dark:text-slate-400">{teacherInfo.email || '-'}</p>
                             <span className="inline-block mt-2 px-3 py-1 text-xs font-semibold rounded-full bg-indigo-100/40 backdrop-blur-sm text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">Professor</span>
                             {profilePictureUrl && (

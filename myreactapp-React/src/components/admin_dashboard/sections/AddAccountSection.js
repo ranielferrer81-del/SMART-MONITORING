@@ -15,7 +15,7 @@ const AddAccountSection = ({
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-slate-300">Account Type</label>
                         <select value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))} className="w-full border-gray-300 rounded-md shadow-sm focus:ring-rose-500 focus:border-rose-500 py-2 px-3 dark:bg-slate-900/30 dark:border-slate-700/50 dark:text-slate-100">
-                            <option value="student">Student</option><option value="teacher">Teacher</option><option value="admin">Admin</option>
+                            <option value="student">Student</option><option value="teacher">Professor</option><option value="admin">Admin</option>
                         </select>
                     </div>
                     <div>

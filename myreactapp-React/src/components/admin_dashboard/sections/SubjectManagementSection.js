@@ -128,13 +128,13 @@ const SubjectManagementSection = ({
                             {subErrors.section && <p className="mt-1 text-[10px] text-red-600">{subErrors.section}</p>}
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Teacher</label>
+                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Professor</label>
                             <select
                                 value={newSubject.teacher_user_id}
                                 onChange={(e) => setNewSubject((s) => ({ ...s, teacher_user_id: e.target.value }))}
                                 className={`mt-1 block w-full border rounded-md shadow-sm focus:ring-rose-500 focus:border-rose-500 transition-all duration-300 ${subErrors.teacher_user_id ? 'border-red-300 bg-red-50' : 'border-slate-300 dark:bg-slate-900/30 dark:border-slate-700/50 dark:text-slate-100'}`}
                             >
-                                <option value="">Select Teacher</option>
+                                <option value="">Select Professor</option>
                                 {teachers.map((teacher) => (
                                     <option key={teacher.id} value={teacher.id}>
                                         {teacher.full_name} {teacher.teacher_number ? `(${teacher.teacher_number})` : ''}
@@ -163,7 +163,7 @@ const SubjectManagementSection = ({
                                 <th className="px-3 py-2 text-left font-medium text-slate-700 uppercase tracking-wider dark:text-slate-300">Subject</th>
                                 <th className="px-3 py-2 text-left font-medium text-slate-700 uppercase tracking-wider dark:text-slate-300">Course</th>
                                 <th className="px-3 py-2 text-left font-medium text-slate-700 uppercase tracking-wider dark:text-slate-300">Section</th>
-                                <th className="px-3 py-2 text-left font-medium text-slate-700 uppercase tracking-wider dark:text-slate-300">Teacher</th>
+                                <th className="px-3 py-2 text-left font-medium text-slate-700 uppercase tracking-wider dark:text-slate-300">Professor</th>
                                 <th className="px-3 py-2 text-left font-medium text-slate-700 uppercase tracking-wider dark:text-slate-300">Actions</th>
                             </tr>
                         </thead>

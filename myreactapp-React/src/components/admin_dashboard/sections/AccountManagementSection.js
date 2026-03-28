@@ -93,7 +93,7 @@ const AccountManagementSection = ({
             {/* Tabs */}
             <div className="mb-6 bg-white/40 backdrop-blur-xl border border-slate-200/60 rounded-2xl px-4 py-3 shadow-lg dark:bg-slate-900/40 dark:border-slate-800/60">
                 <nav className="flex flex-wrap gap-3">
-                    {[{ id: 'teachers', label: 'Teachers' }, { id: 'bsit', label: 'Students - BSIT' }, { id: 'bscs', label: 'Students - BSCS' }, { id: 'bsemc', label: 'Students - BSEMC' }].map((t) => (
+                    {[{ id: 'teachers', label: 'Professors' }, { id: 'bsit', label: 'Students - BSIT' }, { id: 'bscs', label: 'Students - BSCS' }, { id: 'bsemc', label: 'Students - BSEMC' }].map((t) => (
                         <button key={t.id} onClick={() => setTab(t.id)} className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${tab === t.id ? 'bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-lg shadow-rose-500/40' : 'text-slate-600 hover:text-rose-600 hover:bg-rose-50/80 dark:text-slate-300 dark:hover:bg-rose-900/30'}`}>{t.label}</button>
                     ))}
                 </nav>
@@ -101,10 +101,6 @@ const AccountManagementSection = ({
 
             {/* Tables per tab */}
             <div className="overflow-x-auto">
-                <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                    <p className="text-sm text-blue-800 dark:text-blue-200"><strong>Debug Info:</strong> Teachers loaded: {teachers.length} | Filtered teachers: {filterAccounts(teachers, searchTerm).length} | Search term: "{searchTerm}"</p>
-                </div>
-
                 {tab === 'teachers' && (
                     <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
                         <thead className="bg-gray-50/40 backdrop-blur-sm dark:bg-slate-800/40">
@@ -112,7 +108,6 @@ const AccountManagementSection = ({
                                 <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-300">Photo</th>
                                 <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-300">Name</th>
                                 <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-300">Email</th>
-                                <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-300">Teacher #</th>
                                 <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-300">Department</th>
                                 <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-300">Status</th>
                                 <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-300">Actions</th>
@@ -133,7 +128,6 @@ const AccountManagementSection = ({
                                         </td>
                                         <td className="px-3 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm text-slate-800 dark:text-slate-100">{t.full_name}</td>
                                         <td className="px-3 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm text-gray-500 dark:text-slate-300">{t.email}</td>
-                                        <td className="px-3 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm">{t.teacher_number || '-'}</td>
                                         <td className="px-3 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm">{t.department || '-'}</td>
                                         <td className="px-3 lg:px-6 py-3 lg:py-4 whitespace-nowrap">
                                             <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${t.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800 dark:bg-slate-700 dark:text-slate-200'}`}>{t.is_active ? 'Active' : 'Inactive'}</span>
@@ -146,7 +140,7 @@ const AccountManagementSection = ({
                                 );
                             })}
                             {filterAccounts(teachers, searchTerm).length === 0 && (
-                                <tr><td colSpan="7" className="px-6 py-8 text-center text-gray-500">{searchTerm ? `No teachers found matching "${searchTerm}"` : 'No teachers found'}</td></tr>
+                                <tr><td colSpan="6" className="px-6 py-8 text-center text-gray-500">{searchTerm ? `No professors found matching "${searchTerm}"` : 'No professors found'}</td></tr>
                             )}
                         </tbody>
                     </table>

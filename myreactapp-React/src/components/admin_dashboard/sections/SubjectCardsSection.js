@@ -62,7 +62,7 @@ const SubjectCardsSection = ({
                                             <span className="text-xs text-rose-600 bg-rose-50 px-3 py-1 rounded-full border border-rose-200 truncate dark:text-rose-200 dark:bg-rose-900/30 dark:border-rose-700">{subject.section}</span>
                                         </div>
                                         <div className="flex items-center justify-between">
-                                            <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Teacher:</span>
+                                            <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Professor:</span>
                                             <span className="text-xs text-rose-600 bg-rose-50 px-3 py-1 rounded-full border border-rose-200 truncate dark:text-rose-200 dark:bg-rose-900/30 dark:border-rose-700">
                                                 {subject.teacher_name || 'Not assigned'}
                                             </span>
