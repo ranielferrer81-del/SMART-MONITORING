@@ -737,7 +737,7 @@ class AuthController extends Controller
         $message = $sent
             ? $successMessage
             : ($showFallbackCode
-                ? 'Email could not be sent. Use this verification code (APP_DEBUG or AUTH_LOGIN_CODE_FALLBACK is enabled).'
+                ? 'We could not deliver email to your inbox. Use this verification code to continue — or ask your administrator to set BREVO_API_KEY and a verified sender in Railway.'
                 : $failMessage);
 
         $payload = [

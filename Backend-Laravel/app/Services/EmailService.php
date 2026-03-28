@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -257,6 +258,75 @@ class EmailService
     }
 
     /**
+     * Brevo transactional email API — one retry on cold network / 5xx / rate limit.
+     */
+    private static function postBrevoTransactionalEmail(
+        string $apiKey,
+        string $fromEmail,
+        string $fromName,
+        string $to,
+        string $subject,
+        string $html,
+        string $plain
+    ): ?Response {
+        $payload = [
+            'sender' => [
+                'email' => $fromEmail,
+                'name' => $fromName,
+            ],
+            'to' => [
+                ['email' => $to],
+            ],
+            'subject' => $subject,
+            'htmlContent' => $html,
+            'textContent' => $plain,
+        ];
+
+        $attempt = 0;
+        $response = null;
+
+        while ($attempt < 2) {
+            if ($attempt > 0) {
+                usleep(150000);
+            }
+            try {
+                $response = Http::timeout(25)
+                    ->connectTimeout(10)
+                    ->withHeaders([
+                        'api-key' => $apiKey,
+                        'Content-Type' => 'application/json',
+                        'Accept' => 'application/json',
+                    ])->post('https://api.brevo.com/v3/smtp/email', $payload);
+
+                if ($response->successful()) {
+                    return $response;
+                }
+
+                $status = $response->status();
+                if ($attempt === 0 && ($status >= 500 || $status === 429)) {
+                    $attempt++;
+
+                    continue;
+                }
+
+                return $response;
+            } catch (ConnectionException $e) {
+                if ($attempt === 0) {
+                    $attempt++;
+
+                    continue;
+                }
+                self::noteDiagnostic('brevo_rest_error', 'connection: '.$e->getMessage());
+                Log::error('Brevo REST connection failed', ['error' => $e->getMessage(), 'from' => $fromEmail]);
+
+                return null;
+            }
+        }
+
+        return $response;
+    }
+
+    /**
      * Send via Brevo (Sendinblue) API
      */
     private static function sendViaBrevo($to, $code, $apiKey): bool
@@ -283,29 +353,9 @@ class EmailService
         $brand = (string) config('app.name', 'SIA');
         $subject = $brand.': Your verification code (login)';
 
-        try {
-            $response = Http::timeout(20)
-                ->connectTimeout(8)
-                ->withHeaders([
-                    'api-key' => $apiKey,
-                    'Content-Type' => 'application/json',
-                    'Accept' => 'application/json',
-                ])->post('https://api.brevo.com/v3/smtp/email', [
-                    'sender' => [
-                        'email' => $fromEmail,
-                        'name' => $sender['name'],
-                    ],
-                    'to' => [
-                        ['email' => $to],
-                    ],
-                    'subject' => $subject,
-                    'htmlContent' => $html,
-                    'textContent' => $plain,
-                ]);
-        } catch (ConnectionException $e) {
-            self::noteDiagnostic('brevo_rest_error', 'connection: '.$e->getMessage());
-            Log::error('Brevo REST connection failed', ['error' => $e->getMessage(), 'from' => $fromEmail]);
+        $response = self::postBrevoTransactionalEmail($apiKey, $fromEmail, $sender['name'], $to, $subject, $html, $plain);
 
+        if ($response === null) {
             return false;
         }
 

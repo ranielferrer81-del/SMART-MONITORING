@@ -56,8 +56,17 @@ if ($appKey === '') {
 }
 
 $appUrl = g('APP_URL', 'https://smart-monitoring-production.up.railway.app');
-$mailFrom = g('MAIL_FROM_ADDRESS', 'noreply@example.com');
 $brevoKey = g('BREVO_API_KEY');
+// Prefer explicit MAIL_FROM_ADDRESS; else BREVO_SENDER_EMAIL so Brevo never sends from noreply@example.com by default.
+$mailFromExplicit = g('MAIL_FROM_ADDRESS');
+$brevoSenderPreset = g('BREVO_SENDER_EMAIL');
+if ($mailFromExplicit !== '') {
+    $mailFrom = $mailFromExplicit;
+} elseif ($brevoSenderPreset !== '') {
+    $mailFrom = $brevoSenderPreset;
+} else {
+    $mailFrom = 'noreply@example.com';
+}
 
 $mailMailer = g('MAIL_MAILER', 'smtp');
 $mailHost = g('MAIL_HOST', 'smtp.gmail.com');
