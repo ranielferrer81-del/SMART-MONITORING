@@ -663,8 +663,9 @@ class AuthController extends Controller
      * dispatch()->afterResponse()). That keeps Railway from holding the request open ~90s while
      * SMTP/Brevo connects — which was causing desktop timeouts and proxy “stuck” requests.
      *
-     * Set VERIFICATION_EMAIL_SYNC=true in .env only when you need synchronous sends (e.g. local
-     * debugging with mail_diagnostics in the same JSON body).
+     * VERIFICATION_EMAIL_SYNC (default true): wait for mail before JSON — email_sent matches reality.
+     * Set VERIFICATION_EMAIL_SYNC=false only for legacy optimistic UX (email_sent always true; real send runs
+     * afterResponse — failures are logged only and the client is misled).
      */
     private function jsonAfterVerificationSend(
         string $email,
@@ -673,9 +674,7 @@ class AuthController extends Controller
         string $failMessage,
         bool $includeEmailField = true
     ) {
-        // false (default): async send after response — fast cold starts; email_sent=true in JSON (optimistic).
-        // true: wait for mail — honest email_sent + failure message for Desktop/local API (e.g. LAN IP).
-        $sync = filter_var(env('VERIFICATION_EMAIL_SYNC', false), FILTER_VALIDATE_BOOLEAN);
+        $sync = filter_var(env('VERIFICATION_EMAIL_SYNC', true), FILTER_VALIDATE_BOOLEAN);
 
         if ($sync) {
             return $this->jsonAfterVerificationSendSync(

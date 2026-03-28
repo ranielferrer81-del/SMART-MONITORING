@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Lock, Loader2, X } from 'lucide-react';
-import { emailLogin, warmupBackend } from '../api/client';
+import { emailLogin, verifyLaravelBackend, warmupBackend } from '../api/client';
 
 type LoginFormProps = {
   onVerificationSent: (
@@ -19,9 +19,13 @@ export default function LoginForm({ onVerificationSent, onCancel }: LoginFormPro
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [emailStatus, setEmailStatus] = useState<{ sent: boolean; message: string } | null>(null);
+  const [backendWarning, setBackendWarning] = useState<string | null>(null);
 
   useEffect(() => {
     void warmupBackend();
+    void verifyLaravelBackend().then((r) => {
+      if (!r.ok) setBackendWarning(r.message);
+    });
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -105,6 +109,16 @@ export default function LoginForm({ onVerificationSent, onCancel }: LoginFormPro
         </div>
 
         <form onSubmit={handleSubmit} className="w-full space-y-6">
+          {backendWarning && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="rounded-xl bg-amber-900/50 border border-amber-500/50 px-4 py-3 text-sm text-amber-100 backdrop-blur-sm text-left"
+            >
+              {backendWarning}
+            </motion.div>
+          )}
+
           {error && (
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}

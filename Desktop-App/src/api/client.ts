@@ -87,6 +87,19 @@ const extractErrorMessage = (error: unknown, context: EmailAuthErrorContext = 'd
       }
       return 'Request timed out. Please try again in a few seconds.';
     }
+    const status = error.response?.status;
+    const reqUrl = `${error.config?.baseURL ?? ''}${error.config?.url ?? ''}`;
+    if (
+      status === 404 &&
+      (reqUrl.includes('validate-email') ||
+        reqUrl.includes('verify-verification') ||
+        reqUrl.includes('resend-verification'))
+    ) {
+      return (
+        '404: Login API not found. Use the Railway Laravel backend base URL in VITE_API_BASE_URL (the same service where GET /health returns JSON with a "php" field), not the React website URL. ' +
+        'Origin only, no /api suffix (e.g. https://your-api.up.railway.app), then rebuild the Desktop app.'
+      );
+    }
     return (
       error.response?.data?.message ||
       error.response?.data?.error ||
@@ -168,16 +181,35 @@ export async function emailLogin(
 export async function warmupBackend(): Promise<void> {
   try {
     // Intentionally hit a lightweight public endpoint to wake Railway from cold start.
-    await api.post(
-      '/api/validate-email',
-      {
-        email: 'warmup.invalid@example.com',
-        password: 'warmup',
-      },
-      { timeout: COLD_START_WARMUP_TIMEOUT_MS }
-    );
+    await api.get('/health', { timeout: COLD_START_WARMUP_TIMEOUT_MS });
   } catch {
     // Any response/error is acceptable; this call exists only to warm the backend container.
+  }
+}
+
+export type BackendCheckResult = { ok: true } | { ok: false; message: string };
+
+export async function verifyLaravelBackend(): Promise<BackendCheckResult> {
+  try {
+    const { data } = await api.get('/health', { timeout: 15000 });
+    if (
+      data &&
+      typeof data === 'object' &&
+      (data as { status?: string }).status === 'ok' &&
+      typeof (data as { php?: string }).php === 'string'
+    ) {
+      return { ok: true };
+    }
+    return {
+      ok: false,
+      message:
+        'This URL does not look like the Laravel API (GET /health should return JSON with status and php). Set VITE_API_BASE_URL to your Railway backend service, not the React website.',
+    };
+  } catch (e) {
+    return {
+      ok: false,
+      message: `Cannot reach the Laravel API: ${extractErrorMessage(e)}. Check VITE_API_BASE_URL and rebuild.`,
+    };
   }
 }
 
