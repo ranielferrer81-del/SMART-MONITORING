@@ -10,8 +10,8 @@ const DEFAULT_TIMEOUT_MS = 15000;
  * often needs more than the default window.
  */
 const EMAIL_AUTH_TIMEOUT_MS = 120_000;
-/** Resend waits for real send result; allow room for slow SMTP without hanging as long as first login. */
-const RESEND_VERIFICATION_TIMEOUT_MS = 90_000;
+/** Aligned with backend OTP time budget (~32s + margin); avoids “Sending…” stuck for 90s. */
+const RESEND_VERIFICATION_TIMEOUT_MS = 45_000;
 const COLD_START_WARMUP_TIMEOUT_MS = 120_000;
 
 export const api = axios.create({

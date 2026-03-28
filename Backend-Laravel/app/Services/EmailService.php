@@ -81,6 +81,25 @@ class EmailService
     }
 
     /**
+     * Max wall time for OTP outbound attempts (HTTP + SMTP). After this, slow SMTP is skipped so
+     * validate-email / resend return quickly with AUTH_LOGIN_CODE_FALLBACK instead of hanging ~90s.
+     */
+    private static function verificationOtpTimeBudgetSeconds(): float
+    {
+        $raw = env('VERIFICATION_MAIL_TIME_BUDGET_SECONDS');
+        if ($raw === null || $raw === '') {
+            return 32.0;
+        }
+
+        return max(8.0, min(120.0, (float) $raw));
+    }
+
+    private static function verificationOtpBudgetExceeded(float $deadline): bool
+    {
+        return microtime(true) >= $deadline;
+    }
+
+    /**
      * From address for Brevo: dedicated BREVO_SENDER_EMAIL, then mail.from, then getenv (Railway).
      */
     private static function resolveBrevoSender(): array
@@ -153,8 +172,28 @@ class EmailService
      */
     public static function sendVerificationCode($toEmail, $code): bool
     {
+        $smtpTimeoutPrevious = config('mail.mailers.smtp.timeout');
+        $otpSmtpTimeout = (int) env('VERIFICATION_SMTP_TIMEOUT', 14);
+        if ($otpSmtpTimeout > 0) {
+            Config::set('mail.mailers.smtp.timeout', max(5, $otpSmtpTimeout));
+        }
+
+        try {
+            return self::sendVerificationCodeWithinOtpLimits($toEmail, $code);
+        } finally {
+            Config::set('mail.mailers.smtp.timeout', $smtpTimeoutPrevious);
+        }
+    }
+
+    /**
+     * @internal split so sendVerificationCode can restore SMTP timeout in a finally block
+     */
+    private static function sendVerificationCodeWithinOtpLimits($toEmail, $code): bool
+    {
         self::clearSendDiagnostics();
         self::noteDiagnostic('to_domain', Str::after((string) $toEmail, '@') ?: '(none)');
+
+        $otpBudgetDeadline = microtime(true) + self::verificationOtpTimeBudgetSeconds();
 
         $brevoKey = self::normalizeSecret(self::resolveApiKey('services.brevo.key', 'BREVO_API_KEY'));
         self::noteDiagnostic('brevo_key_length', strlen($brevoKey));
@@ -252,6 +291,8 @@ class EmailService
             }
             if ($skipBrevoSmtpRelayOnRailway) {
                 self::noteDiagnostic('brevo_smtp_skipped', 'EMAIL_SKIP_BREVO_SMTP_ON_RAILWAY=true (SMTP 587 often blocked on Railway; set false to try relay)');
+            } elseif (self::verificationOtpBudgetExceeded($otpBudgetDeadline)) {
+                self::noteDiagnostic('verification_time_budget', 'skipped_brevo_smtp');
             } else {
                 try {
                     if (self::sendViaBrevoSmtp($toEmail, $code, $brevoKey)) {
@@ -283,24 +324,29 @@ class EmailService
         // Laravel Mail over configured SMTP (Gmail, Brevo relay via MAIL_*, etc.)
         // Always use the "smtp" mailer here — config("mail.default") may be "sendmail" (no binary in Docker/Railway).
         if (! $skipSmtp && ! $isPlaceholder) {
-            $mailHost = config('mail.mailers.smtp.host');
-            $mailUsername = config('mail.mailers.smtp.username');
-            self::noteDiagnostic('smtp_attempted', true);
-            self::noteDiagnostic('smtp_host', (string) $mailHost);
-            self::noteDiagnostic('smtp_username_set', !empty($mailUsername));
-            try {
-                Mail::mailer('smtp')->to($toEmail)->send(new VerificationCodeMail($code, $toEmail));
-                Log::info('✅ Email sent via Laravel SMTP', [
-                    'to' => $toEmail,
-                    'host' => $mailHost,
-                    'username' => $mailUsername,
-                ]);
+            if (self::verificationOtpBudgetExceeded($otpBudgetDeadline)) {
+                self::noteDiagnostic('verification_time_budget', 'skipped_laravel_smtp');
+                Log::info('Verification mail: skipped Laravel SMTP (OTP time budget) — fast JSON + fallback code');
+            } else {
+                $mailHost = config('mail.mailers.smtp.host');
+                $mailUsername = config('mail.mailers.smtp.username');
+                self::noteDiagnostic('smtp_attempted', true);
+                self::noteDiagnostic('smtp_host', (string) $mailHost);
+                self::noteDiagnostic('smtp_username_set', !empty($mailUsername));
+                try {
+                    Mail::mailer('smtp')->to($toEmail)->send(new VerificationCodeMail($code, $toEmail));
+                    Log::info('✅ Email sent via Laravel SMTP', [
+                        'to' => $toEmail,
+                        'host' => $mailHost,
+                        'username' => $mailUsername,
+                    ]);
 
-                self::noteDiagnostic('smtp_result', 'success');
-                return true;
-            } catch (\Throwable $e) {
-                self::noteDiagnostic('smtp_error', Str::limit($e->getMessage(), 400));
-                Log::error('Laravel SMTP failed', ['error' => $e->getMessage(), 'host' => $mailHost]);
+                    self::noteDiagnostic('smtp_result', 'success');
+                    return true;
+                } catch (\Throwable $e) {
+                    self::noteDiagnostic('smtp_error', Str::limit($e->getMessage(), 400));
+                    Log::error('Laravel SMTP failed', ['error' => $e->getMessage(), 'host' => $mailHost]);
+                }
             }
         } elseif (! $skipSmtp && $isPlaceholder) {
             self::noteDiagnostic('smtp_skipped', 'placeholder_or_missing_creds');
@@ -584,6 +630,11 @@ class EmailService
         $html = self::inlineVerificationHtml($code);
         $smtpHost = 'smtp-relay.brevo.com';
         $mailerName = 'brevo_smtp_'.substr(sha1($smtpUser.$smtpHost), 0, 8);
+        $relayTimeout = (int) env('VERIFICATION_SMTP_TIMEOUT', 14);
+        if ($relayTimeout <= 0) {
+            $relayTimeout = 30;
+        }
+
         Config::set('mail.mailers.'.$mailerName, [
             'transport' => 'smtp',
             'host' => $smtpHost,
@@ -591,7 +642,7 @@ class EmailService
             'encryption' => 'tls',
             'username' => $smtpUser,
             'password' => $smtpPass,
-            'timeout' => 30,
+            'timeout' => max(5, min(30, $relayTimeout)),
         ]);
 
         $brand = (string) config('app.name', 'SIA');

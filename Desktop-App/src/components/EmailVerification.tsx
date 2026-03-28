@@ -115,83 +115,104 @@ export default function EmailVerification({
 
   const handleResend = async () => {
     if (countdown > 0) return;
-    
+
     setIsResending(true);
     setError(null);
     setDeliveryFailureMessage(null);
     setResendStatus(null);
     setVerificationFailed(false);
+
+    let resendUiTimer: ReturnType<typeof setTimeout> | undefined;
+    const RESEND_UI_MAX_MS = 40_000;
+
     try {
-      let result;
-      
-      // If onResend is provided, use it and get the result
-      if (onResend) {
-        const resendResult = await onResend();
-        // Check if onResend returned a result with email_sent
-        if (resendResult && typeof resendResult === 'object' && 'email_sent' in resendResult) {
-          result = resendResult as {
-            ok: boolean;
-            message: string;
-            email_sent?: boolean;
-            verification_code?: string | null;
-          };
-        } else {
-          // If onResend doesn't return result, call API directly to get status
-          result = await resendVerificationCode(email.trim().toLowerCase());
-        }
-      } else {
-        // No onResend callback, call API directly
-        result = await resendVerificationCode(email.trim().toLowerCase());
-      }
-      
-      const emailWasSent = result?.email_sent === true;
-      const fallbackCode =
-        result && typeof result === 'object' && 'verification_code' in result
-          ? (result as { verification_code?: string | null }).verification_code
-          : null;
+      const deadline = new Promise<never>((_, reject) => {
+        resendUiTimer = setTimeout(() => {
+          reject(
+            new Error(
+              'This is taking too long. If you already see a sign-in code above, enter it — it is still valid. Otherwise try Resend again in a moment.'
+            )
+          );
+        }, RESEND_UI_MAX_MS);
+      });
 
-      if (emailWasSent) {
-        setResendStatus({
-          sent: true,
-          message: result?.message || 'Verification code has been resent to your email. Please check your inbox (and spam folder).'
-        });
-        setEmailSent(true);
-        setDevCode(null);
-        setDeliveryFailureMessage(null);
-      } else {
-        const hasFallback = fallbackCode && /^\d{6}$/.test(fallbackCode);
-        if (hasFallback) {
-          setCode(fallbackCode);
-          setDevCode(fallbackCode);
-          localStorage.setItem('dev_verification_code', fallbackCode);
-          localStorage.setItem('email_sent_status', 'false');
-          setEmailSent(false);
-          setDeliveryFailureMessage(null);
-          setVerificationFailed(false);
-          setResendStatus({
-            sent: true,
-            message: 'Your sign-in code is shown above. Enter it to continue.',
-          });
-        } else {
-          const failMsg = 'We could not send a new code. Try again in a moment or contact support.';
-          setResendStatus({ sent: false, message: failMsg });
-          setEmailSent(false);
-          setDeliveryFailureMessage(failMsg);
-          setVerificationFailed(true);
-        }
-      }
+      await Promise.race([
+        (async () => {
+          let result;
 
-      setCountdown(60); // 60 second cooldown
+          if (onResend) {
+            const resendResult = await onResend();
+            if (resendResult && typeof resendResult === 'object' && 'email_sent' in resendResult) {
+              result = resendResult as {
+                ok: boolean;
+                message: string;
+                email_sent?: boolean;
+                verification_code?: string | null;
+              };
+            } else {
+              result = await resendVerificationCode(email.trim().toLowerCase());
+            }
+          } else {
+            result = await resendVerificationCode(email.trim().toLowerCase());
+          }
+
+          const emailWasSent = result?.email_sent === true;
+          const fallbackCode =
+            result && typeof result === 'object' && 'verification_code' in result
+              ? (result as { verification_code?: string | null }).verification_code
+              : null;
+
+          if (emailWasSent) {
+            setResendStatus({
+              sent: true,
+              message:
+                result?.message ||
+                'Verification code has been resent to your email. Please check your inbox (and spam folder).',
+            });
+            setEmailSent(true);
+            setDevCode(null);
+            setDeliveryFailureMessage(null);
+          } else {
+            const hasFallback = fallbackCode && /^\d{6}$/.test(fallbackCode);
+            if (hasFallback) {
+              setCode(fallbackCode);
+              setDevCode(fallbackCode);
+              localStorage.setItem('dev_verification_code', fallbackCode);
+              localStorage.setItem('email_sent_status', 'false');
+              setEmailSent(false);
+              setDeliveryFailureMessage(null);
+              setVerificationFailed(false);
+              setResendStatus({
+                sent: true,
+                message: 'Your sign-in code is shown above. Enter it to continue.',
+              });
+            } else {
+              const failMsg = 'We could not send a new code. Try again in a moment or contact support.';
+              setResendStatus({ sent: false, message: failMsg });
+              setEmailSent(false);
+              setDeliveryFailureMessage(failMsg);
+              setVerificationFailed(true);
+            }
+          }
+
+          setCountdown(60);
+        })(),
+        deadline,
+      ]);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to resend code. Please try again.';
+      const hasCodeOnScreen = code.trim().length === 6;
       setError(message);
-      setDeliveryFailureMessage(message);
-      setVerificationFailed(true);
+      setDeliveryFailureMessage(hasCodeOnScreen ? null : message);
+      setVerificationFailed(!hasCodeOnScreen);
       setResendStatus({
         sent: false,
         message,
       });
     } finally {
+      if (resendUiTimer !== undefined) {
+        clearTimeout(resendUiTimer);
+      }
       setIsResending(false);
     }
   };
