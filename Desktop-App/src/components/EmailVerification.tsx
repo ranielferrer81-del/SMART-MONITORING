@@ -3,10 +3,6 @@ import { motion } from 'framer-motion';
 import { Mail, Loader2, X, RefreshCw } from 'lucide-react';
 import { verifyEmailCode, resendVerificationCode } from '../api/client';
 
-/** Never show provider/Railway/Brevo text to users — same copy the API uses for fallback. */
-const NEUTRAL_FALLBACK_HINT =
-  'Use the verification code below to sign in. Check your email if a message was sent.';
-
 type EmailVerificationProps = {
   email: string;
   /** Result of the last /api/validate-email call (includes fallback verification_code when mail fails). */
@@ -54,8 +50,8 @@ export default function EmailVerification({
       setCode(propCode);
       setDevCode(propCode);
       setEmailSent(false);
-      setVerificationFailed(true);
-      setDeliveryFailureMessage(NEUTRAL_FALLBACK_HINT);
+      setVerificationFailed(false);
+      setDeliveryFailureMessage(null);
       return;
     }
 
@@ -66,7 +62,8 @@ export default function EmailVerification({
       setCode(storedCode);
       setDevCode(storedCode);
       setEmailSent(false);
-      setVerificationFailed(true);
+      setVerificationFailed(false);
+      setDeliveryFailureMessage(null);
       localStorage.removeItem('dev_verification_code');
       localStorage.removeItem('email_sent_status');
       return;
@@ -79,8 +76,11 @@ export default function EmailVerification({
     if (loginDelivery?.emailSent !== undefined) {
       setEmailSent(loginDelivery.emailSent);
       if (loginDelivery.emailSent === false) {
-        setDeliveryFailureMessage(NEUTRAL_FALLBACK_HINT);
-        setVerificationFailed(true);
+        const hasCode =
+          loginDelivery.verificationCode &&
+          /^\d{6}$/.test(String(loginDelivery.verificationCode).trim());
+        setDeliveryFailureMessage(null);
+        setVerificationFailed(!hasCode);
       } else {
         setDeliveryFailureMessage(null);
         setVerificationFailed(false);
@@ -160,21 +160,24 @@ export default function EmailVerification({
         setDeliveryFailureMessage(null);
       } else {
         const hasFallback = fallbackCode && /^\d{6}$/.test(fallbackCode);
-        const failMsg = hasFallback
-          ? NEUTRAL_FALLBACK_HINT
-          : 'We could not send a new code. Try again in a moment or contact support.';
-        setResendStatus({
-          sent: false,
-          message: hasFallback ? NEUTRAL_FALLBACK_HINT : failMsg,
-        });
-        setEmailSent(false);
-        setDeliveryFailureMessage(failMsg);
-        setVerificationFailed(true);
         if (hasFallback) {
           setCode(fallbackCode);
           setDevCode(fallbackCode);
           localStorage.setItem('dev_verification_code', fallbackCode);
           localStorage.setItem('email_sent_status', 'false');
+          setEmailSent(false);
+          setDeliveryFailureMessage(null);
+          setVerificationFailed(false);
+          setResendStatus({
+            sent: true,
+            message: 'Your sign-in code is shown above. Enter it to continue.',
+          });
+        } else {
+          const failMsg = 'We could not send a new code. Try again in a moment or contact support.';
+          setResendStatus({ sent: false, message: failMsg });
+          setEmailSent(false);
+          setDeliveryFailureMessage(failMsg);
+          setVerificationFailed(true);
         }
       }
 
@@ -240,14 +243,14 @@ export default function EmailVerification({
             </>
           ) : devCode ? (
             <>
-              <p className="text-sm text-white/80 mt-2">
-                Verification code:
+              <p className="text-sm text-green-200/90 mt-2">
+                Your sign-in code
               </p>
-              <p className="text-base font-semibold text-white tracking-wider">
+              <p className="text-2xl font-bold text-white tracking-[0.2em] tabular-nums">
                 {devCode}
               </p>
-              <p className="text-xs text-white/60 mt-2">
-                Continue login by entering this code.
+              <p className="text-xs text-white/70 mt-2">
+                Enter it below to finish signing in. Email delivery is optional when this code is shown.
               </p>
             </>
           ) : emailSent === false ? (
@@ -283,15 +286,11 @@ export default function EmailVerification({
         </div>
 
         <form onSubmit={handleSubmit} className="w-full space-y-6">
-          {(deliveryFailureMessage || error) && (
+          {(error || (deliveryFailureMessage && !devCode)) && (
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className={`rounded-xl px-4 py-3 text-sm backdrop-blur-sm space-y-2 ${
-                deliveryFailureMessage && devCode && !error
-                  ? 'bg-slate-800/60 border border-white/25 text-white'
-                  : 'bg-red-900/50 border border-red-500/50 text-red-100'
-              }`}
+              className="rounded-xl px-4 py-3 text-sm backdrop-blur-sm space-y-2 bg-red-900/50 border border-red-500/50 text-red-100"
             >
               {deliveryFailureMessage && (
                 <p className="font-medium">{deliveryFailureMessage}</p>
