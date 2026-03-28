@@ -21,5 +21,8 @@ class DatabaseSeeder extends Seeder
             'name' => 'Test User',
             'email' => 'test@example.com',
         ]);
+
+        // Maps router IPs → lab names for browser monitoring (see LabGatewaySeeder).
+        $this->call(LabGatewaySeeder::class);
     }
 }
