@@ -62,6 +62,10 @@ $mailFromExplicit = g('MAIL_FROM_ADDRESS');
 $brevoSenderPreset = g('BREVO_SENDER_EMAIL');
 if ($mailFromExplicit !== '') {
     $mailFrom = $mailFromExplicit;
+    // Railway templates often set MAIL_FROM=noreply@example.com while BREVO_SENDER_EMAIL is the real verified sender.
+    if ($brevoSenderPreset !== '' && str_contains(strtolower($mailFromExplicit), 'example.com')) {
+        $mailFrom = $brevoSenderPreset;
+    }
 } elseif ($brevoSenderPreset !== '') {
     $mailFrom = $brevoSenderPreset;
 } else {

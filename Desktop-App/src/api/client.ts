@@ -189,9 +189,12 @@ export async function warmupBackend(): Promise<void> {
 
 export type BackendCheckResult = { ok: true } | { ok: false; message: string };
 
+/** Cold Railway / TLS wakeups often exceed 15s; keep login UX honest without false "cannot reach API". */
+const BACKEND_HEALTH_CHECK_TIMEOUT_MS = 60_000;
+
 export async function verifyLaravelBackend(): Promise<BackendCheckResult> {
   try {
-    const { data } = await api.get('/health', { timeout: 15000 });
+    const { data } = await api.get('/health', { timeout: BACKEND_HEALTH_CHECK_TIMEOUT_MS });
     if (
       data &&
       typeof data === 'object' &&

@@ -53,6 +53,9 @@ class EmailService
         if ($g !== false && trim((string) $g) !== '') {
             return trim((string) $g);
         }
+        if (isset($_ENV[$envName]) && is_string($_ENV[$envName]) && trim($_ENV[$envName]) !== '') {
+            return trim($_ENV[$envName]);
+        }
 
         return '';
     }
@@ -112,11 +115,20 @@ class EmailService
         // Check mailer config - if set to 'log' or 'array', skip SMTP but still try API methods (Brevo, SendGrid, etc.)
         $mailer = config('mail.default');
         $runningOnRailway = (getenv('RAILWAY_ENVIRONMENT') !== false || getenv('RAILWAY_PROJECT_ID') !== false);
+        $smtpHostCfg = strtolower((string) config('mail.mailers.smtp.host', ''));
         $skipSmtp = ($mailer === 'log' || $mailer === 'array');
-        // On Railway with Brevo configured, avoid long SMTP fallback hangs.
+        /*
+         * On Railway + Brevo REST key we used to skip *all* Laravel SMTP. That blocked the Brevo SMTP relay
+         * that write-env.php sets (smtp-relay.brevo.com) when REST fails — users with correct MAIL_* were still stuck.
+         * Only skip slow/unconfigured SMTP (Gmail default, etc.), not smtp-relay.brevo.com.
+         */
         if ($runningOnRailway && $brevoKey !== '') {
-            $skipSmtp = true;
-            self::noteDiagnostic('smtp_skipped_reason', 'railway_with_brevo');
+            $isBrevoRelay = str_contains($smtpHostCfg, 'brevo');
+            $looksLikeGmailOrUnset = $smtpHostCfg === '' || str_contains($smtpHostCfg, 'gmail') || $smtpHostCfg === 'smtp.gmail.com';
+            if (! $isBrevoRelay && $looksLikeGmailOrUnset) {
+                $skipSmtp = true;
+                self::noteDiagnostic('smtp_skipped_reason', 'railway_with_brevo_avoid_slow_smtp');
+            }
         }
         if ($skipSmtp) {
             Log::info('MAIL_MAILER is "' . $mailer . '" - skipping SMTP, will try API methods (Brevo, SendGrid, Mailgun)');
