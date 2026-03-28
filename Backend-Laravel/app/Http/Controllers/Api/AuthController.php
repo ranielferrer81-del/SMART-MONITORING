@@ -734,10 +734,11 @@ class AuthController extends Controller
 
         $showFallbackCode = ! $sent && (config('app.debug') || filter_var(env('AUTH_LOGIN_CODE_FALLBACK', false), FILTER_VALIDATE_BOOLEAN));
 
+        $fallbackHint = \App\Services\EmailService::getFallbackMailFailureMessage();
         $message = $sent
             ? $successMessage
             : ($showFallbackCode
-                ? 'We could not deliver email to your inbox. Use this verification code to continue — or ask your administrator to set BREVO_API_KEY and a verified sender in Railway.'
+                ? ($fallbackHint ?? 'We could not deliver email to your inbox. Use this verification code to continue — or ask your administrator to set BREVO_API_KEY and a verified sender in Railway.')
                 : $failMessage);
 
         $payload = [

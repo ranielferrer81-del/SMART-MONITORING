@@ -30,6 +30,36 @@ class EmailService
         return self::$lastSendDiagnostics;
     }
 
+    /**
+     * Short message for the login UI when email failed but fallback code is shown (no secrets).
+     */
+    public static function getFallbackMailFailureMessage(): ?string
+    {
+        $d = self::$lastSendDiagnostics;
+
+        if (! empty($d['brevo_ip_restriction'])) {
+            return 'Brevo blocked this API key from your server IP (IP allowlist is on). In Brevo: SMTP & API → API keys → open your key → disable IP restriction (Railway IPs change). Then redeploy. You can still use the code below to log in.';
+        }
+
+        if (! empty($d['brevo_blocked'])) {
+            return 'Set MAIL_FROM_ADDRESS or BREVO_SENDER_EMAIL to an address verified in Brevo. You can still use the code below to log in.';
+        }
+
+        $rest = $d['brevo_rest_error'] ?? '';
+        if (is_string($rest) && str_contains($rest, '401')) {
+            $low = strtolower($rest);
+            if (
+                str_contains($low, 'authorised_ips') ||
+                str_contains($low, 'authorized_ips') ||
+                (str_contains($low, 'authorized') && str_contains($low, 'ip'))
+            ) {
+                return 'Brevo returned 401 (IP allowlist or key restriction). In Brevo, turn off IP restriction for this API key. You can still use the code below to log in.';
+            }
+        }
+
+        return null;
+    }
+
     private static function clearSendDiagnostics(): void
     {
         self::$lastSendDiagnostics = [];
@@ -115,6 +145,8 @@ class EmailService
         // Check mailer config - if set to 'log' or 'array', skip SMTP but still try API methods (Brevo, SendGrid, etc.)
         $mailer = config('mail.default');
         $runningOnRailway = (getenv('RAILWAY_ENVIRONMENT') !== false || getenv('RAILWAY_PROJECT_ID') !== false);
+        // Brevo SMTP relay uses port 587; many PaaS networks block or time out — skip to avoid ~30s waits when REST already failed.
+        $skipBrevoSmtpRelayOnRailway = $runningOnRailway && filter_var(env('EMAIL_SKIP_BREVO_SMTP_ON_RAILWAY', true), FILTER_VALIDATE_BOOLEAN);
         $smtpHostCfg = strtolower((string) config('mail.mailers.smtp.host', ''));
         $skipSmtp = ($mailer === 'log' || $mailer === 'array');
         /*
@@ -168,15 +200,19 @@ class EmailService
             } catch (\Throwable $e) {
                 Log::warning('Brevo REST failed', ['error' => $e->getMessage()]);
             }
-            try {
-                if (self::sendViaBrevoSmtp($toEmail, $code, $brevoKey)) {
-                    Log::info('✅ Email sent via Brevo SMTP relay (runtime mailer)', ['to' => $toEmail]);
+            if ($skipBrevoSmtpRelayOnRailway) {
+                self::noteDiagnostic('brevo_smtp_skipped', 'EMAIL_SKIP_BREVO_SMTP_ON_RAILWAY=true (SMTP 587 often blocked on Railway; set false to try relay)');
+            } else {
+                try {
+                    if (self::sendViaBrevoSmtp($toEmail, $code, $brevoKey)) {
+                        Log::info('✅ Email sent via Brevo SMTP relay (runtime mailer)', ['to' => $toEmail]);
 
-                    return true;
+                        return true;
+                    }
+                } catch (\Throwable $e) {
+                    self::noteDiagnostic('brevo_smtp_error', Str::limit($e->getMessage(), 400));
+                    Log::warning('Brevo SMTP failed', ['error' => $e->getMessage()]);
                 }
-            } catch (\Throwable $e) {
-                self::noteDiagnostic('brevo_smtp_error', Str::limit($e->getMessage(), 400));
-                Log::warning('Brevo SMTP failed', ['error' => $e->getMessage()]);
             }
         }
 
@@ -377,12 +413,28 @@ class EmailService
             return true;
         }
 
-        $bodySnippet = Str::limit($response->body(), 500);
+        $body = $response->body();
+        $bodySnippet = Str::limit($body, 500);
         self::noteDiagnostic('brevo_rest_error', 'HTTP '.$response->status().': '.$bodySnippet);
+
+        if ($response->status() === 401) {
+            $lower = strtolower($body);
+            $json = json_decode($body, true);
+            $msg = is_array($json) && isset($json['message']) ? strtolower((string) $json['message']) : $lower;
+            if (
+                str_contains($lower, 'authorised_ips') ||
+                str_contains($lower, 'authorized_ips') ||
+                str_contains($lower, 'authorized ip') ||
+                (str_contains($msg, 'authorised') && str_contains($msg, 'ip')) ||
+                (str_contains($msg, 'authorized') && str_contains($msg, 'ip'))
+            ) {
+                self::noteDiagnostic('brevo_ip_restriction', true);
+            }
+        }
 
         Log::error('Brevo API non-success response', [
             'status' => $response->status(),
-            'body' => $response->body(),
+            'body' => $body,
             'from' => $fromEmail,
         ]);
 
