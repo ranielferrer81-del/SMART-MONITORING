@@ -37,24 +37,18 @@ class EmailService
     {
         $d = self::$lastSendDiagnostics;
 
-        if (! empty($d['brevo_ip_restriction'])) {
-            return 'Brevo blocked this server (IP allowlist on the API key). Fix: add RESEND_API_KEY in Railway (resend.com — HTTPS, no IP list), or turn off IP restriction on your Brevo key. You can still use the code below to log in.';
-        }
-
         if (! empty($d['brevo_blocked'])) {
             return 'Set MAIL_FROM_ADDRESS or BREVO_SENDER_EMAIL to an address verified in Brevo. You can still use the code below to log in.';
         }
 
+        // Brevo 401: dashboard may show IP access off but API still returns security wording — treat as "key or Brevo-side auth", not a lecture about allowlists.
+        if (! empty($d['brevo_401']) || ! empty($d['brevo_ip_restriction'])) {
+            return 'Email could not be sent via Brevo (401 unauthorized). Re-copy the REST API v3 key from Brevo → SMTP & API → API keys into BREVO_API_KEY on Railway, or create a new key. Optional: add RESEND_API_KEY. You can still use the code below to log in.';
+        }
+
         $rest = $d['brevo_rest_error'] ?? '';
         if (is_string($rest) && str_contains($rest, '401')) {
-            $low = strtolower($rest);
-            if (
-                str_contains($low, 'authorised_ips') ||
-                str_contains($low, 'authorized_ips') ||
-                (str_contains($low, 'authorized') && str_contains($low, 'ip'))
-            ) {
-                return 'Brevo returned 401 (IP allowlist or key restriction). In Brevo, turn off IP restriction for this API key. You can still use the code below to log in.';
-            }
+            return 'Email could not be sent via Brevo (401). Check BREVO_API_KEY matches a current REST API key, or set RESEND_API_KEY. You can still use the code below to log in.';
         }
 
         return null;
@@ -88,6 +82,26 @@ class EmailService
         }
 
         return '';
+    }
+
+    /**
+     * Trim, strip UTF-8 BOM, and accidental wrapping quotes (common when pasting into Railway).
+     */
+    private static function normalizeSecret(string $s): string
+    {
+        $s = trim($s);
+        if (str_starts_with($s, "\xEF\xBB\xBF")) {
+            $s = substr($s, 3);
+        }
+        $s = trim($s);
+        if ($s !== '' && (
+            (str_starts_with($s, '"') && str_ends_with($s, '"')) ||
+            (str_starts_with($s, "'") && str_ends_with($s, "'"))
+        )) {
+            $s = trim(substr($s, 1, -1));
+        }
+
+        return $s;
     }
 
     /**
@@ -136,8 +150,13 @@ class EmailService
         self::clearSendDiagnostics();
         self::noteDiagnostic('to_domain', Str::after((string) $toEmail, '@') ?: '(none)');
 
-        $brevoKey = self::resolveApiKey('services.brevo.key', 'BREVO_API_KEY');
+        $brevoKey = self::normalizeSecret(self::resolveApiKey('services.brevo.key', 'BREVO_API_KEY'));
         self::noteDiagnostic('brevo_key_length', strlen($brevoKey));
+        $resendKey = self::normalizeSecret(self::resolveApiKey('services.resend.key', 'RESEND_API_KEY'));
+        if ($resendKey === '') {
+            $resendKey = self::normalizeSecret(self::resolveApiKey('services.resend.key', 'RESEND_KEY'));
+        }
+        self::noteDiagnostic('resend_key_configured', $resendKey !== '');
         $sendGridKey = self::resolveApiKey('services.sendgrid.key', 'SENDGRID_API_KEY');
         $mailgunKey = self::resolveApiKey('services.mailgun.secret', 'MAILGUN_SECRET');
         $mailgunDomain = self::resolveApiKey('services.mailgun.domain', 'MAILGUN_DOMAIN');
@@ -454,9 +473,11 @@ class EmailService
         self::noteDiagnostic('brevo_rest_error', 'HTTP '.$response->status().': '.$bodySnippet);
 
         if ($response->status() === 401) {
+            self::noteDiagnostic('brevo_401', Str::limit($body, 400));
             $lower = strtolower($body);
             $json = json_decode($body, true);
             $msg = is_array($json) && isset($json['message']) ? strtolower((string) $json['message']) : $lower;
+            // Brevo may mention authorised_ips even when the fix is a new key or wrong key pasted — keep flag for logs only.
             if (
                 str_contains($lower, 'authorised_ips') ||
                 str_contains($lower, 'authorized_ips') ||
