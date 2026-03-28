@@ -12,6 +12,8 @@ const DEFAULT_TIMEOUT_MS = 15000;
 const EMAIL_AUTH_TIMEOUT_MS = 120_000;
 /** Aligned with backend OTP time budget (~32s + margin); avoids “Sending…” stuck for 90s. */
 const RESEND_VERIFICATION_TIMEOUT_MS = 45_000;
+/** Cold Railway + DB: allow verify to finish without default 15s axios abort. */
+const VERIFY_VERIFICATION_CODE_TIMEOUT_MS = 60_000;
 const COLD_START_WARMUP_TIMEOUT_MS = 120_000;
 
 export const api = axios.create({
@@ -73,7 +75,7 @@ const normalizeUser = (payload: Record<string, unknown>): AuthenticatedUser => (
   profilePicture: (payload.profilePicture ?? payload.profile_picture ?? null) as string | null,
 });
 
-type EmailAuthErrorContext = 'email_login' | 'resend' | 'default';
+type EmailAuthErrorContext = 'email_login' | 'resend' | 'verify_code' | 'default';
 
 const extractErrorMessage = (error: unknown, context: EmailAuthErrorContext = 'default') => {
   if (typeof error === 'string') return error;
@@ -84,6 +86,9 @@ const extractErrorMessage = (error: unknown, context: EmailAuthErrorContext = 'd
       }
       if (context === 'email_login') {
         return 'Login request timed out while sending verification code. Please try again in a few seconds.';
+      }
+      if (context === 'verify_code') {
+        return 'Verification timed out. Check your connection and try again.';
       }
       return 'Request timed out. Please try again in a few seconds.';
     }
@@ -214,10 +219,14 @@ export async function verifyLaravelBackend(): Promise<BackendCheckResult> {
 
 export async function verifyEmailCode(email: string, code: string): Promise<LoginResult> {
   try {
-    const { data } = await api.post('/api/verify-verification-code', {
-      email: email.trim().toLowerCase(),
-      code: code.trim(),
-    });
+    const { data } = await api.post(
+      '/api/verify-verification-code',
+      {
+        email: email.trim().toLowerCase(),
+        code: code.trim(),
+      },
+      { timeout: VERIFY_VERIFICATION_CODE_TIMEOUT_MS }
+    );
 
     if (!data?.ok || !data?.token) {
       throw new Error(data?.message || 'Invalid verification code.');
@@ -238,7 +247,7 @@ export async function verifyEmailCode(email: string, code: string): Promise<Logi
     }
     return session;
   } catch (error) {
-    throw new Error(extractErrorMessage(error));
+    throw new Error(extractErrorMessage(error, 'verify_code'));
   }
 }
 

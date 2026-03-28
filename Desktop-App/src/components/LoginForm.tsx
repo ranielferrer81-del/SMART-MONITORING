@@ -47,11 +47,14 @@ export default function LoginForm({ onVerificationSent, onCancel }: LoginFormPro
             message: result.message || 'Verification code has been sent to your email. Please check your inbox (and spam folder).'
           });
         } else {
+          const hasFallbackCode =
+            result.verification_code && /^\d{6}$/.test(String(result.verification_code).trim());
           setEmailStatus({
             sent: false,
-            message:
-              result.message ||
-              'Cannot send verification code. Email service is not configured properly. Please contact support.'
+            message: hasFallbackCode
+              ? (result.message || 'Use the code on the next screen to finish signing in.')
+              : (result.message ||
+                  'Cannot send verification code. Email service is not configured properly. Please contact support.'),
           });
         }
         

@@ -20,8 +20,8 @@ class AuthController extends Controller
     /** Default true: login always works when mail fails (code in JSON). Set AUTH_LOGIN_CODE_FALLBACK=false to disable. */
     private function authLoginCodeFallbackEnabled(): bool
     {
-        return config('app.debug')
-            || filter_var(env('AUTH_LOGIN_CODE_FALLBACK', true), FILTER_VALIDATE_BOOLEAN);
+        return (bool) config('app.debug')
+            || (bool) config('app.auth_login_code_fallback', true);
     }
 
     public function login(Request $request)
@@ -420,12 +420,30 @@ class AuthController extends Controller
             'current_time' => now()->toDateTimeString()
         ]);
 
-        return $this->jsonAfterVerificationSend(
-            $email,
-            $code,
-            'Verification code has been sent to your email. Please check your inbox (and spam folder).',
-            'We could not send the verification email. Configure MAIL_* on the server (e.g. Railway SMTP or BREVO_API_KEY), or enable AUTH_LOGIN_CODE_FALLBACK for a one-time code in the response.'
-        );
+        try {
+            return $this->jsonAfterVerificationSend(
+                $email,
+                $code,
+                'Verification code has been sent to your email. Please check your inbox (and spam folder).',
+                'We could not send the verification email. Configure MAIL_* on the server (e.g. Railway SMTP or BREVO_API_KEY), or enable AUTH_LOGIN_CODE_FALLBACK for a one-time code in the response.'
+            );
+        } catch (\Throwable $e) {
+            \Log::error('validateEmail response failed', ['email' => $email, 'error' => $e->getMessage()]);
+            if ($this->authLoginCodeFallbackEnabled()) {
+                return response()->json([
+                    'ok' => true,
+                    'message' => self::FALLBACK_VERIFICATION_USER_MESSAGE,
+                    'email' => $email,
+                    'email_sent' => false,
+                    'verification_code' => $code,
+                ]);
+            }
+
+            return response()->json([
+                'ok' => false,
+                'message' => 'Could not complete sign-in. Please try again.',
+            ], 500);
+        }
     }
 
     /**
@@ -646,24 +664,58 @@ class AuthController extends Controller
         // Resend: wait for the real SMTP/Brevo result so the client can show email_sent=false
         // and an error when mail actually fails (async/optimistic path would always say "sent").
         // Set VERIFICATION_RESEND_SYNC=false only if your host HTTP limit is shorter than mail connect time.
-        $resendSync = filter_var(env('VERIFICATION_RESEND_SYNC', true), FILTER_VALIDATE_BOOLEAN);
+        $resendSync = (bool) config('app.verification_resend_sync', true);
         if ($resendSync) {
-            return $this->jsonAfterVerificationSendSync(
+            try {
+                return $this->jsonAfterVerificationSendSync(
+                    $email,
+                    $code,
+                    'Verification code has been resent to your email. Please check your inbox (and spam folder).',
+                    'We could not send the verification email. Configure MAIL_* on the server (e.g. Railway SMTP or BREVO_API_KEY), or enable AUTH_LOGIN_CODE_FALLBACK for a one-time code in the response.',
+                    false
+                );
+            } catch (\Throwable $e) {
+                \Log::error('resendVerificationCode sync failed', ['email' => $email, 'error' => $e->getMessage()]);
+                if ($this->authLoginCodeFallbackEnabled()) {
+                    return response()->json([
+                        'ok' => true,
+                        'message' => self::FALLBACK_VERIFICATION_USER_MESSAGE,
+                        'email_sent' => false,
+                        'verification_code' => $code,
+                    ]);
+                }
+
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'Could not resend the code. Please try again.',
+                ], 500);
+            }
+        }
+
+        try {
+            return $this->jsonAfterVerificationSend(
                 $email,
                 $code,
                 'Verification code has been resent to your email. Please check your inbox (and spam folder).',
                 'We could not send the verification email. Configure MAIL_* on the server (e.g. Railway SMTP or BREVO_API_KEY), or enable AUTH_LOGIN_CODE_FALLBACK for a one-time code in the response.',
                 false
             );
-        }
+        } catch (\Throwable $e) {
+            \Log::error('resendVerificationCode async path failed', ['email' => $email, 'error' => $e->getMessage()]);
+            if ($this->authLoginCodeFallbackEnabled()) {
+                return response()->json([
+                    'ok' => true,
+                    'message' => self::FALLBACK_VERIFICATION_USER_MESSAGE,
+                    'email_sent' => false,
+                    'verification_code' => $code,
+                ]);
+            }
 
-        return $this->jsonAfterVerificationSend(
-            $email,
-            $code,
-            'Verification code has been resent to your email. Please check your inbox (and spam folder).',
-            'We could not send the verification email. Configure MAIL_* on the server (e.g. Railway SMTP or BREVO_API_KEY), or enable AUTH_LOGIN_CODE_FALLBACK for a one-time code in the response.',
-            false
-        );
+            return response()->json([
+                'ok' => false,
+                'message' => 'Could not resend the code. Please try again.',
+            ], 500);
+        }
     }
 
     /**
@@ -684,7 +736,7 @@ class AuthController extends Controller
         string $failMessage,
         bool $includeEmailField = true
     ) {
-        $sync = filter_var(env('VERIFICATION_EMAIL_SYNC', true), FILTER_VALIDATE_BOOLEAN);
+        $sync = (bool) config('app.verification_email_sync', true);
 
         if ($sync) {
             return $this->jsonAfterVerificationSendSync(
@@ -766,7 +818,7 @@ class AuthController extends Controller
 
         $showMailDiagnostics = ! $sent && (
             config('app.debug')
-            || filter_var(env('MAIL_DIAGNOSTICS_IN_RESPONSE', false), FILTER_VALIDATE_BOOLEAN)
+            || (bool) config('app.mail_diagnostics_in_response', false)
         );
         if ($showMailDiagnostics) {
             $payload['mail_diagnostics'] = \App\Services\EmailService::getLastSendDiagnostics();

@@ -168,6 +168,17 @@ class EmailService
     }
 
     /**
+     * Resend API requires a real From address (verified domain). Skip Resend when only placeholder/example is set.
+     */
+    private static function resolveResendSenderHasValidAddress(): bool
+    {
+        $s = self::resolveResendSender();
+        $e = trim((string) ($s['email'] ?? ''));
+
+        return $e !== '' && ! str_contains(strtolower($e), 'example.com');
+    }
+
+    /**
      * Send verification code email using multiple methods
      */
     public static function sendVerificationCode($toEmail, $code): bool
@@ -252,14 +263,16 @@ class EmailService
         /*
          * Resend (HTTPS :443) is stable on PaaS; Brevo REST can 401 (keys/IP). When RESEND_API_KEY is set,
          * try Resend first by default — not tied to UI or "Railway only". Set EMAIL_TRY_RESEND_FIRST=false to prefer Brevo.
+         * Without a valid From (verified domain / non-placeholder), skip Resend so Brevo/SMTP/fallback run immediately.
          */
-        $resendFirstEnv = env('EMAIL_TRY_RESEND_FIRST');
-        if ($resendFirstEnv === null) {
-            $resendFirstEnv = env('RAILWAY_TRY_RESEND_FIRST', true);
-        }
         $tryResendFirst = $resendKey !== ''
             && strlen($resendKey) > 8
-            && filter_var($resendFirstEnv, FILTER_VALIDATE_BOOLEAN);
+            && (bool) config('app.email_try_resend_first', true)
+            && self::resolveResendSenderHasValidAddress();
+
+        if ($resendKey !== '' && strlen($resendKey) > 8 && ! self::resolveResendSenderHasValidAddress()) {
+            self::noteDiagnostic('resend_skipped', 'invalid_sender_set_RESEND_FROM_EMAIL_or_MAIL_FROM');
+        }
 
         if ($tryResendFirst) {
             try {
@@ -308,7 +321,7 @@ class EmailService
         }
 
         // Resend HTTPS API (fallback when Brevo failed or when Resend was not tried first)
-        if ($resendKey !== '' && strlen($resendKey) > 8 && ! $tryResendFirst) {
+        if ($resendKey !== '' && strlen($resendKey) > 8 && ! $tryResendFirst && self::resolveResendSenderHasValidAddress()) {
             try {
                 if (self::sendViaResend($toEmail, $code, $resendKey)) {
                     Log::info('✅ Email sent via Resend API', ['to' => $toEmail]);
