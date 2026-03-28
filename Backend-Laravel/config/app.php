@@ -144,4 +144,7 @@ return [
     /** Try Laravel SMTP before API mailers (set true for demos with Gmail / Brevo relay MAIL_*). */
     'email_otp_try_smtp_first' => filter_var(env('EMAIL_OTP_TRY_SMTP_FIRST', false), FILTER_VALIDATE_BOOLEAN),
 
+    /** Wall-clock budget for OTP mail attempts (seconds). */
+    'verification_mail_time_budget_seconds' => max(8.0, min(120.0, (float) (env('VERIFICATION_MAIL_TIME_BUDGET_SECONDS') ?: 45))),
+
 ];

@@ -86,12 +86,7 @@ class EmailService
      */
     private static function verificationOtpTimeBudgetSeconds(): float
     {
-        $raw = env('VERIFICATION_MAIL_TIME_BUDGET_SECONDS');
-        if ($raw === null || $raw === '') {
-            return 32.0;
-        }
-
-        return max(8.0, min(120.0, (float) $raw));
+        return (float) config('app.verification_mail_time_budget_seconds', 45.0);
     }
 
     private static function verificationOtpBudgetExceeded(float $deadline): bool
@@ -240,7 +235,16 @@ class EmailService
         if ($runningOnRailway && $brevoKey !== '' && ! (bool) config('app.email_otp_try_smtp_first', false)) {
             $isBrevoRelay = str_contains($smtpHostCfg, 'brevo');
             $looksLikeGmailOrUnset = $smtpHostCfg === '' || str_contains($smtpHostCfg, 'gmail') || $smtpHostCfg === 'smtp.gmail.com';
-            if (! $isBrevoRelay && $looksLikeGmailOrUnset) {
+            $mailUser = (string) (config('mail.mailers.smtp.username') ?? '');
+            $mailPass = (string) (config('mail.mailers.smtp.password') ?? '');
+            $smtpLooksConfigured = $mailUser !== ''
+                && $mailPass !== ''
+                && strtolower($mailUser) !== 'null'
+                && ! str_contains(strtolower($mailUser), 'your-gmail')
+                && ! str_contains(strtolower($mailUser), 'your-email')
+                && ! str_contains(strtolower($mailPass), 'your-app-password')
+                && ! str_contains(strtolower($mailPass), 'your-app-password-here');
+            if (! $isBrevoRelay && $looksLikeGmailOrUnset && ! $smtpLooksConfigured) {
                 $skipSmtp = true;
                 self::noteDiagnostic('smtp_skipped_reason', 'railway_with_brevo_avoid_slow_smtp');
             }
@@ -598,7 +602,8 @@ class EmailService
     }
 
     /**
-     * Resend via Laravel's official transport (HTTPS) — same From as config/mail + optional RESEND_FROM_*.
+     * Resend: direct HTTPS API first (most reliable on Railway; avoids cached Mail transport / resend-php quirks).
+     * Falls back to Laravel's resend mailer if HTTP fails.
      */
     private static function sendViaResend(string $to, string $code, string $apiKey): bool
     {
@@ -612,9 +617,13 @@ class EmailService
         $sender = self::resolveResendSender();
         $fromEmail = $sender['email'];
         if ($fromEmail === '' || str_contains(strtolower($fromEmail), 'example.com')) {
-            self::noteDiagnostic('resend_blocked', 'Set RESEND_FROM_EMAIL or MAIL_FROM_ADDRESS to an address on a domain verified in Resend.');
+            self::noteDiagnostic('resend_blocked', 'No usable From (enable RESEND_USE_ONBOARDING_SENDER or set RESEND_FROM_EMAIL / MAIL_FROM_ADDRESS).');
 
             return false;
+        }
+
+        if (self::sendViaResendHttp($to, $code, $apiKey, $sender)) {
+            return true;
         }
 
         Config::set('services.resend.key', $apiKey);
@@ -624,7 +633,7 @@ class EmailService
             Mail::mailer('resend')->to($to)->send(
                 new VerificationCodeMail($code, $to, $fromEmail, $sender['name'])
             );
-            self::noteDiagnostic('resend_rest', 'ok Laravel resend mailer');
+            self::noteDiagnostic('resend_rest', 'ok Laravel resend mailer (HTTP failed or unavailable)');
 
             return true;
         } catch (\Throwable $e) {
@@ -633,6 +642,59 @@ class EmailService
 
             return false;
         }
+    }
+
+    /**
+     * Resend REST API — same contract as dashboard; Bearer token only.
+     */
+    private static function sendViaResendHttp(string $to, string $code, string $apiKey, array $sender): bool
+    {
+        $fromEmail = trim((string) ($sender['email'] ?? ''));
+        $fromName = trim((string) ($sender['name'] ?? ''));
+        if ($fromName === '') {
+            $fromName = (string) config('app.name', 'SIA');
+        }
+
+        $html = self::inlineVerificationHtml($code);
+        $brand = (string) config('app.name', 'SIA');
+        $subject = $brand.': Your verification code (login)';
+        $fromHeader = $fromName.' <'.$fromEmail.'>';
+        $apiKey = self::normalizeSecret($apiKey);
+
+        try {
+            $response = Http::timeout(28)
+                ->connectTimeout(12)
+                ->withToken($apiKey)
+                ->acceptJson()
+                ->post('https://api.resend.com/emails', [
+                    'from' => $fromHeader,
+                    'to' => [$to],
+                    'subject' => $subject,
+                    'html' => $html,
+                ]);
+        } catch (\Throwable $e) {
+            self::noteDiagnostic('resend_http_exception', Str::limit($e->getMessage(), 400));
+            Log::error('Resend HTTP exception', ['error' => $e->getMessage(), 'to' => $to]);
+
+            return false;
+        }
+
+        if ($response->successful()) {
+            self::noteDiagnostic('resend_rest', 'ok HTTP '.$response->status());
+
+            return true;
+        }
+
+        $snippet = Str::limit($response->body(), 600);
+        self::noteDiagnostic('resend_rest_error', 'HTTP '.$response->status().': '.$snippet);
+        Log::error('Resend HTTP non-success', [
+            'status' => $response->status(),
+            'body' => $response->body(),
+            'from' => $fromEmail,
+            'to' => $to,
+        ]);
+
+        return false;
     }
 
     /**
