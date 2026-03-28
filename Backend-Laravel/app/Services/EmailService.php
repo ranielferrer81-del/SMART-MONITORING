@@ -273,7 +273,7 @@ class EmailService
         }
 
         $smtpTriedInOtpFlow = false;
-        if ((bool) config('app.email_otp_try_smtp_first', false) && ! $skipSmtp && ! $isPlaceholder && ! self::verificationOtpBudgetExceeded($otpBudgetDeadline)) {
+        if ((bool) config('app.email_otp_try_smtp_first', true) && ! $skipSmtp && ! $isPlaceholder && ! self::verificationOtpBudgetExceeded($otpBudgetDeadline)) {
             $smtpTriedInOtpFlow = true;
             $mailHost = config('mail.mailers.smtp.host');
             $mailUsername = config('mail.mailers.smtp.username');
@@ -687,6 +687,19 @@ class EmailService
 
         $snippet = Str::limit($response->body(), 600);
         self::noteDiagnostic('resend_rest_error', 'HTTP '.$response->status().': '.$snippet);
+        $bodyLower = strtolower($snippet);
+        if (
+            str_contains($bodyLower, 'testing') ||
+            str_contains($bodyLower, 'domain') ||
+            str_contains($bodyLower, 'verify') ||
+            str_contains($bodyLower, 'recipient') ||
+            $response->status() === 403
+        ) {
+            self::noteDiagnostic(
+                'resend_hint',
+                'Resend may block sends from onboarding/test domains to student addresses. Add a verified domain in Resend, or use Gmail/Brevo SMTP (MAIL_*) so OTP reaches any inbox.'
+            );
+        }
         Log::error('Resend HTTP non-success', [
             'status' => $response->status(),
             'body' => $response->body(),
