@@ -10,20 +10,20 @@ const AccountManagementSection = ({
     const renderStudentTable = (course, students) => {
         return (
             <div className="space-y-6">
-                <div className="flex items-end space-x-3">
-                    <div className="flex-1">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-3">
+                    <div className="min-w-0 flex-1">
                         <label className="block text-xs font-medium text-gray-700 dark:text-slate-300">Add Section for {course}</label>
-                        <input type="text" value={newSection.section} onChange={(e) => setNewSection((s) => ({ ...s, section: e.target.value }))} placeholder="Add Section" className="mt-1 block w-full max-w-sm border-gray-300 rounded-md shadow-sm focus:ring-rose-500 focus:border-rose-500 dark:bg-slate-900/30 dark:border-slate-700/50 dark:text-slate-100" />
+                        <input type="text" value={newSection.section} onChange={(e) => setNewSection((s) => ({ ...s, section: e.target.value }))} placeholder="Add Section" className="mt-1 block w-full rounded-lg border border-gray-300 shadow-sm focus:border-rose-500 focus:ring-rose-500 dark:bg-slate-900/30 dark:border-slate-700/50 dark:text-slate-100 sm:max-w-sm" />
                     </div>
-                    <button onClick={() => handleAddSection(course)} className="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300">Add Section</button>
+                    <button type="button" onClick={() => handleAddSection(course)} className="shrink-0 rounded-lg bg-rose-600 px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-rose-700">Add Section</button>
                 </div>
                 {Object.entries(mergeCustomSectionsIntoGroups(groupStudentsBySection(filterAccounts(students, searchTerm)), course)).map(([section, sectionStudents]) => (
                     <div key={section} className="mb-6">
                         <div className="px-3 lg:px-6 py-3 mb-2">
                             <h3 className="text-lg font-semibold text-gray-800 dark:text-slate-100">{course} - {section} ({sectionStudents.length} student{sectionStudents.length !== 1 ? 's' : ''})</h3>
                         </div>
-                        <div className="overflow-x-auto rounded-2xl ring-1 ring-slate-200/60 dark:ring-slate-700/60">
-                            <table className="min-w-full divide-y divide-slate-200/80 dark:divide-slate-700/80">
+                        <div className="-mx-1 min-w-0 overflow-x-auto overscroll-x-contain rounded-2xl ring-1 ring-slate-200/60 [scrollbar-width:thin] dark:ring-slate-700/60 sm:mx-0">
+                            <table className="min-w-[640px] w-full divide-y divide-slate-200/80 dark:divide-slate-700/80">
                                 <thead>
                                     <tr className="bg-gradient-to-r from-indigo-500/10 via-sky-500/5 to-cyan-500/10 dark:from-indigo-950/50 dark:via-slate-900/80 dark:to-cyan-950/30">
                                         <th className="px-3 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider text-indigo-900/90 dark:text-indigo-200/90 lg:px-6">Photo</th>
@@ -75,8 +75,8 @@ const AccountManagementSection = ({
     };
 
     return (
-        <div className="relative overflow-hidden rounded-3xl border border-white/60 bg-gradient-to-br from-white/70 via-white/40 to-rose-50/30 p-[1px] shadow-[0_20px_60px_-15px_rgba(244,63,94,0.2)] backdrop-blur-xl dark:border-white/10 dark:from-slate-900/90 dark:via-slate-900/70 dark:to-rose-950/20 dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)]">
-            <div className="rounded-[1.4rem] border border-white/40 bg-white/40 p-4 dark:border-white/5 dark:bg-slate-950/40 sm:p-6">
+        <div className="relative max-w-[100%] overflow-x-hidden rounded-3xl border border-white/60 bg-gradient-to-br from-white/70 via-white/40 to-rose-50/30 p-[1px] shadow-[0_20px_60px_-15px_rgba(244,63,94,0.2)] backdrop-blur-xl dark:border-white/10 dark:from-slate-900/90 dark:via-slate-900/70 dark:to-rose-950/20 dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)]">
+            <div className="min-w-0 rounded-[1.4rem] border border-white/40 bg-white/40 p-3 dark:border-white/5 dark:bg-slate-950/40 sm:p-6">
             <div className="space-y-6">
             {/* Search Bar */}
             <div className="relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white/60 p-1 shadow-inner dark:border-slate-600/50 dark:bg-slate-900/50">
@@ -92,17 +92,17 @@ const AccountManagementSection = ({
 
             {/* Tabs — segmented control */}
             <div className="rounded-2xl border border-slate-200/80 bg-slate-100/80 p-1.5 dark:border-slate-700/80 dark:bg-slate-900/60">
-                <nav className="flex flex-wrap gap-1">
-                    {[{ id: 'teachers', label: 'Professors' }, { id: 'bsit', label: 'Students — BSIT' }, { id: 'bscs', label: 'Students — BSCS' }, { id: 'bsemc', label: 'Students — BSEMC' }].map((t) => (
-                        <button key={t.id} type="button" onClick={() => setTab(t.id)} className={`min-w-0 flex-1 rounded-xl px-3 py-2.5 text-center text-xs font-semibold transition-all sm:flex-none sm:px-4 sm:text-sm ${tab === t.id ? 'bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-md shadow-rose-500/30' : 'text-slate-600 hover:bg-white/90 dark:text-slate-300 dark:hover:bg-white/5'}`}>{t.label}</button>
+                <nav className="grid grid-cols-2 gap-1 sm:flex sm:flex-wrap">
+                    {[{ id: 'teachers', label: 'Professors' }, { id: 'bsit', label: 'BSIT' }, { id: 'bscs', label: 'BSCS' }, { id: 'bsemc', label: 'BSEMC' }].map((t) => (
+                        <button key={t.id} type="button" onClick={() => setTab(t.id)} className={`min-w-0 rounded-xl px-2 py-2.5 text-center text-[11px] font-semibold leading-tight transition-all sm:flex-none sm:px-4 sm:text-sm ${tab === t.id ? 'bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-md shadow-rose-500/30' : 'text-slate-600 hover:bg-white/90 dark:text-slate-300 dark:hover:bg-white/5'}`} title={t.id === 'teachers' ? 'Professors' : `Students — ${t.label}`}>{t.id === 'teachers' ? 'Professors' : `Students · ${t.label}`}</button>
                     ))}
                 </nav>
             </div>
 
             {/* Tables per tab */}
-            <div className="overflow-x-auto rounded-2xl ring-1 ring-slate-200/60 dark:ring-slate-700/60">
+            <div className="-mx-1 min-w-0 overflow-x-auto overscroll-x-contain rounded-2xl ring-1 ring-slate-200/60 [scrollbar-width:thin] dark:ring-slate-700/60 sm:mx-0">
                 {tab === 'teachers' && (
-                    <table className="min-w-full divide-y divide-slate-200/80 dark:divide-slate-700/80">
+                    <table className="min-w-[600px] w-full divide-y divide-slate-200/80 dark:divide-slate-700/80">
                         <thead>
                             <tr className="bg-gradient-to-r from-rose-500/10 via-red-500/5 to-violet-500/10 dark:from-rose-900/40 dark:via-slate-900/80 dark:to-violet-900/30">
                                 <th className="px-4 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider text-rose-800/90 dark:text-rose-200/90 lg:px-6">Photo</th>

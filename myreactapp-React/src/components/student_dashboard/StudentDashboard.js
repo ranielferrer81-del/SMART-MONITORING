@@ -164,7 +164,7 @@ export default function StudentDashboard() {
   const profileFields = useMemo(() => infoSkeleton.map((field) => ({ ...field, value: studentInfo?.[field.key] || '' })), [studentInfo]);
 
   return (
-    <div className="h-screen w-full bg-slate-50 dark:bg-slate-900 relative flex overflow-hidden">
+    <div className="relative flex h-[100dvh] min-h-0 w-full max-w-[100vw] overflow-hidden bg-slate-50 dark:bg-slate-900">
       {/* Background */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-rose-400/30 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob"></div>
@@ -175,7 +175,7 @@ export default function StudentDashboard() {
       {mobileMenuOpen && <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setMobileMenuOpen(false)} />}
 
       {/* Sidebar */}
-      <div className={`fixed lg:static inset-y-0 left-0 z-50 w-[280px] sm:w-80 lg:w-72 lg:h-[95vh] lg:my-auto lg:ml-6 bg-white/60 backdrop-blur-3xl border border-white/40 shadow-2xl dark:bg-slate-900/60 dark:border-white/10 lg:rounded-3xl transform transition-all duration-300 ease-in-out ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+      <div className={`fixed lg:static inset-y-0 left-0 z-50 w-[min(100vw-2rem,280px)] sm:w-80 lg:w-72 lg:max-h-[95vh] lg:h-[95vh] lg:my-auto lg:ml-6 max-h-[100dvh] overflow-hidden bg-white/60 backdrop-blur-3xl border border-white/40 shadow-2xl dark:bg-slate-900/60 dark:border-white/10 lg:rounded-3xl transform transition-all duration-300 ease-in-out ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         <div className="p-4 lg:p-6 h-full overflow-y-auto">
           <div className="flex items-center justify-between mb-6 lg:mb-8">
             <div className="flex items-center">
@@ -192,7 +192,7 @@ export default function StudentDashboard() {
               { id: 'subjects', label: 'My Subject', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253' },
               { id: 'settings', label: 'Settings', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z' },
             ].map((item) => (
-              <button key={item.id} onClick={() => { setActiveSection(item.id); if (item.id === 'settings' && user) { setSettingsForm({ full_name: user.full_name || user.fullName || '', password: '', current_password: '' }); setSettingsErrors({}); setSettingsSuccess(''); setPinError(''); setPinSuccess(''); setPin(''); } }} className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-300 ${activeSection === item.id ? 'bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-lg shadow-rose-500/50 transform scale-105' : 'text-slate-600 hover:bg-gradient-to-r hover:from-rose-50 hover:to-red-50 hover:text-rose-700 dark:text-slate-300 dark:hover:from-rose-900/20 dark:hover:to-red-900/20 dark:hover:text-rose-300'}`}>
+              <button key={item.id} onClick={() => { setMobileMenuOpen(false); setActiveSection(item.id); if (item.id === 'settings' && user) { setSettingsForm({ full_name: user.full_name || user.fullName || '', password: '', current_password: '' }); setSettingsErrors({}); setSettingsSuccess(''); setPinError(''); setPinSuccess(''); setPin(''); } }} className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-300 ${activeSection === item.id ? 'bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-lg shadow-rose-500/50 transform scale-105' : 'text-slate-600 hover:bg-gradient-to-r hover:from-rose-50 hover:to-red-50 hover:text-rose-700 dark:text-slate-300 dark:hover:from-rose-900/20 dark:hover:to-red-900/20 dark:hover:text-rose-300'}`}>
                 <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} /></svg>
                 {item.label}
               </button>
@@ -229,7 +229,7 @@ export default function StudentDashboard() {
             </div>
           </header>
 
-          <div className="flex-1 p-4 lg:p-8 overflow-y-auto relative z-10">
+          <div className="relative z-10 min-h-0 flex-1 overflow-y-auto overscroll-y-contain p-4 lg:p-8">
             {activeSection === 'profile' && (
               <ProfileSection studentInfo={studentInfo} profilePictureUrl={profilePictureUrl} profileFields={profileFields} uploadingPicture={uploadingPicture} fileInputRef={fileInputRef} handleFileSelection={handleFileSelection} handleDeleteProfilePicture={handleDeleteProfilePicture} />
             )}

@@ -88,7 +88,7 @@ const LoginForm = () => {
   };
 
   return (
-    <div className="h-screen w-full bg-slate-50 dark:bg-slate-900 relative flex items-center justify-center overflow-hidden">
+    <div className="relative flex min-h-[100dvh] w-full max-w-[100vw] flex-col items-center justify-center overflow-x-hidden overflow-y-auto bg-slate-50 px-3 py-10 dark:bg-slate-900 sm:px-4 sm:py-12">
       {/* Animated Background Mesh */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-rose-400/30 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob"></div>
@@ -98,11 +98,11 @@ const LoginForm = () => {
       </div>
 
       {/* Theme toggle */}
-      <div className="absolute top-6 right-6 z-50">
+      <div className="absolute right-4 top-4 z-50 sm:right-6 sm:top-6">
         <ThemeToggle />
       </div>
 
-      <div className="w-full max-w-md relative z-10 px-4">
+      <div className="relative z-10 w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="mx-auto mb-6 flex justify-center">

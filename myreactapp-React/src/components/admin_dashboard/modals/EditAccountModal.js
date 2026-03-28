@@ -4,8 +4,8 @@ const EditAccountModal = ({ editUser, setEditUser, saveEdit, loading }) => {
     if (!editUser) return null;
 
     return (
-        <div className="fixed inset-0 bg-slate-900 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4 transition-opacity duration-300" onClick={() => setEditUser(null)}>
-            <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col transform transition-all duration-300 scale-100 dark:bg-slate-900 dark:border dark:border-slate-800" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex max-h-[100dvh] items-end justify-center overflow-y-auto overscroll-contain bg-slate-900/50 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] transition-opacity duration-300 sm:items-center sm:p-4" onClick={() => setEditUser(null)}>
+            <div className="relative flex max-h-[min(90vh,100dvh-1.5rem)] w-full max-w-2xl min-h-0 flex-col overflow-hidden rounded-xl bg-white shadow-2xl dark:border dark:border-slate-800 dark:bg-slate-900 sm:max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
                 <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-800">
                     <div>
                         <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Edit Account</h3>
@@ -17,7 +17,7 @@ const EditAccountModal = ({ editUser, setEditUser, saveEdit, loading }) => {
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
                 </div>
-                <div className="flex-1 overflow-y-auto p-6">
+                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6">
                     <form onSubmit={(e) => { e.preventDefault(); saveEdit(); }} className="space-y-6">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-slate-300">Full Name <span className="text-red-500">*</span></label>

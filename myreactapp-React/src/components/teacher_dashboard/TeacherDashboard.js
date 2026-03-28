@@ -287,7 +287,7 @@ export default function TeacherDashboard() {
   }, [showHistoryModal, selectedStudent, selectedSubject]);
 
   return (
-    <div className="h-screen w-full bg-slate-50 dark:bg-slate-900 relative flex overflow-hidden">
+    <div className="relative flex h-[100dvh] min-h-0 w-full max-w-[100vw] overflow-hidden bg-slate-50 dark:bg-slate-900">
       {/* Animated Background Mesh */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-rose-400/30 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob"></div>
@@ -298,14 +298,14 @@ export default function TeacherDashboard() {
 
       {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 lg:hidden" onClick={() => setMobileMenuOpen(false)} />
+        <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden" onClick={() => setMobileMenuOpen(false)} />
       )}
 
       {/* Floating Sidebar */}
       <div className={`
         fixed lg:static inset-y-0 left-0 z-50 
-        w-[280px] sm:w-80 lg:w-72 lg:h-[95vh] lg:my-auto lg:ml-6
-        bg-white/60 backdrop-blur-3xl border border-white/40 shadow-2xl 
+        w-[min(100vw-2rem,280px)] sm:w-80 lg:w-72 lg:max-h-[95vh] lg:h-[95vh] lg:my-auto lg:ml-6
+        max-h-[100dvh] overflow-hidden bg-white/60 backdrop-blur-3xl border border-white/40 shadow-2xl 
         dark:bg-slate-900/60 dark:border-white/10
         lg:rounded-3xl transform transition-all duration-300 ease-in-out 
         ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
@@ -334,7 +334,7 @@ export default function TeacherDashboard() {
             ].map((item) => (
               <button
                 key={item.id}
-                onClick={() => setActiveSection(item.id)}
+                onClick={() => { setMobileMenuOpen(false); setActiveSection(item.id); }}
                 className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-300 ${activeSection === item.id
                   ? 'bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-lg shadow-rose-500/50 transform scale-105'
                   : 'text-slate-600 hover:bg-gradient-to-r hover:from-rose-50 hover:to-red-50 hover:text-rose-700 dark:text-slate-300 dark:hover:from-rose-900/20 dark:hover:to-red-900/20 dark:hover:text-rose-300'
@@ -351,8 +351,8 @@ export default function TeacherDashboard() {
       </div>
 
       {/* Floating Main Content */}
-      <div className="flex-1 flex flex-col h-full relative z-10 lg:p-6 overflow-hidden">
-        <div className="flex-1 flex flex-col bg-white/40 backdrop-blur-3xl border border-white/30 dark:bg-slate-900/40 dark:border-white/10 shadow-2xl lg:rounded-3xl overflow-hidden">
+      <div className="relative z-10 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden lg:p-6">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white/40 backdrop-blur-3xl border border-white/30 dark:bg-slate-900/40 dark:border-white/10 shadow-2xl lg:rounded-3xl">
 
           {/* Header */}
           <header className="bg-white/50 backdrop-blur-md border-b border-white/20 dark:bg-slate-800/50 dark:border-white/10 sticky top-0 z-40">
@@ -388,7 +388,7 @@ export default function TeacherDashboard() {
             </div>
           </header>
 
-          <div className="flex-1 p-4 lg:p-8 overflow-y-auto relative z-10">
+          <div className="relative z-10 min-h-0 flex-1 overflow-y-auto overscroll-y-contain p-4 lg:p-8">
             {/* Profile Section */}
             {activeSection === 'profile' && (
               <div className="max-w-4xl mx-auto">

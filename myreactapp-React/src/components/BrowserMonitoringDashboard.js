@@ -100,7 +100,7 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
             {(selectedCourse || selectedSection) && (
                 <div className="flex justify-end">
                     <button
@@ -116,7 +116,7 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
             )}
 
             {/* Breadcrumb */}
-            <div className="inline-flex w-full max-w-full flex-wrap items-center gap-2 rounded-xl border border-slate-200/60 bg-white/30 px-3 py-2 text-sm text-slate-600 shadow-sm backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-900/30 dark:text-slate-400">
+            <div className="inline-flex w-full min-w-0 max-w-full flex-wrap items-center gap-2 rounded-xl border border-slate-200/60 bg-white/30 px-3 py-2 text-sm text-slate-600 shadow-sm backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-900/30 dark:text-slate-400">
                 <span className={!selectedCourse ? 'font-semibold text-rose-600 dark:text-rose-400' : 'cursor-pointer hover:text-rose-600'} onClick={() => { setSelectedCourse(null); setSelectedSection(null); setStudents([]); }}>
                     Courses
                 </span>

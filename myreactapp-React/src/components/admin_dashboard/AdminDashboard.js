@@ -625,7 +625,7 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="relative flex h-screen w-full overflow-hidden bg-gradient-to-br from-slate-50 via-rose-50/40 to-indigo-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950">
+    <div className="relative flex h-[100dvh] min-h-0 w-full max-w-[100vw] overflow-hidden bg-gradient-to-br from-slate-50 via-rose-50/40 to-indigo-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950">
       {/* Animated Background Mesh */}
       <div className="admin-aurora pointer-events-none absolute inset-0 z-0" aria-hidden />
       <div className="absolute top-0 left-0 z-0 h-full w-full overflow-hidden">
@@ -679,7 +679,7 @@ export default function AdminDashboard() {
 
           <nav className="space-y-1.5">
             <button
-              onClick={() => setActiveSection('accounts')}
+              onClick={() => { setActiveSection('accounts'); setMobileMenuOpen(false); }}
               className={`flex w-full items-center rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 ${activeSection === 'accounts'
                 ? 'bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-lg shadow-rose-500/35 ring-2 ring-rose-400/40'
                 : 'text-slate-600 hover:translate-x-0.5 hover:bg-white/70 hover:text-rose-700 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-rose-200'
@@ -692,7 +692,7 @@ export default function AdminDashboard() {
             </button>
 
             <button
-              onClick={() => setActiveSection('add-account')}
+              onClick={() => { setActiveSection('add-account'); setMobileMenuOpen(false); }}
               className={`flex w-full items-center rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 ${activeSection === 'add-account'
                 ? 'bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-lg shadow-rose-500/35 ring-2 ring-rose-400/40'
                 : 'text-slate-600 hover:translate-x-0.5 hover:bg-white/70 hover:text-rose-700 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-rose-200'
@@ -705,7 +705,7 @@ export default function AdminDashboard() {
             </button>
 
             <button
-              onClick={() => setActiveSection('subjects')}
+              onClick={() => { setActiveSection('subjects'); setMobileMenuOpen(false); }}
               className={`flex w-full items-center rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 ${activeSection === 'subjects'
                 ? 'bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-lg shadow-rose-500/35 ring-2 ring-rose-400/40'
                 : 'text-slate-600 hover:translate-x-0.5 hover:bg-white/70 hover:text-rose-700 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-rose-200'
@@ -718,7 +718,7 @@ export default function AdminDashboard() {
             </button>
 
             <button
-              onClick={() => setActiveSection('monitoring')}
+              onClick={() => { setActiveSection('monitoring'); setMobileMenuOpen(false); }}
               className={`flex w-full items-center rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 ${activeSection === 'monitoring'
                 ? 'bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-lg shadow-rose-500/35 ring-2 ring-rose-400/40'
                 : 'text-slate-600 hover:translate-x-0.5 hover:bg-white/70 hover:text-rose-700 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-rose-200'
@@ -731,7 +731,7 @@ export default function AdminDashboard() {
             </button>
 
             <button
-              onClick={() => setActiveSection('manage-subjects')}
+              onClick={() => { setActiveSection('manage-subjects'); setMobileMenuOpen(false); }}
               className={`flex w-full items-center rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 ${activeSection === 'manage-subjects'
                 ? 'bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-lg shadow-rose-500/35 ring-2 ring-rose-400/40'
                 : 'text-slate-600 hover:translate-x-0.5 hover:bg-white/70 hover:text-rose-700 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-rose-200'
@@ -761,8 +761,8 @@ export default function AdminDashboard() {
       </div>
 
       {/* Main Content */}
-      <div className="relative z-10 w-full flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-[1600px] p-4 lg:p-8 lg:pr-10">
+      <div className="relative z-10 min-h-0 min-w-0 w-full flex-1 overflow-y-auto overscroll-y-contain">
+        <div className="mx-auto min-w-0 max-w-[1600px] px-3 py-4 sm:px-4 lg:p-8 lg:pr-10">
           {/* Header — single title + subtitle per page (no duplicate headings in child sections) */}
           <div className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between lg:mb-10">
             <div className="flex min-w-0 flex-1 items-start gap-4">
@@ -777,7 +777,7 @@ export default function AdminDashboard() {
               <div className="min-w-0 space-y-3">
                 <div className="flex items-center gap-3">
                   <span className="h-8 w-1 rounded-full bg-gradient-to-b from-rose-500 via-red-500 to-violet-600 shadow-[0_0_12px_rgba(244,63,94,0.5)]" aria-hidden />
-                  <h2 className="bg-gradient-to-r from-rose-500 via-rose-600 to-red-600 bg-clip-text text-2xl font-bold tracking-tight text-transparent dark:from-rose-300 dark:via-rose-400 dark:to-orange-300 lg:text-3xl">
+                  <h2 className="break-words bg-gradient-to-r from-rose-500 via-rose-600 to-red-600 bg-clip-text text-xl font-bold tracking-tight text-transparent dark:from-rose-300 dark:via-rose-400 dark:to-orange-300 sm:text-2xl lg:text-3xl">
                   {activeSection === 'accounts'
                     ? 'Account Management'
                     : activeSection === 'add-account'
@@ -821,13 +821,15 @@ export default function AdminDashboard() {
               </button>
               <ThemeToggle />
               <button
+                type="button"
                 onClick={handleLogout}
-                className="hidden items-center space-x-2 rounded-xl bg-gradient-to-r from-red-600 to-rose-700 px-3 py-2 text-xs font-semibold text-white shadow-lg shadow-red-500/20 transition hover:from-red-500 hover:to-rose-600 lg:flex lg:px-4 lg:text-sm"
+                title="Logout"
+                className="flex items-center space-x-2 rounded-xl bg-gradient-to-r from-red-600 to-rose-700 px-3 py-2 text-xs font-semibold text-white shadow-lg shadow-red-500/20 transition hover:from-red-500 hover:to-rose-600 lg:px-4 lg:text-sm"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
-                <span className="hidden lg:inline">Logout</span>
+                <span className="hidden sm:inline">Logout</span>
               </button>
             </div>
           </div>

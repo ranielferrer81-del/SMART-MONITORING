@@ -70,7 +70,7 @@ const SubjectManagementSection = ({
 
                 {/* Create Subject Form */}
                 <div className="mb-6 rounded-2xl border border-slate-200/70 bg-white/60 p-4 shadow-inner transition-all duration-300 hover:shadow-lg dark:border-slate-700/60 dark:bg-slate-900/50">
-                    <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
                         <div>
                             <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Subject Code</label>
                             <input
@@ -82,7 +82,7 @@ const SubjectManagementSection = ({
                             />
                             {subErrors.code && <p className="mt-1 text-[10px] text-red-600">{subErrors.code}</p>}
                         </div>
-                        <div className="md:col-span-2">
+                        <div className="sm:col-span-2 lg:col-span-2">
                             <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Subject Name</label>
                             <input
                                 type="text"
@@ -154,8 +154,8 @@ const SubjectManagementSection = ({
                 </div>
 
                 {/* Subjects Table */}
-                <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-slate-200 text-xs dark:divide-slate-700">
+                <div className="min-w-0 overflow-x-auto overscroll-x-contain [scrollbar-width:thin]">
+                    <table className="min-w-[520px] w-full divide-y divide-slate-200 text-xs dark:divide-slate-700">
                         <thead className="bg-slate-100/40 backdrop-blur-sm dark:bg-slate-800/40">
                             <tr>
                                 <th className="px-3 py-2 text-left font-medium text-slate-700 uppercase tracking-wider dark:text-slate-300">Code</th>
