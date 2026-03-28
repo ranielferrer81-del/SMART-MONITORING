@@ -633,6 +633,20 @@ class AuthController extends Controller
             'updated_at' => now(),
         ]);
 
+        // Resend: wait for the real SMTP/Brevo result so the client can show email_sent=false
+        // and an error when mail actually fails (async/optimistic path would always say "sent").
+        // Set VERIFICATION_RESEND_SYNC=false only if your host HTTP limit is shorter than mail connect time.
+        $resendSync = filter_var(env('VERIFICATION_RESEND_SYNC', true), FILTER_VALIDATE_BOOLEAN);
+        if ($resendSync) {
+            return $this->jsonAfterVerificationSendSync(
+                $email,
+                $code,
+                'Verification code has been resent to your email. Please check your inbox (and spam folder).',
+                'We could not send the verification email. Configure MAIL_* on the server (e.g. Railway SMTP or BREVO_API_KEY), or enable AUTH_LOGIN_CODE_FALLBACK for a one-time code in the response.',
+                false
+            );
+        }
+
         return $this->jsonAfterVerificationSend(
             $email,
             $code,
@@ -659,13 +673,9 @@ class AuthController extends Controller
         string $failMessage,
         bool $includeEmailField = true
     ) {
-        // Never force synchronous email sending on non-local environments.
-        // The sync path can set `email_sent=false` and/or block the request,
-        // which then makes the desktop UI show the "email service not configured" warning.
-        // Production UX safety: always respond optimistically and never block /api/validate-email
-        // waiting for SMTP/Brevo. If you need synchronous behavior for debugging, do it locally
-        // by directly calling EmailService from a temporary route (not this endpoint).
-        $sync = false;
+        // false (default): async send after response — fast cold starts; email_sent=true in JSON (optimistic).
+        // true: wait for mail — honest email_sent + failure message for Desktop/local API (e.g. LAN IP).
+        $sync = filter_var(env('VERIFICATION_EMAIL_SYNC', false), FILTER_VALIDATE_BOOLEAN);
 
         if ($sync) {
             return $this->jsonAfterVerificationSendSync(

@@ -4,7 +4,12 @@ import { Mail, Lock, Loader2, X } from 'lucide-react';
 import { emailLogin, warmupBackend } from '../api/client';
 
 type LoginFormProps = {
-  onVerificationSent: (email: string, devCode?: string | null, emailSent?: boolean) => void;
+  onVerificationSent: (
+    email: string,
+    devCode?: string | null,
+    emailSent?: boolean,
+    sendMessage?: string
+  ) => void;
   onCancel?: () => void;
 };
 
@@ -48,11 +53,12 @@ export default function LoginForm({ onVerificationSent, onCancel }: LoginFormPro
         
         // Wait a moment to show the message, then proceed
         setTimeout(() => {
-        onVerificationSent(
-          result.email, 
+          onVerificationSent(
+            result.email,
             verificationCode,
-            emailSent
-        );
+            emailSent,
+            result.message
+          );
         }, 1500);
       }
     } catch (err) {

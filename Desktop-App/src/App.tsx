@@ -19,6 +19,10 @@ function App() {
   const [screen, setScreen] = useState<Screen>('home');
   const [session, setSession] = useState<LoginResult | null>(null);
   const [verificationEmail, setVerificationEmail] = useState<string>('');
+  const [verificationLoginDelivery, setVerificationLoginDelivery] = useState<{
+    emailSent?: boolean;
+    message?: string;
+  }>({});
 
   // Restore session from localStorage if token exists
   useEffect(() => {
@@ -119,13 +123,23 @@ function App() {
     }
   }, [screen, session, isOverlay]);
 
-  const handleVerificationSent = (email: string, devCode?: string | null, emailSent?: boolean) => {
+  const handleVerificationSent = (
+    email: string,
+    devCode?: string | null,
+    emailSent?: boolean,
+    sendMessage?: string
+  ) => {
     setVerificationEmail(email);
+    setVerificationLoginDelivery({ emailSent, message: sendMessage });
     setScreen('email-verification');
-    // Store dev code and email status
-    if (devCode) {
+    // Store dev code only when backend says the email was NOT delivered.
+    // This prevents the "use this verification code" UI from showing when email works.
+    if (devCode && emailSent === false) {
       localStorage.setItem('dev_verification_code', devCode);
+    } else {
+      localStorage.removeItem('dev_verification_code');
     }
+
     if (emailSent !== undefined) {
       localStorage.setItem('email_sent_status', emailSent ? 'true' : 'false');
     }
@@ -148,6 +162,7 @@ function App() {
       }
     } catch (error) {
       console.error('Failed to fetch user after verification:', error);
+      setVerificationLoginDelivery({});
       setScreen('email-login');
     }
   };
@@ -182,15 +197,30 @@ function App() {
   };
 
   if (screen === 'email-login') {
-    return <LoginForm onVerificationSent={handleVerificationSent} onCancel={() => setScreen('home')} />;
+    return (
+      <LoginForm
+        onVerificationSent={handleVerificationSent}
+        onCancel={() => {
+          setVerificationLoginDelivery({});
+          setScreen('home');
+        }}
+      />
+    );
   }
 
   if (screen === 'email-verification') {
     return (
       <EmailVerification
         email={verificationEmail}
-        onSuccess={handleVerificationSuccess}
-        onCancel={() => setScreen('email-login')}
+        loginDelivery={verificationLoginDelivery}
+        onSuccess={() => {
+          setVerificationLoginDelivery({});
+          void handleVerificationSuccess();
+        }}
+        onCancel={() => {
+          setVerificationLoginDelivery({});
+          setScreen('email-login');
+        }}
         onResend={async () => {
           return await resendVerificationCode(verificationEmail);
         }}

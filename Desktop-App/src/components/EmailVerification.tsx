@@ -5,6 +5,8 @@ import { verifyEmailCode, resendVerificationCode } from '../api/client';
 
 type EmailVerificationProps = {
   email: string;
+  /** Result of the last /api/validate-email call (so we can show a red error if the server said mail failed). */
+  loginDelivery?: { emailSent?: boolean; message?: string };
   onSuccess: () => void;
   onCancel?: () => void;
   onResend?: () => Promise<
@@ -12,11 +14,19 @@ type EmailVerificationProps = {
   >;
 };
 
-export default function EmailVerification({ email, onSuccess, onCancel, onResend }: EmailVerificationProps) {
+export default function EmailVerification({
+  email,
+  loginDelivery,
+  onSuccess,
+  onCancel,
+  onResend,
+}: EmailVerificationProps) {
   const [code, setCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Mail send failures — kept visible while editing the code (unlike `error`, which clears on input). */
+  const [deliveryFailureMessage, setDeliveryFailureMessage] = useState<string | null>(null);
   // Only show the scary "mail not configured" warning after the user actually fails verification.
   // This prevents false alarms when the backend reports email_sent=false but the OTP still arrives.
   const [verificationFailed, setVerificationFailed] = useState(false);
@@ -33,20 +43,14 @@ export default function EmailVerification({ email, onSuccess, onCancel, onResend
     }
   }, [countdown]);
 
-  // Check for dev code and email status from localStorage
+  // Dev fallback code from localStorage, or delivery hint from login + parent props
   useEffect(() => {
     const storedCode = localStorage.getItem('dev_verification_code');
     const emailSentStatus = localStorage.getItem('email_sent_status');
-    const wasEmailSent = emailSentStatus === 'true';
-    
-    setEmailSent(wasEmailSent);
-    
-    // Only show the "use this code" UI when backend explicitly indicates
-    // that the email was NOT delivered for that request.
-    // This prevents stale localStorage from showing the code prompt
-    // when email actually works.
+
     if (storedCode && emailSentStatus === 'false') {
       setDevCode(storedCode);
+      setEmailSent(false);
       localStorage.removeItem('dev_verification_code');
       localStorage.removeItem('email_sent_status');
       return;
@@ -54,8 +58,28 @@ export default function EmailVerification({ email, onSuccess, onCancel, onResend
 
     setDevCode(null);
     localStorage.removeItem('dev_verification_code');
-    localStorage.removeItem('email_sent_status');
-  }, []);
+
+    if (loginDelivery?.emailSent !== undefined) {
+      setEmailSent(loginDelivery.emailSent);
+      if (loginDelivery.emailSent === false) {
+        setDeliveryFailureMessage(
+          loginDelivery.message?.trim() ||
+            'We could not send the verification email. Check mail settings (Brevo/SMTP) or tap Resend below.'
+        );
+        setVerificationFailed(true);
+      } else {
+        setDeliveryFailureMessage(null);
+        setVerificationFailed(false);
+      }
+      return;
+    }
+
+    if (emailSentStatus === null) {
+      setEmailSent(null);
+    } else {
+      setEmailSent(emailSentStatus === 'true');
+    }
+  }, [loginDelivery]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,6 +104,7 @@ export default function EmailVerification({ email, onSuccess, onCancel, onResend
     
     setIsResending(true);
     setError(null);
+    setDeliveryFailureMessage(null);
     setResendStatus(null);
     setVerificationFailed(false);
     try {
@@ -118,29 +143,34 @@ export default function EmailVerification({ email, onSuccess, onCancel, onResend
         });
         setEmailSent(true);
         setDevCode(null);
+        setDeliveryFailureMessage(null);
       } else {
+        const failMsg =
+          result?.message ||
+          'Cannot send verification code. Email service is not configured properly. Please contact support.';
         setResendStatus({
           sent: false,
-          message:
-            result?.message ||
-            'Cannot send verification code. Email service is not configured properly. Please contact support.'
+          message: failMsg,
         });
         setEmailSent(false);
+        setDeliveryFailureMessage(failMsg);
+        setVerificationFailed(true);
         if (fallbackCode) {
           setDevCode(fallbackCode);
           localStorage.setItem('dev_verification_code', fallbackCode);
           localStorage.setItem('email_sent_status', 'false');
         }
       }
-      
+
       setCountdown(60); // 60 second cooldown
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to resend code. Please try again.';
       setError(message);
+      setDeliveryFailureMessage(message);
       setVerificationFailed(true);
       setResendStatus({
         sent: false,
-        message: 'Failed to resend verification code. Please try again later.'
+        message,
       });
     } finally {
       setIsResending(false);
@@ -237,13 +267,16 @@ export default function EmailVerification({ email, onSuccess, onCancel, onResend
         </div>
 
         <form onSubmit={handleSubmit} className="w-full space-y-6">
-          {error && (
+          {(deliveryFailureMessage || error) && (
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="rounded-xl bg-red-900/50 border border-red-500/50 px-4 py-3 text-sm text-red-100 backdrop-blur-sm"
+              className="rounded-xl bg-red-900/50 border border-red-500/50 px-4 py-3 text-sm text-red-100 backdrop-blur-sm space-y-2"
             >
-              {error}
+              {deliveryFailureMessage && (
+                <p className="font-medium">{deliveryFailureMessage}</p>
+              )}
+              {error && error !== deliveryFailureMessage && <p>{error}</p>}
             </motion.div>
           )}
 

@@ -10,6 +10,8 @@ const DEFAULT_TIMEOUT_MS = 15000;
  * often needs more than the default window.
  */
 const EMAIL_AUTH_TIMEOUT_MS = 120_000;
+/** Resend waits for real send result; allow room for slow SMTP without hanging as long as first login. */
+const RESEND_VERIFICATION_TIMEOUT_MS = 90_000;
 const COLD_START_WARMUP_TIMEOUT_MS = 120_000;
 
 export const api = axios.create({
@@ -71,11 +73,19 @@ const normalizeUser = (payload: Record<string, unknown>): AuthenticatedUser => (
   profilePicture: (payload.profilePicture ?? payload.profile_picture ?? null) as string | null,
 });
 
-const extractErrorMessage = (error: unknown) => {
+type EmailAuthErrorContext = 'email_login' | 'resend' | 'default';
+
+const extractErrorMessage = (error: unknown, context: EmailAuthErrorContext = 'default') => {
   if (typeof error === 'string') return error;
   if (error instanceof AxiosError) {
     if (error.code === 'ECONNABORTED') {
-      return 'Login request timed out while sending verification code. Please try again in a few seconds.';
+      if (context === 'resend') {
+        return 'Resend timed out. Check your connection or try again in a moment.';
+      }
+      if (context === 'email_login') {
+        return 'Login request timed out while sending verification code. Please try again in a few seconds.';
+      }
+      return 'Request timed out. Please try again in a few seconds.';
     }
     return (
       error.response?.data?.message ||
@@ -151,7 +161,7 @@ export async function emailLogin(
       email_sent: data.email_sent === true,
     };
   } catch (error) {
-    throw new Error(extractErrorMessage(error));
+    throw new Error(extractErrorMessage(error, 'email_login'));
   }
 }
 
@@ -210,7 +220,7 @@ export async function resendVerificationCode(
       {
         email: email.trim().toLowerCase(),
       },
-      { timeout: EMAIL_AUTH_TIMEOUT_MS }
+      { timeout: RESEND_VERIFICATION_TIMEOUT_MS }
     );
 
     if (!data?.ok) {
@@ -224,7 +234,7 @@ export async function resendVerificationCode(
       verification_code: data.verification_code || null,
     };
   } catch (error) {
-    throw new Error(extractErrorMessage(error));
+    throw new Error(extractErrorMessage(error, 'resend'));
   }
 }
 
