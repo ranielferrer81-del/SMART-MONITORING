@@ -30,30 +30,6 @@ class EmailService
         return self::$lastSendDiagnostics;
     }
 
-    /**
-     * Short message for the login UI when email failed but fallback code is shown (no secrets).
-     */
-    public static function getFallbackMailFailureMessage(): ?string
-    {
-        $d = self::$lastSendDiagnostics;
-
-        if (! empty($d['brevo_blocked'])) {
-            return 'Set MAIL_FROM_ADDRESS or BREVO_SENDER_EMAIL to an address verified in Brevo. You can still use the code below to log in.';
-        }
-
-        // Brevo 401: dashboard may show IP access off but API still returns security wording — treat as "key or Brevo-side auth", not a lecture about allowlists.
-        if (! empty($d['brevo_401']) || ! empty($d['brevo_ip_restriction'])) {
-            return 'Email could not be sent via Brevo (401 unauthorized). Re-copy the REST API v3 key from Brevo → SMTP & API → API keys into BREVO_API_KEY on Railway, or create a new key. Optional: add RESEND_API_KEY. You can still use the code below to log in.';
-        }
-
-        $rest = $d['brevo_rest_error'] ?? '';
-        if (is_string($rest) && str_contains($rest, '401')) {
-            return 'Email could not be sent via Brevo (401). Check BREVO_API_KEY matches a current REST API key, or set RESEND_API_KEY. You can still use the code below to log in.';
-        }
-
-        return null;
-    }
-
     private static function clearSendDiagnostics(): void
     {
         self::$lastSendDiagnostics = [];

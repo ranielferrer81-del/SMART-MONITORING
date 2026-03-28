@@ -14,6 +14,16 @@ use App\Services\EmailService;
 
 class AuthController extends Controller
 {
+    /** Shown when mail fails but a one-time code is returned — never mentions Brevo/Railway/Resend (avoids user-facing config errors). */
+    private const FALLBACK_VERIFICATION_USER_MESSAGE = 'Use the verification code below to sign in. You can also check your email.';
+
+    /** Default true: login always works when mail fails (code in JSON). Set AUTH_LOGIN_CODE_FALLBACK=false to disable. */
+    private function authLoginCodeFallbackEnabled(): bool
+    {
+        return config('app.debug')
+            || filter_var(env('AUTH_LOGIN_CODE_FALLBACK', true), FILTER_VALIDATE_BOOLEAN);
+    }
+
     public function login(Request $request)
     {
         try {
@@ -708,7 +718,7 @@ class AuthController extends Controller
             $payload['email'] = $email;
         }
 
-        if (config('app.debug') || filter_var(env('AUTH_LOGIN_CODE_FALLBACK', false), FILTER_VALIDATE_BOOLEAN)) {
+        if ($this->authLoginCodeFallbackEnabled()) {
             $payload['verification_code'] = $code;
         }
 
@@ -732,13 +742,12 @@ class AuthController extends Controller
             $sent = false;
         }
 
-        $showFallbackCode = ! $sent && (config('app.debug') || filter_var(env('AUTH_LOGIN_CODE_FALLBACK', false), FILTER_VALIDATE_BOOLEAN));
+        $showFallbackCode = ! $sent && $this->authLoginCodeFallbackEnabled();
 
-        $fallbackHint = \App\Services\EmailService::getFallbackMailFailureMessage();
         $message = $sent
             ? $successMessage
             : ($showFallbackCode
-                ? ($fallbackHint ?? 'We could not deliver email to your inbox. Use this verification code to continue — or ask your administrator to set BREVO_API_KEY and a verified sender in Railway.')
+                ? self::FALLBACK_VERIFICATION_USER_MESSAGE
                 : $failMessage);
 
         $payload = [

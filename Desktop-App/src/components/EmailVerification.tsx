@@ -3,10 +3,14 @@ import { motion } from 'framer-motion';
 import { Mail, Loader2, X, RefreshCw } from 'lucide-react';
 import { verifyEmailCode, resendVerificationCode } from '../api/client';
 
+/** Never show provider/Railway/Brevo text to users — same copy the API uses for fallback. */
+const NEUTRAL_FALLBACK_HINT =
+  'Use the verification code below to sign in. Check your email if a message was sent.';
+
 type EmailVerificationProps = {
   email: string;
-  /** Result of the last /api/validate-email call (so we can show a red error if the server said mail failed). */
-  loginDelivery?: { emailSent?: boolean; message?: string };
+  /** Result of the last /api/validate-email call (includes fallback verification_code when mail fails). */
+  loginDelivery?: { emailSent?: boolean; message?: string; verificationCode?: string | null };
   onSuccess: () => void;
   onCancel?: () => void;
   onResend?: () => Promise<
@@ -43,29 +47,39 @@ export default function EmailVerification({
     }
   }, [countdown]);
 
-  // Dev fallback code from localStorage, or delivery hint from login + parent props
+  // Fallback code: prefer parent props (survives React Strict Mode); then localStorage legacy.
   useEffect(() => {
+    const propCode = loginDelivery?.verificationCode?.trim();
+    if (propCode && /^\d{6}$/.test(propCode)) {
+      setCode(propCode);
+      setDevCode(propCode);
+      setEmailSent(false);
+      setVerificationFailed(true);
+      setDeliveryFailureMessage(NEUTRAL_FALLBACK_HINT);
+      return;
+    }
+
     const storedCode = localStorage.getItem('dev_verification_code');
     const emailSentStatus = localStorage.getItem('email_sent_status');
 
-    if (storedCode && emailSentStatus === 'false') {
+    if (storedCode && emailSentStatus === 'false' && /^\d{6}$/.test(storedCode)) {
+      setCode(storedCode);
       setDevCode(storedCode);
       setEmailSent(false);
+      setVerificationFailed(true);
       localStorage.removeItem('dev_verification_code');
       localStorage.removeItem('email_sent_status');
       return;
     }
 
-    setDevCode(null);
-    localStorage.removeItem('dev_verification_code');
+    if (!storedCode) {
+      localStorage.removeItem('dev_verification_code');
+    }
 
     if (loginDelivery?.emailSent !== undefined) {
       setEmailSent(loginDelivery.emailSent);
       if (loginDelivery.emailSent === false) {
-        setDeliveryFailureMessage(
-          loginDelivery.message?.trim() ||
-            'We could not send the verification email. Check mail settings (Brevo/SMTP) or tap Resend below.'
-        );
+        setDeliveryFailureMessage(NEUTRAL_FALLBACK_HINT);
         setVerificationFailed(true);
       } else {
         setDeliveryFailureMessage(null);
@@ -145,17 +159,19 @@ export default function EmailVerification({
         setDevCode(null);
         setDeliveryFailureMessage(null);
       } else {
-        const failMsg =
-          result?.message ||
-          'Cannot send verification code. Email service is not configured properly. Please contact support.';
+        const hasFallback = fallbackCode && /^\d{6}$/.test(fallbackCode);
+        const failMsg = hasFallback
+          ? NEUTRAL_FALLBACK_HINT
+          : 'We could not send a new code. Try again in a moment or contact support.';
         setResendStatus({
           sent: false,
-          message: failMsg,
+          message: hasFallback ? NEUTRAL_FALLBACK_HINT : failMsg,
         });
         setEmailSent(false);
         setDeliveryFailureMessage(failMsg);
         setVerificationFailed(true);
-        if (fallbackCode) {
+        if (hasFallback) {
+          setCode(fallbackCode);
           setDevCode(fallbackCode);
           localStorage.setItem('dev_verification_code', fallbackCode);
           localStorage.setItem('email_sent_status', 'false');
@@ -238,8 +254,8 @@ export default function EmailVerification({
             <>
               {verificationFailed ? (
                 <>
-                  <p className="text-sm text-yellow-200/80 mt-2">
-                    Verification failed and the email seems not to have arrived. Check server mail settings (SMTP/Brevo) or resend the code.
+                  <p className="text-sm text-white/80 mt-2">
+                    If you still need a code, try resend below or use the code shown above.
                   </p>
                   <p className="text-base font-semibold text-white mt-1">{email}</p>
                 </>
@@ -271,7 +287,11 @@ export default function EmailVerification({
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="rounded-xl bg-red-900/50 border border-red-500/50 px-4 py-3 text-sm text-red-100 backdrop-blur-sm space-y-2"
+              className={`rounded-xl px-4 py-3 text-sm backdrop-blur-sm space-y-2 ${
+                deliveryFailureMessage && devCode && !error
+                  ? 'bg-slate-800/60 border border-white/25 text-white'
+                  : 'bg-red-900/50 border border-red-500/50 text-red-100'
+              }`}
             >
               {deliveryFailureMessage && (
                 <p className="font-medium">{deliveryFailureMessage}</p>

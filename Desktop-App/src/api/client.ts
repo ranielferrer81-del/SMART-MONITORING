@@ -161,10 +161,6 @@ export async function emailLogin(
       throw new Error(data?.message || 'Failed to send verification code.');
     }
 
-    const mailDiag = (data as { mail_diagnostics?: Record<string, unknown> }).mail_diagnostics;
-    if (mailDiag && typeof mailDiag === 'object') {
-      console.warn('[SIA] mail_diagnostics from server:', mailDiag);
-    }
 
     return {
       ok: true,
