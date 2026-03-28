@@ -119,6 +119,36 @@ class EmailService
     }
 
     /**
+     * From address for Resend: RESEND_FROM_EMAIL, then MAIL_FROM_ADDRESS / mail.from (must be a verified domain in Resend).
+     */
+    private static function resolveResendSender(): array
+    {
+        $email = trim((string) (getenv('RESEND_FROM_EMAIL') ?: ''));
+        if ($email === '') {
+            $email = trim((string) (config('services.resend.from_email') ?: ''));
+        }
+        if ($email === '' || str_contains(strtolower($email), 'example.com')) {
+            $email = trim((string) (getenv('MAIL_FROM_ADDRESS') ?: ''));
+        }
+        if ($email === '' || str_contains(strtolower($email), 'example.com')) {
+            $email = trim((string) config('mail.from.address', ''));
+        }
+
+        $name = trim((string) (getenv('RESEND_FROM_NAME') ?: ''));
+        if ($name === '') {
+            $name = trim((string) (config('services.resend.from_name') ?: ''));
+        }
+        if ($name === '') {
+            $name = trim((string) (getenv('MAIL_FROM_NAME') ?: ''));
+        }
+        if ($name === '') {
+            $name = (string) config('mail.from.name', 'SIA System');
+        }
+
+        return ['email' => $email, 'name' => $name !== '' ? $name : 'SIA System'];
+    }
+
+    /**
      * Send verification code email using multiple methods
      */
     public static function sendVerificationCode($toEmail, $code): bool
@@ -478,45 +508,41 @@ class EmailService
     }
 
     /**
-     * Resend REST API (HTTPS :443) — reliable on Railway where Brevo may 401 (IP allowlist) and SMTP is blocked.
+     * Resend via Laravel's official transport (HTTPS) — same From as config/mail + optional RESEND_FROM_*.
      */
     private static function sendViaResend(string $to, string $code, string $apiKey): bool
     {
-        $sender = self::resolveBrevoSender();
-        $fromEmail = $sender['email'];
-        if ($fromEmail === '' || str_contains(strtolower($fromEmail), 'example.com')) {
-            self::noteDiagnostic('resend_blocked', 'Set MAIL_FROM_ADDRESS or BREVO_SENDER_EMAIL to a domain verified in Resend (or use Resend’s test sender per their docs).');
+        $apiKey = self::normalizeSecret($apiKey);
+        if ($apiKey === '' || strlen($apiKey) < 8) {
+            self::noteDiagnostic('resend_blocked', 'RESEND_API_KEY is missing or invalid.');
 
             return false;
         }
 
-        $html = self::inlineVerificationHtml($code);
-        $brand = (string) config('app.name', 'SIA');
-        $subject = $brand.': Your verification code (login)';
-        $fromHeader = $sender['name'].' <'.$fromEmail.'>';
+        $sender = self::resolveResendSender();
+        $fromEmail = $sender['email'];
+        if ($fromEmail === '' || str_contains(strtolower($fromEmail), 'example.com')) {
+            self::noteDiagnostic('resend_blocked', 'Set RESEND_FROM_EMAIL or MAIL_FROM_ADDRESS to an address on a domain verified in Resend.');
 
-        $response = Http::timeout(25)
-            ->connectTimeout(10)
-            ->withToken($apiKey)
-            ->acceptJson()
-            ->post('https://api.resend.com/emails', [
-                'from' => $fromHeader,
-                'to' => [$to],
-                'subject' => $subject,
-                'html' => $html,
-            ]);
-
-        if ($response->successful()) {
-            self::noteDiagnostic('resend_rest', 'ok HTTP '.$response->status());
-
-            return true;
+            return false;
         }
 
-        $snippet = Str::limit($response->body(), 500);
-        self::noteDiagnostic('resend_rest_error', 'HTTP '.$response->status().': '.$snippet);
-        Log::error('Resend API non-success', ['status' => $response->status(), 'body' => $response->body()]);
+        Config::set('services.resend.key', $apiKey);
+        Config::set('mail.mailers.resend.key', $apiKey);
 
-        return false;
+        try {
+            Mail::mailer('resend')->to($to)->send(
+                new VerificationCodeMail($code, $to, $fromEmail, $sender['name'])
+            );
+            self::noteDiagnostic('resend_rest', 'ok Laravel resend mailer');
+
+            return true;
+        } catch (\Throwable $e) {
+            self::noteDiagnostic('resend_error', Str::limit($e->getMessage(), 400));
+            Log::error('Resend mail failed', ['error' => $e->getMessage(), 'to' => $to]);
+
+            return false;
+        }
     }
 
     /**

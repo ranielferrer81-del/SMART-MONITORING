@@ -13,13 +13,20 @@ class VerificationCodeMail extends Mailable
     public $code;
     public $email;
 
+    /** When set (e.g. Resend), forces From so the envelope matches a verified domain in Resend. */
+    public $fromAddressOverride;
+
+    public $fromNameOverride;
+
     /**
      * Create a new message instance.
      */
-    public function __construct($code, $email)
+    public function __construct($code, $email, $fromAddressOverride = null, $fromNameOverride = null)
     {
         $this->code = $code;
         $this->email = $email;
+        $this->fromAddressOverride = $fromAddressOverride;
+        $this->fromNameOverride = $fromNameOverride;
     }
 
     /**
@@ -40,6 +47,16 @@ class VerificationCodeMail extends Mailable
         $m = $this
             ->subject($brand.': Your verification code (login)')
             ->html($html);
+
+        $override = $this->fromAddressOverride;
+        if ($override !== null && $override !== '' && ! str_contains(strtolower((string) $override), 'example.com')) {
+            $n = $this->fromNameOverride;
+            if ($n === null || $n === '') {
+                $n = $name;
+            }
+
+            return $m->from((string) $override, (string) $n)->replyTo((string) $override, (string) $n);
+        }
 
         if ($from !== '') {
             $m->replyTo($from, $name);

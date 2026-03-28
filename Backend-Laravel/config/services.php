@@ -19,8 +19,10 @@ return [
     ],
 
     'resend' => [
-        /** Either name works; EmailService uses HTTPS (works on Railway; no SMTP). */
+        /** Either name works; EmailService uses Laravel's resend mailer (HTTPS). */
         'key' => env('RESEND_API_KEY') ?: env('RESEND_KEY'),
+        'from_email' => env('RESEND_FROM_EMAIL'),
+        'from_name' => env('RESEND_FROM_NAME'),
     ],
 
     'ses' => [

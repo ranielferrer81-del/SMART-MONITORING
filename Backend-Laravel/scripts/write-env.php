@@ -162,6 +162,14 @@ if ($resendApi === '') {
 if ($resendApi !== '') {
     $lines[] = line('RESEND_API_KEY', $resendApi);
 }
+$resendFrom = g('RESEND_FROM_EMAIL', '');
+if ($resendFrom !== '') {
+    $lines[] = line('RESEND_FROM_EMAIL', $resendFrom);
+}
+$resendFromName = g('RESEND_FROM_NAME', '');
+if ($resendFromName !== '') {
+    $lines[] = line('RESEND_FROM_NAME', $resendFromName);
+}
 $emailTryResendFirst = g('EMAIL_TRY_RESEND_FIRST', '');
 if ($emailTryResendFirst !== '') {
     $lines[] = line('EMAIL_TRY_RESEND_FIRST', $emailTryResendFirst);
