@@ -115,20 +115,14 @@ class EmailService
         // Check mailer config - if set to 'log' or 'array', skip SMTP but still try API methods (Brevo, SendGrid, etc.)
         $mailer = config('mail.default');
         $runningOnRailway = (getenv('RAILWAY_ENVIRONMENT') !== false || getenv('RAILWAY_PROJECT_ID') !== false);
-        $smtpHostCfg = strtolower((string) config('mail.mailers.smtp.host', ''));
         $skipSmtp = ($mailer === 'log' || $mailer === 'array');
         /*
-         * On Railway + Brevo REST key we used to skip *all* Laravel SMTP. That blocked the Brevo SMTP relay
-         * that write-env.php sets (smtp-relay.brevo.com) when REST fails — users with correct MAIL_* were still stuck.
-         * Only skip slow/unconfigured SMTP (Gmail default, etc.), not smtp-relay.brevo.com.
+         * Railway: outbound SMTP (587/465) is routinely blocked or flaky. Do not use Laravel SMTP or Brevo SMTP relay
+         * here — only HTTPS provider APIs (Brevo REST, SendGrid, Mailgun). Same code runs fine with SMTP on VPS/docker locally.
          */
-        if ($runningOnRailway && $brevoKey !== '') {
-            $isBrevoRelay = str_contains($smtpHostCfg, 'brevo');
-            $looksLikeGmailOrUnset = $smtpHostCfg === '' || str_contains($smtpHostCfg, 'gmail') || $smtpHostCfg === 'smtp.gmail.com';
-            if (! $isBrevoRelay && $looksLikeGmailOrUnset) {
-                $skipSmtp = true;
-                self::noteDiagnostic('smtp_skipped_reason', 'railway_with_brevo_avoid_slow_smtp');
-            }
+        if ($runningOnRailway) {
+            $skipSmtp = true;
+            self::noteDiagnostic('smtp_skipped_reason', 'railway_outbound_smtp_disabled_use_https_api');
         }
         if ($skipSmtp) {
             Log::info('MAIL_MAILER is "' . $mailer . '" - skipping SMTP, will try API methods (Brevo, SendGrid, Mailgun)');
@@ -168,15 +162,17 @@ class EmailService
             } catch (\Throwable $e) {
                 Log::warning('Brevo REST failed', ['error' => $e->getMessage()]);
             }
-            try {
-                if (self::sendViaBrevoSmtp($toEmail, $code, $brevoKey)) {
-                    Log::info('✅ Email sent via Brevo SMTP relay (runtime mailer)', ['to' => $toEmail]);
+            if (! $runningOnRailway) {
+                try {
+                    if (self::sendViaBrevoSmtp($toEmail, $code, $brevoKey)) {
+                        Log::info('✅ Email sent via Brevo SMTP relay (runtime mailer)', ['to' => $toEmail]);
 
-                    return true;
+                        return true;
+                    }
+                } catch (\Throwable $e) {
+                    self::noteDiagnostic('brevo_smtp_error', Str::limit($e->getMessage(), 400));
+                    Log::warning('Brevo SMTP failed', ['error' => $e->getMessage()]);
                 }
-            } catch (\Throwable $e) {
-                self::noteDiagnostic('brevo_smtp_error', Str::limit($e->getMessage(), 400));
-                Log::warning('Brevo SMTP failed', ['error' => $e->getMessage()]);
             }
         }
 
@@ -391,9 +387,14 @@ class EmailService
 
     /**
      * Brevo SMTP relay — works when REST key differs from "SMTP key" in Brevo dashboard.
+     * Not used on Railway (outbound SMTP unreliable); use {@see sendViaBrevo} REST only there.
      */
     private static function sendViaBrevoSmtp(string $toEmail, string $code, string $restApiKey): bool
     {
+        if (getenv('RAILWAY_ENVIRONMENT') !== false || getenv('RAILWAY_PROJECT_ID') !== false) {
+            return false;
+        }
+
         $sender = self::resolveBrevoSender();
         $from = $sender['email'];
         if ($from === '' || str_contains(strtolower($from), 'example.com')) {
