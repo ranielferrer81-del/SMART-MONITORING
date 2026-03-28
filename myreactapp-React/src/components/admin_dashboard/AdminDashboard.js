@@ -642,11 +642,11 @@ export default function AdminDashboard() {
         />
       )}
 
-      {/* Floating Sidebar */}
+      {/* Floating Sidebar — same width/safe-area pattern as Student & Professor dashboards */}
       <div className={`
         fixed lg:static inset-y-0 left-0 z-50 
-        w-[280px] sm:w-80 lg:w-72 lg:h-[95vh] lg:my-auto lg:ml-6
-        relative overflow-hidden
+        w-[min(100vw-2rem,280px)] sm:w-80 lg:w-72 lg:max-h-[95vh] lg:h-[95vh] lg:my-auto lg:ml-6
+        max-h-[100dvh] overflow-hidden
         border border-white/50 bg-white/55 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35),0_0_0_1px_rgba(255,255,255,0.6)_inset] backdrop-blur-2xl
         dark:border-white/10 dark:bg-slate-900/70 dark:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.6),0_0_0_1px_rgba(244,63,94,0.12)_inset]
         lg:rounded-3xl transform transition-all duration-300 ease-in-out 
@@ -760,92 +760,94 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="relative z-10 min-h-0 min-w-0 w-full flex-1 overflow-y-auto overscroll-y-contain">
-        <div className="mx-auto min-w-0 max-w-[1600px] px-3 py-4 sm:px-4 lg:p-8 lg:pr-10">
-          {/* Header — single title + subtitle per page (no duplicate headings in child sections) */}
-          <div className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between lg:mb-10">
-            <div className="flex min-w-0 flex-1 items-start gap-4">
-              <button
-                onClick={() => setMobileMenuOpen(true)}
-                className="mt-1 shrink-0 rounded-xl p-2 text-slate-600 hover:bg-white/60 dark:text-slate-300 dark:hover:bg-white/5 lg:hidden"
-              >
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              </button>
-              <div className="min-w-0 space-y-3">
-                <div className="flex items-center gap-3">
-                  <span className="h-8 w-1 rounded-full bg-gradient-to-b from-rose-500 via-red-500 to-violet-600 shadow-[0_0_12px_rgba(244,63,94,0.5)]" aria-hidden />
-                  <h2 className="break-words bg-gradient-to-r from-rose-500 via-rose-600 to-red-600 bg-clip-text text-xl font-bold tracking-tight text-transparent dark:from-rose-300 dark:via-rose-400 dark:to-orange-300 sm:text-2xl lg:text-3xl">
-                  {activeSection === 'accounts'
-                    ? 'Account Management'
-                    : activeSection === 'add-account'
-                      ? 'Add New Account'
-                      : activeSection === 'manage-subjects'
-                        ? 'Manage Subjects'
-                        : activeSection === 'monitoring'
-                          ? 'Browser Monitoring'
-                          : 'Subject Management'}
-                </h2>
+      {/* Main Content — same shell as Student & Professor dashboards: glass card, sticky header, scroll body */}
+      <div className="relative z-10 flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden lg:p-6">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border border-white/30 bg-white/40 shadow-2xl backdrop-blur-3xl dark:border-white/10 dark:bg-slate-900/40 lg:rounded-3xl">
+          <header className="sticky top-0 z-40 border-b border-white/20 bg-white/50 backdrop-blur-md dark:border-white/10 dark:bg-slate-800/50">
+            <div className="px-4 py-4 lg:px-8 lg:py-5">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex min-w-0 flex-1 items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setMobileMenuOpen(true)}
+                    className="shrink-0 rounded-lg p-2 text-slate-800 hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-800 lg:hidden"
+                  >
+                    <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                  </button>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 lg:gap-3">
+                      <span className="hidden h-8 w-1 shrink-0 rounded-full bg-gradient-to-b from-rose-500 via-red-500 to-violet-600 shadow-[0_0_12px_rgba(244,63,94,0.5)] lg:block" aria-hidden />
+                      <h2 className="truncate text-xl font-bold tracking-tight text-transparent bg-gradient-to-r from-rose-600 to-red-600 bg-clip-text dark:from-rose-400 dark:to-red-400 lg:text-3xl">
+                        {activeSection === 'accounts'
+                          ? 'Account Management'
+                          : activeSection === 'add-account'
+                            ? 'Add New Account'
+                            : activeSection === 'manage-subjects'
+                              ? 'Manage Subjects'
+                              : activeSection === 'monitoring'
+                                ? 'Browser Monitoring'
+                                : 'Subject Management'}
+                      </h2>
+                    </div>
+                    <p className="mt-1 line-clamp-2 text-xs font-medium text-slate-700 dark:text-slate-200 lg:text-sm">
+                      {activeSection === 'accounts' && 'Search, filter, and manage professor and student accounts in one place.'}
+                      {activeSection === 'add-account' && 'Create a new user with the right role, credentials, and course details.'}
+                      {activeSection === 'subjects' && 'Browse your subject catalog, sections, and who is enrolled.'}
+                      {activeSection === 'manage-subjects' && 'Define subjects and assign professors to courses and sections.'}
+                      {activeSection === 'monitoring' && 'Pick a course and section to view live browser activity and sessions.'}
+                    </p>
+                  </div>
                 </div>
-                <p className="max-w-2xl text-sm leading-relaxed text-slate-600 dark:text-slate-400">
-                  {activeSection === 'accounts' && 'Search, filter, and manage professor and student accounts in one place.'}
-                  {activeSection === 'add-account' && 'Create a new user with the right role, credentials, and course details.'}
-                  {activeSection === 'subjects' && 'Browse your subject catalog, sections, and who is enrolled.'}
-                  {activeSection === 'manage-subjects' && 'Define subjects and assign professors to courses and sections.'}
-                  {activeSection === 'monitoring' && 'Pick a course and section to view live browser activity and sessions.'}
-                </p>
-              </div>
-            </div>
-            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 sm:gap-3 lg:gap-3">
-              <div className="hidden items-center gap-2 rounded-2xl border border-white/50 bg-white/55 px-4 py-2 shadow-md backdrop-blur-md dark:border-white/10 dark:bg-slate-900/50 lg:flex">
-                <div className="h-2 w-2 animate-pulse rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
-                <div className="text-sm text-slate-700 dark:text-slate-200">
-                  Welcome,{' '}
-                  <span className="font-semibold text-rose-600 dark:text-rose-300">
-                    {user?.fullName || 'Admin'}
-                  </span>
+                <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 lg:gap-3">
+                  <div className="hidden items-center gap-2 rounded-2xl border border-white/50 bg-white/55 px-4 py-2 shadow-md backdrop-blur-md dark:border-white/10 dark:bg-slate-900/50 lg:flex">
+                    <div className="h-2 w-2 animate-pulse rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                    <div className="text-sm text-slate-700 dark:text-slate-200">
+                      Welcome,{' '}
+                      <span className="font-semibold text-rose-600 dark:text-rose-300">{user?.fullName || 'Admin'}</span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => loadAllLists(true)}
+                    disabled={loading}
+                    className="flex items-center space-x-2 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 px-3 py-2 text-xs font-semibold text-white shadow-lg shadow-indigo-500/25 transition hover:from-sky-400 hover:to-indigo-500 disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none lg:px-4 lg:text-sm"
+                    title="Refresh all data"
+                  >
+                    <svg className={`h-4 w-4 shrink-0 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    <span className="hidden lg:inline">{loading ? 'Refreshing...' : 'Refresh'}</span>
+                  </button>
+                  <ThemeToggle />
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    title="Logout"
+                    className="flex items-center space-x-2 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 px-3 py-2 text-xs font-medium text-white shadow-lg transition hover:from-rose-700 hover:to-red-700 lg:px-5 lg:text-sm"
+                  >
+                    <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    <span className="hidden sm:inline">Logout</span>
+                  </button>
                 </div>
               </div>
-              <button
-                onClick={() => loadAllLists(true)}
-                disabled={loading}
-                className="flex items-center space-x-2 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 px-3 py-2 text-xs font-semibold text-white shadow-lg shadow-indigo-500/25 transition hover:from-sky-400 hover:to-indigo-500 disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none lg:px-4 lg:text-sm"
-                title="Refresh all data"
-              >
-                <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                <span className="hidden lg:inline">{loading ? 'Refreshing...' : 'Refresh'}</span>
-              </button>
-              <ThemeToggle />
-              <button
-                type="button"
-                onClick={handleLogout}
-                title="Logout"
-                className="flex items-center space-x-2 rounded-xl bg-gradient-to-r from-red-600 to-rose-700 px-3 py-2 text-xs font-semibold text-white shadow-lg shadow-red-500/20 transition hover:from-red-500 hover:to-rose-600 lg:px-4 lg:text-sm"
-              >
-                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-                <span className="hidden sm:inline">Logout</span>
-              </button>
             </div>
-          </div>
+          </header>
 
-          <div className="mb-8 h-px w-full bg-gradient-to-r from-transparent via-rose-400/40 to-transparent dark:via-rose-500/40 lg:mb-10" aria-hidden />
-
-          {/* Loading Spinner */}
-          {loading && (
-            <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/50 backdrop-blur-sm dark:bg-slate-900/50">
-              <div className="flex flex-col items-center">
-                <div className="w-12 h-12 border-4 border-rose-600 border-t-transparent rounded-full animate-spin"></div>
-                <p className="mt-4 text-slate-800 dark:text-slate-100 font-medium">Loading data...</p>
+          <div className="relative min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 py-4 lg:px-8 lg:py-8">
+            {loading && (
+              <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/50 backdrop-blur-sm dark:bg-slate-900/50">
+                <div className="flex flex-col items-center">
+                  <div className="h-12 w-12 animate-spin rounded-full border-4 border-rose-600 border-t-transparent" />
+                  <p className="mt-4 font-medium text-slate-800 dark:text-slate-100">Loading data...</p>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
+            <div className="mx-auto w-full min-w-0 max-w-[1600px]">
           {/* ── Account Management Section ── */}
           {activeSection === 'accounts' && (
             <AccountManagementSection
@@ -911,8 +913,10 @@ export default function AdminDashboard() {
               setToast={setToast}
             />
           )}
+            </div>
+          </div>
         </div>
-      </div >
+      </div>
 
       {/* ── Enrolled Students Modal ── */}
       <EnrolledStudentsModal
