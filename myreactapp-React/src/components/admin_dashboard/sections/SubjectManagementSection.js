@@ -53,7 +53,9 @@ const SubjectManagementSection = ({
 
     return (
         <div className="space-y-6">
-            <div className="rounded-2xl border border-slate-200/80 bg-white/45 p-4 shadow-[0_8px_40px_rgba(0,0,0,0.06)] backdrop-blur-xl dark:border-slate-700/50 dark:bg-slate-900/35 dark:shadow-[0_8px_40px_rgba(0,0,0,0.45)] lg:p-6">
+            <div className="overflow-hidden rounded-3xl border border-white/40 bg-gradient-to-br from-white/70 to-slate-50/50 shadow-[0_20px_50px_-12px_rgba(15,23,42,0.12)] backdrop-blur-xl dark:border-white/10 dark:from-slate-900/80 dark:to-slate-950/90 dark:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.55)]">
+                <div className="h-1 w-full bg-gradient-to-r from-violet-500 via-rose-500 to-amber-400" aria-hidden />
+            <div className="p-4 lg:p-6">
                 <div className="mb-4 flex justify-end">
                     <button
                         onClick={refreshSubjects}
@@ -67,7 +69,7 @@ const SubjectManagementSection = ({
                 </div>
 
                 {/* Create Subject Form */}
-                <div className="bg-white/40 border border-slate-200/60 rounded-2xl p-4 mb-6 hover:shadow-xl transition-all duration-300 dark:bg-slate-900/40 dark:border-slate-800/60">
+                <div className="mb-6 rounded-2xl border border-slate-200/70 bg-white/60 p-4 shadow-inner transition-all duration-300 hover:shadow-lg dark:border-slate-700/60 dark:bg-slate-900/50">
                     <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
                         <div>
                             <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Subject Code</label>
@@ -192,6 +194,7 @@ const SubjectManagementSection = ({
                         </tbody>
                     </table>
                 </div>
+            </div>
             </div>
         </div>
     );

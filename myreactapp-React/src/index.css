@@ -72,3 +72,17 @@ html { scroll-behavior: smooth; }
 .dark .glass-panel {
   @apply bg-slate-900/40 border-white/10;
 }
+
+/* Admin dashboard — layered aurora (AdminDashboard root) */
+.admin-aurora {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(244, 63, 94, 0.18), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(99, 102, 241, 0.12), transparent),
+    radial-gradient(ellipse 50% 50% at 0% 100%, rgba(34, 211, 238, 0.08), transparent);
+}
+.dark .admin-aurora {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(244, 63, 94, 0.22), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(99, 102, 241, 0.18), transparent),
+    radial-gradient(ellipse 50% 50% at 0% 100%, rgba(34, 211, 238, 0.1), transparent);
+}

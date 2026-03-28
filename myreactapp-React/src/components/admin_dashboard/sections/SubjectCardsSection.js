@@ -7,9 +7,9 @@ const SubjectCardsSection = ({
     return (
         <div className="space-y-6">
             <div className="flex flex-wrap items-center justify-end gap-3">
-                    <div className="flex items-center gap-2 rounded-full border border-slate-200/70 bg-white/40 px-3 py-1.5 text-sm backdrop-blur-sm dark:border-slate-600/60 dark:bg-slate-900/40">
-                        <span className="h-2 w-2 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.7)]" />
-                        <span className="font-medium text-slate-600 dark:text-slate-300">{subjects.length} subject{subjects.length !== 1 ? 's' : ''}</span>
+                    <div className="flex items-center gap-2 rounded-full border border-rose-200/50 bg-gradient-to-r from-rose-50/90 to-white/80 px-4 py-1.5 text-sm font-medium shadow-sm backdrop-blur-sm dark:border-rose-500/20 dark:from-rose-950/40 dark:to-slate-900/60">
+                        <span className="h-2 w-2 rounded-full bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.9)]" />
+                        <span className="bg-gradient-to-r from-rose-700 to-red-600 bg-clip-text font-bold text-transparent dark:from-rose-300 dark:to-orange-200">{subjects.length} subject{subjects.length !== 1 ? 's' : ''}</span>
                     </div>
                     <button
                         onClick={refreshSubjects}
@@ -29,9 +29,10 @@ const SubjectCardsSection = ({
                         {subjects.map((subject, index) => (
                             <div
                                 key={subject.id}
-                                className="cursor-pointer overflow-hidden rounded-2xl border border-slate-200/70 bg-white/45 shadow-md backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:border-rose-300/60 hover:shadow-xl dark:border-slate-700/50 dark:bg-slate-900/45 dark:hover:border-rose-600/40"
+                                className="group cursor-pointer overflow-hidden rounded-2xl border border-slate-200/70 bg-white/50 shadow-lg shadow-slate-900/5 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-rose-400/50 hover:shadow-2xl hover:shadow-rose-500/10 dark:border-slate-700/50 dark:bg-slate-900/50 dark:shadow-black/40 dark:hover:border-rose-500/40"
                                 onClick={() => setShowStudentsModal(subject.id)}
                             >
+                                <div className="h-1 w-full bg-gradient-to-r from-rose-500 via-red-500 to-violet-600 opacity-90 transition-opacity group-hover:opacity-100" aria-hidden />
                                 <div className="p-6">
                                     <div className="flex items-center justify-between mb-4">
                                         <div className="flex-shrink-0">

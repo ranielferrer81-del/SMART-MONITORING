@@ -625,13 +625,14 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="h-screen w-full bg-slate-50 dark:bg-slate-900 relative flex overflow-hidden">
+    <div className="relative flex h-screen w-full overflow-hidden bg-gradient-to-br from-slate-50 via-rose-50/40 to-indigo-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950">
       {/* Animated Background Mesh */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-rose-400/30 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob"></div>
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-indigo-400/30 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-2000"></div>
-        <div className="absolute -bottom-8 left-1/3 w-96 h-96 bg-violet-400/30 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-4000"></div>
-        <div className="absolute inset-0 bg-grid-slate-200/[0.04] bg-[length:32px_32px] dark:bg-grid-slate-800/[0.04]"></div>
+      <div className="admin-aurora pointer-events-none absolute inset-0 z-0" aria-hidden />
+      <div className="absolute top-0 left-0 z-0 h-full w-full overflow-hidden">
+        <div className="animate-blob absolute top-0 left-1/4 h-[28rem] w-[28rem] rounded-full bg-rose-400/35 mix-blend-multiply blur-3xl dark:mix-blend-screen dark:bg-rose-500/25" />
+        <div className="animate-blob animation-delay-2000 absolute top-0 right-1/4 h-[26rem] w-[26rem] rounded-full bg-indigo-400/30 mix-blend-multiply blur-3xl dark:mix-blend-screen dark:bg-indigo-500/20" />
+        <div className="animate-blob animation-delay-4000 absolute -bottom-8 left-1/3 h-[24rem] w-[24rem] rounded-full bg-cyan-400/25 mix-blend-multiply blur-3xl dark:mix-blend-screen dark:bg-cyan-500/15" />
+        <div className="absolute inset-0 bg-[length:32px_32px] bg-grid-slate-200/[0.06] dark:bg-grid-slate-800/[0.06]" />
       </div>
       {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (
@@ -645,22 +646,24 @@ export default function AdminDashboard() {
       <div className={`
         fixed lg:static inset-y-0 left-0 z-50 
         w-[280px] sm:w-80 lg:w-72 lg:h-[95vh] lg:my-auto lg:ml-6
-        bg-white/60 backdrop-blur-3xl border border-white/40 shadow-2xl 
-        dark:bg-slate-900/60 dark:border-white/10
+        relative overflow-hidden
+        border border-white/50 bg-white/55 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35),0_0_0_1px_rgba(255,255,255,0.6)_inset] backdrop-blur-2xl
+        dark:border-white/10 dark:bg-slate-900/70 dark:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.6),0_0_0_1px_rgba(244,63,94,0.12)_inset]
         lg:rounded-3xl transform transition-all duration-300 ease-in-out 
         ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
-        <div className="p-4 lg:p-6 h-full overflow-y-auto">
-          <div className="flex items-center justify-between mb-6 lg:mb-8">
-            <div className="flex items-center">
-              <div className="flex-shrink-0 w-10 h-10 lg:w-12 lg:h-12 rounded-xl flex items-center justify-center shadow-lg mr-3 overflow-hidden bg-white/80 dark:bg-slate-800/80 p-1">
-                <img src={`${process.env.PUBLIC_URL}/favicon.svg`} alt="" className="w-full h-full object-contain" />
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-[3px] bg-gradient-to-b from-rose-500 via-red-500 to-violet-600 opacity-90" aria-hidden />
+        <div className="h-full overflow-y-auto p-4 lg:p-6 pl-5 lg:pl-7">
+          <div className="mb-6 flex items-center justify-between lg:mb-8">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-rose-500/20 to-red-600/10 p-1.5 shadow-inner ring-1 ring-rose-500/20 dark:from-rose-500/30 dark:to-red-900/20 lg:h-12 lg:w-12">
+                <img src={`${process.env.PUBLIC_URL}/favicon.svg`} alt="" className="h-full w-full object-contain" />
               </div>
               <div>
-                <h1 className="text-lg lg:text-xl font-bold bg-gradient-to-r from-rose-600 to-red-600 bg-clip-text text-transparent dark:from-rose-400 dark:to-red-400 tracking-tight">
+                <h1 className="bg-gradient-to-r from-rose-600 to-red-600 bg-clip-text text-lg font-bold tracking-tight text-transparent dark:from-rose-300 dark:to-orange-300 lg:text-xl">
                   S.M.A.R.T
                 </h1>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Admin Panel</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Admin</p>
               </div>
             </div>
             {/* Close button for mobile */}
@@ -674,12 +677,12 @@ export default function AdminDashboard() {
             </button>
           </div>
 
-          <nav className="space-y-2">
+          <nav className="space-y-1.5">
             <button
               onClick={() => setActiveSection('accounts')}
-              className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-300 ${activeSection === 'accounts'
-                ? 'bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-lg shadow-rose-500/40 transform scale-105'
-                : 'text-slate-600 hover:bg-gradient-to-r hover:from-rose-50 hover:to-red-50 hover:text-rose-700 dark:text-slate-300 dark:hover:from-rose-900/20 dark:hover:to-red-900/20 dark:hover:text-rose-300'
+              className={`flex w-full items-center rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 ${activeSection === 'accounts'
+                ? 'bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-lg shadow-rose-500/35 ring-2 ring-rose-400/40'
+                : 'text-slate-600 hover:translate-x-0.5 hover:bg-white/70 hover:text-rose-700 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-rose-200'
                 }`}
             >
               <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -690,9 +693,9 @@ export default function AdminDashboard() {
 
             <button
               onClick={() => setActiveSection('add-account')}
-              className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-300 ${activeSection === 'add-account'
-                ? 'bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-lg shadow-rose-500/40 transform scale-105'
-                : 'text-slate-600 hover:bg-gradient-to-r hover:from-rose-50 hover:to-red-50 hover:text-rose-700 dark:text-slate-300 dark:hover:from-rose-900/20 dark:hover:to-red-900/20 dark:hover:text-rose-300'
+              className={`flex w-full items-center rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 ${activeSection === 'add-account'
+                ? 'bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-lg shadow-rose-500/35 ring-2 ring-rose-400/40'
+                : 'text-slate-600 hover:translate-x-0.5 hover:bg-white/70 hover:text-rose-700 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-rose-200'
                 }`}
             >
               <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -703,9 +706,9 @@ export default function AdminDashboard() {
 
             <button
               onClick={() => setActiveSection('subjects')}
-              className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-300 ${activeSection === 'subjects'
-                ? 'bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-lg shadow-rose-500/40 transform scale-105'
-                : 'text-slate-600 hover:bg-gradient-to-r hover:from-rose-50 hover:to-red-50 hover:text-rose-700 dark:text-slate-300 dark:hover:from-rose-900/20 dark:hover:to-red-900/20 dark:hover:text-rose-300'
+              className={`flex w-full items-center rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 ${activeSection === 'subjects'
+                ? 'bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-lg shadow-rose-500/35 ring-2 ring-rose-400/40'
+                : 'text-slate-600 hover:translate-x-0.5 hover:bg-white/70 hover:text-rose-700 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-rose-200'
                 }`}
             >
               <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -716,9 +719,9 @@ export default function AdminDashboard() {
 
             <button
               onClick={() => setActiveSection('monitoring')}
-              className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-300 ${activeSection === 'monitoring'
-                ? 'bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-lg shadow-rose-500/40 transform scale-105'
-                : 'text-slate-600 hover:bg-gradient-to-r hover:from-rose-50 hover:to-red-50 hover:text-rose-700 dark:text-slate-300 dark:hover:from-rose-900/20 dark:hover:to-red-900/20 dark:hover:text-rose-300'
+              className={`flex w-full items-center rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 ${activeSection === 'monitoring'
+                ? 'bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-lg shadow-rose-500/35 ring-2 ring-rose-400/40'
+                : 'text-slate-600 hover:translate-x-0.5 hover:bg-white/70 hover:text-rose-700 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-rose-200'
                 }`}
             >
               <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -729,9 +732,9 @@ export default function AdminDashboard() {
 
             <button
               onClick={() => setActiveSection('manage-subjects')}
-              className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-300 ${activeSection === 'manage-subjects'
-                ? 'bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-lg shadow-rose-500/40 transform scale-105'
-                : 'text-slate-600 hover:bg-gradient-to-r hover:from-rose-50 hover:to-red-50 hover:text-rose-700 dark:text-slate-300 dark:hover:from-rose-900/20 dark:hover:to-red-900/20 dark:hover:text-rose-300'
+              className={`flex w-full items-center rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 ${activeSection === 'manage-subjects'
+                ? 'bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-lg shadow-rose-500/35 ring-2 ring-rose-400/40'
+                : 'text-slate-600 hover:translate-x-0.5 hover:bg-white/70 hover:text-rose-700 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-rose-200'
                 }`}
             >
               <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -758,21 +761,23 @@ export default function AdminDashboard() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-y-auto relative z-10 w-full">
-        <div className="p-4 lg:p-8">
+      <div className="relative z-10 w-full flex-1 overflow-y-auto">
+        <div className="mx-auto max-w-[1600px] p-4 lg:p-8 lg:pr-10">
           {/* Header — single title + subtitle per page (no duplicate headings in child sections) */}
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between mb-8 lg:mb-10 pb-6 border-b border-slate-200/70 dark:border-slate-700/50">
-            <div className="flex items-start gap-4 min-w-0 flex-1">
+          <div className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between lg:mb-10">
+            <div className="flex min-w-0 flex-1 items-start gap-4">
               <button
                 onClick={() => setMobileMenuOpen(true)}
-                className="lg:hidden shrink-0 mt-1 p-2 rounded-xl hover:bg-slate-100/80 dark:hover:bg-slate-800/80 text-slate-600 dark:text-slate-300"
+                className="mt-1 shrink-0 rounded-xl p-2 text-slate-600 hover:bg-white/60 dark:text-slate-300 dark:hover:bg-white/5 lg:hidden"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               </button>
-              <div className="min-w-0 space-y-1.5">
-                <h2 className="text-2xl lg:text-3xl font-bold tracking-tight bg-gradient-to-r from-rose-500 via-rose-600 to-red-600 bg-clip-text text-transparent dark:from-rose-400 dark:via-rose-500 dark:to-red-400">
+              <div className="min-w-0 space-y-3">
+                <div className="flex items-center gap-3">
+                  <span className="h-8 w-1 rounded-full bg-gradient-to-b from-rose-500 via-red-500 to-violet-600 shadow-[0_0_12px_rgba(244,63,94,0.5)]" aria-hidden />
+                  <h2 className="bg-gradient-to-r from-rose-500 via-rose-600 to-red-600 bg-clip-text text-2xl font-bold tracking-tight text-transparent dark:from-rose-300 dark:via-rose-400 dark:to-orange-300 lg:text-3xl">
                   {activeSection === 'accounts'
                     ? 'Account Management'
                     : activeSection === 'add-account'
@@ -783,7 +788,8 @@ export default function AdminDashboard() {
                           ? 'Browser Monitoring'
                           : 'Subject Management'}
                 </h2>
-                <p className="text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
+                </div>
+                <p className="max-w-2xl text-sm leading-relaxed text-slate-600 dark:text-slate-400">
                   {activeSection === 'accounts' && 'Search, filter, and manage professor and student accounts in one place.'}
                   {activeSection === 'add-account' && 'Create a new user with the right role, credentials, and course details.'}
                   {activeSection === 'subjects' && 'Browse your subject catalog, sections, and who is enrolled.'}
@@ -792,12 +798,12 @@ export default function AdminDashboard() {
                 </p>
               </div>
             </div>
-            <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3 lg:space-x-0 lg:gap-3 shrink-0">
-              <div className="hidden lg:flex items-center space-x-3 bg-gradient-to-r from-rose-50 to-red-50 dark:from-rose-900/30 dark:to-red-900/30 px-4 py-2 rounded-xl">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                <div className="text-sm text-slate-700 dark:text-slate-300">
+            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 sm:gap-3 lg:gap-3">
+              <div className="hidden items-center gap-2 rounded-2xl border border-white/50 bg-white/55 px-4 py-2 shadow-md backdrop-blur-md dark:border-white/10 dark:bg-slate-900/50 lg:flex">
+                <div className="h-2 w-2 animate-pulse rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                <div className="text-sm text-slate-700 dark:text-slate-200">
                   Welcome,{' '}
-                  <span className="font-semibold text-rose-600 dark:text-rose-400">
+                  <span className="font-semibold text-rose-600 dark:text-rose-300">
                     {user?.fullName || 'Admin'}
                   </span>
                 </div>
@@ -805,7 +811,7 @@ export default function AdminDashboard() {
               <button
                 onClick={() => loadAllLists(true)}
                 disabled={loading}
-                className="flex items-center space-x-2 px-3 lg:px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none disabled:cursor-not-allowed text-xs lg:text-sm"
+                className="flex items-center space-x-2 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 px-3 py-2 text-xs font-semibold text-white shadow-lg shadow-indigo-500/25 transition hover:from-sky-400 hover:to-indigo-500 disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none lg:px-4 lg:text-sm"
                 title="Refresh all data"
               >
                 <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -816,7 +822,7 @@ export default function AdminDashboard() {
               <ThemeToggle />
               <button
                 onClick={handleLogout}
-                className="hidden lg:flex items-center space-x-2 px-3 lg:px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 text-xs lg:text-sm"
+                className="hidden items-center space-x-2 rounded-xl bg-gradient-to-r from-red-600 to-rose-700 px-3 py-2 text-xs font-semibold text-white shadow-lg shadow-red-500/20 transition hover:from-red-500 hover:to-rose-600 lg:flex lg:px-4 lg:text-sm"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -825,6 +831,8 @@ export default function AdminDashboard() {
               </button>
             </div>
           </div>
+
+          <div className="mb-8 h-px w-full bg-gradient-to-r from-transparent via-rose-400/40 to-transparent dark:via-rose-500/40 lg:mb-10" aria-hidden />
 
           {/* Loading Spinner */}
           {loading && (
