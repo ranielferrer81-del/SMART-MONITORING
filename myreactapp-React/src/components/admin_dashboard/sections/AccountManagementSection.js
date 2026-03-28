@@ -109,7 +109,6 @@ const AccountManagementSection = ({
                                 <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-300">Name</th>
                                 <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-300">Email</th>
                                 <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-300">Department</th>
-                                <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-300">Status</th>
                                 <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-300">Actions</th>
                             </tr>
                         </thead>
@@ -129,9 +128,6 @@ const AccountManagementSection = ({
                                         <td className="px-3 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm text-slate-800 dark:text-slate-100">{t.full_name}</td>
                                         <td className="px-3 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm text-gray-500 dark:text-slate-300">{t.email}</td>
                                         <td className="px-3 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm">{t.department || '-'}</td>
-                                        <td className="px-3 lg:px-6 py-3 lg:py-4 whitespace-nowrap">
-                                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${t.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800 dark:bg-slate-700 dark:text-slate-200'}`}>{t.is_active ? 'Active' : 'Inactive'}</span>
-                                        </td>
                                         <td className="px-3 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm font-medium space-x-1 lg:space-x-2">
                                             <button onClick={() => openEdit(t)} className="text-rose-600 hover:text-red-700 dark:text-rose-400 dark:hover:text-rose-300">Edit</button>
                                             <button onClick={() => handleDeleteAccount(t.id)} className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">Delete</button>
@@ -140,7 +136,7 @@ const AccountManagementSection = ({
                                 );
                             })}
                             {filterAccounts(teachers, searchTerm).length === 0 && (
-                                <tr><td colSpan="6" className="px-6 py-8 text-center text-gray-500">{searchTerm ? `No professors found matching "${searchTerm}"` : 'No professors found'}</td></tr>
+                                <tr><td colSpan="5" className="px-6 py-8 text-center text-gray-500">{searchTerm ? `No professors found matching "${searchTerm}"` : 'No professors found'}</td></tr>
                             )}
                         </tbody>
                     </table>
