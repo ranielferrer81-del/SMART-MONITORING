@@ -273,7 +273,7 @@ class EmailService
         }
 
         $smtpTriedInOtpFlow = false;
-        if ((bool) config('app.email_otp_try_smtp_first', true) && ! $skipSmtp && ! $isPlaceholder && ! self::verificationOtpBudgetExceeded($otpBudgetDeadline)) {
+        if ((bool) config('app.email_otp_try_smtp_first', false) && ! $skipSmtp && ! $isPlaceholder && ! self::verificationOtpBudgetExceeded($otpBudgetDeadline)) {
             $smtpTriedInOtpFlow = true;
             $mailHost = config('mail.mailers.smtp.host');
             $mailUsername = config('mail.mailers.smtp.username');
@@ -292,6 +292,27 @@ class EmailService
             } catch (\Throwable $e) {
                 self::noteDiagnostic('smtp_error', Str::limit($e->getMessage(), 400));
                 Log::warning('SMTP-first OTP attempt failed, will try API mailers', ['error' => $e->getMessage()]);
+            }
+        }
+
+        /*
+         * Railway: Brevo transactional API is HTTPS (no SMTP 587). Try it before Resend when configured so
+         * verified BREVO_SENDER_EMAIL can reach student inboxes without Resend domain setup.
+         */
+        $brevoRestAttempted = false;
+        if ($runningOnRailway
+            && $brevoKey !== ''
+            && (bool) config('app.email_try_brevo_before_resend_on_railway', true)) {
+            $brevoRestAttempted = true;
+            self::noteDiagnostic('brevo_rest_railway_first', true);
+            try {
+                if (self::sendViaBrevo($toEmail, $code, $brevoKey)) {
+                    Log::info('✅ Email sent via Brevo REST API (Railway — before Resend)', ['to' => $toEmail]);
+
+                    return true;
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Brevo REST (Railway first) failed', ['error' => $e->getMessage()]);
             }
         }
 
@@ -328,14 +349,16 @@ class EmailService
          * Railway + Brevo setups look "broken" if MAIL_* still pointed at Gmail locally.
          */
         if ($brevoKey !== '') {
-            try {
-                if (self::sendViaBrevo($toEmail, $code, $brevoKey)) {
-                    Log::info('✅ Email sent via Brevo REST API', ['to' => $toEmail]);
+            if (! $brevoRestAttempted) {
+                try {
+                    if (self::sendViaBrevo($toEmail, $code, $brevoKey)) {
+                        Log::info('✅ Email sent via Brevo REST API', ['to' => $toEmail]);
 
-                    return true;
+                        return true;
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning('Brevo REST failed', ['error' => $e->getMessage()]);
                 }
-            } catch (\Throwable $e) {
-                Log::warning('Brevo REST failed', ['error' => $e->getMessage()]);
             }
             if ($skipBrevoSmtpRelayOnRailway) {
                 self::noteDiagnostic('brevo_smtp_skipped', 'EMAIL_SKIP_BREVO_SMTP_ON_RAILWAY=true (SMTP 587 often blocked on Railway; set false to try relay)');
@@ -371,7 +394,15 @@ class EmailService
 
         // Laravel Mail over configured SMTP (Gmail, Brevo relay via MAIL_*, etc.)
         // Always use the "smtp" mailer here — config("mail.default") may be "sendmail" (no binary in Docker/Railway).
-        if (! $smtpTriedInOtpFlow && ! $skipSmtp && ! $isPlaceholder) {
+        $allowSmtpOnRailway = ! $runningOnRailway
+            || ! (bool) config('app.email_railway_skip_laravel_smtp', true)
+            || (bool) config('app.email_otp_try_smtp_first', false);
+
+        if ($runningOnRailway && ! $allowSmtpOnRailway) {
+            self::noteDiagnostic('smtp_skipped_reason', 'railway_EMAIL_RAILWAY_SKIP_LARAVEL_SMTP');
+        }
+
+        if ($allowSmtpOnRailway && ! $smtpTriedInOtpFlow && ! $skipSmtp && ! $isPlaceholder) {
             if (self::verificationOtpBudgetExceeded($otpBudgetDeadline)) {
                 self::noteDiagnostic('verification_time_budget', 'skipped_laravel_smtp');
                 Log::info('Verification mail: skipped Laravel SMTP (OTP time budget) — fast JSON + fallback code');

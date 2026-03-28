@@ -46,7 +46,19 @@ export default function EmailVerification({
   // Fallback code: prefer parent props (survives React Strict Mode); then localStorage legacy.
   useEffect(() => {
     const propCode = loginDelivery?.verificationCode?.trim();
-    if (propCode && /^\d{6}$/.test(propCode)) {
+    const emailDelivered = loginDelivery?.emailSent === true;
+
+    // API may include verification_code as backup even when email_sent is true — still show "check inbox" UX.
+    if (propCode && /^\d{6}$/.test(propCode) && emailDelivered) {
+      setCode(propCode);
+      setDevCode(null);
+      setEmailSent(true);
+      setVerificationFailed(false);
+      setDeliveryFailureMessage(null);
+      return;
+    }
+
+    if (propCode && /^\d{6}$/.test(propCode) && !emailDelivered) {
       setCode(propCode);
       setDevCode(propCode);
       setEmailSent(false);

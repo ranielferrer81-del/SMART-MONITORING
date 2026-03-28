@@ -142,10 +142,16 @@ return [
         : filter_var(env('RAILWAY_TRY_RESEND_FIRST', true), FILTER_VALIDATE_BOOLEAN),
 
     /**
-     * Try Laravel SMTP before Resend/Brevo API for OTP. Default true: Gmail/Brevo relay delivers to any inbox;
-     * Resend test sender (onboarding@resend.dev) often cannot reach student emails until you add a verified domain.
+     * Try Laravel SMTP before API mailers. Default false: Railway often cannot reach SMTP:587; use HTTPS APIs instead.
+     * Set true only if MAIL_* SMTP reliably works from your host (e.g. some non-Railway VPS).
      */
-    'email_otp_try_smtp_first' => filter_var(env('EMAIL_OTP_TRY_SMTP_FIRST', true), FILTER_VALIDATE_BOOLEAN),
+    'email_otp_try_smtp_first' => filter_var(env('EMAIL_OTP_TRY_SMTP_FIRST', false), FILTER_VALIDATE_BOOLEAN),
+
+    /** On Railway, skip Laravel's SMTP mailer for OTP unless EMAIL_OTP_TRY_SMTP_FIRST=true (587 often blocked/hangs). */
+    'email_railway_skip_laravel_smtp' => filter_var(env('EMAIL_RAILWAY_SKIP_LARAVEL_SMTP', true), FILTER_VALIDATE_BOOLEAN),
+
+    /** On Railway, attempt Brevo REST (HTTPS) before Resend when BREVO_API_KEY is set (no SMTP required). */
+    'email_try_brevo_before_resend_on_railway' => filter_var(env('EMAIL_TRY_BREVO_BEFORE_RESEND_ON_RAILWAY', true), FILTER_VALIDATE_BOOLEAN),
 
     /** Wall-clock budget for OTP mail attempts (seconds). */
     'verification_mail_time_budget_seconds' => max(8.0, min(120.0, (float) (env('VERIFICATION_MAIL_TIME_BUDGET_SECONDS') ?: 45))),
