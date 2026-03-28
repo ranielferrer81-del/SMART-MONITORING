@@ -181,24 +181,27 @@ class EmailService
         }
 
         /*
-         * Railway: Brevo REST may return 401 (IP allowlist). Resend uses HTTPS only (no SMTP) and does not use Brevo’s IP list.
-         * When RESEND_API_KEY is set, try Resend first on Railway so login email works without changing Brevo.
+         * Resend (HTTPS :443) is stable on PaaS; Brevo REST can 401 (keys/IP). When RESEND_API_KEY is set,
+         * try Resend first by default — not tied to UI or "Railway only". Set EMAIL_TRY_RESEND_FIRST=false to prefer Brevo.
          */
-        $tryResendFirstOnRailway = $runningOnRailway
-            && $resendKey !== ''
+        $resendFirstEnv = env('EMAIL_TRY_RESEND_FIRST');
+        if ($resendFirstEnv === null) {
+            $resendFirstEnv = env('RAILWAY_TRY_RESEND_FIRST', true);
+        }
+        $tryResendFirst = $resendKey !== ''
             && strlen($resendKey) > 8
-            && filter_var(env('RAILWAY_TRY_RESEND_FIRST', true), FILTER_VALIDATE_BOOLEAN);
+            && filter_var($resendFirstEnv, FILTER_VALIDATE_BOOLEAN);
 
-        if ($tryResendFirstOnRailway) {
+        if ($tryResendFirst) {
             try {
                 if (self::sendViaResend($toEmail, $code, $resendKey)) {
-                    Log::info('✅ Email sent via Resend API (preferred on Railway)', ['to' => $toEmail]);
+                    Log::info('✅ Email sent via Resend API (primary — EMAIL_TRY_RESEND_FIRST)', ['to' => $toEmail]);
 
                     return true;
                 }
             } catch (\Throwable $e) {
                 self::noteDiagnostic('resend_error', Str::limit($e->getMessage(), 400));
-                Log::warning('Resend (Railway first) failed', ['error' => $e->getMessage()]);
+                Log::warning('Resend (primary) failed, will try other transports', ['error' => $e->getMessage()]);
             }
         }
 
@@ -233,8 +236,8 @@ class EmailService
             }
         }
 
-        // Resend HTTPS API (fallback when Brevo failed or when not tried first — same key as above)
-        if ($resendKey !== '' && strlen($resendKey) > 8 && ! $tryResendFirstOnRailway) {
+        // Resend HTTPS API (fallback when Brevo failed or when Resend was not tried first)
+        if ($resendKey !== '' && strlen($resendKey) > 8 && ! $tryResendFirst) {
             try {
                 if (self::sendViaResend($toEmail, $code, $resendKey)) {
                     Log::info('✅ Email sent via Resend API', ['to' => $toEmail]);

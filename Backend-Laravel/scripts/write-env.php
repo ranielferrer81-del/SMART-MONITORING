@@ -162,6 +162,10 @@ if ($resendApi === '') {
 if ($resendApi !== '') {
     $lines[] = line('RESEND_API_KEY', $resendApi);
 }
+$emailTryResendFirst = g('EMAIL_TRY_RESEND_FIRST', '');
+if ($emailTryResendFirst !== '') {
+    $lines[] = line('EMAIL_TRY_RESEND_FIRST', $emailTryResendFirst);
+}
 $brevoSender = g('BREVO_SENDER_EMAIL');
 if ($brevoSender !== '') {
     $lines[] = line('BREVO_SENDER_EMAIL', $brevoSender);
