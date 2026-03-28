@@ -313,13 +313,11 @@ export default function TeacherDashboard() {
         <div className="p-4 lg:p-6 h-full overflow-y-auto">
           <div className="flex items-center justify-between mb-6 lg:mb-8">
             <div className="flex items-center">
-              <div className="flex-shrink-0 w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-rose-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg mr-3">
-                <svg className="w-5 h-5 lg:w-7 lg:h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
+              <div className="flex-shrink-0 w-10 h-10 lg:w-12 lg:h-12 rounded-xl flex items-center justify-center shadow-lg mr-3 overflow-hidden bg-white/80 dark:bg-slate-800/80 p-1">
+                <img src={`${process.env.PUBLIC_URL}/favicon.svg`} alt="" className="w-full h-full object-contain" />
               </div>
               <div>
-                <h1 className="text-lg lg:text-xl font-bold bg-gradient-to-r from-rose-600 to-red-600 bg-clip-text text-transparent dark:from-rose-400 dark:to-red-400">Professor Panel</h1>
+                <h1 className="text-lg lg:text-xl font-bold bg-gradient-to-r from-rose-600 to-red-600 bg-clip-text text-transparent dark:from-rose-400 dark:to-red-400 tracking-tight">S.M.A.R.T</h1>
                 <p className="text-xs text-slate-700 dark:text-slate-200 font-medium">Faculty Dashboard</p>
               </div>
             </div>

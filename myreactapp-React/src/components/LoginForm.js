@@ -105,27 +105,12 @@ const LoginForm = () => {
       <div className="w-full max-w-md relative z-10 px-4">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="mx-auto h-20 w-20 bg-gradient-to-br from-rose-500 to-red-600 rounded-2xl flex items-center justify-center mb-6 shadow-xl shadow-rose-500/20 transform hover:scale-105 transition-transform duration-300">
-            {/* Security/Protection Icon */}
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              className="h-10 w-10 text-white"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 3l7 3v5c0 5.25-3.438 9.75-7 10-3.562-.25-7-4.75-7-10V6l7-3z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M9 11.5a3 3 0 116 0v1.25H9V11.5zM9 12.75v2.25c0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75V12.75"
-              />
-            </svg>
+          <div className="mx-auto mb-6 flex justify-center">
+            <img
+              src={`${process.env.PUBLIC_URL}/logo.svg`}
+              alt="S.M.A.R.T"
+              className="h-14 sm:h-16 w-auto max-w-[min(100%,320px)] drop-shadow-md dark:opacity-95"
+            />
           </div>
           <h2 className="text-4xl font-bold text-slate-900 dark:text-slate-50 mb-3 tracking-tight">
             Welcome Back

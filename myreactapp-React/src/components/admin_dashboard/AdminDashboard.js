@@ -653,16 +653,14 @@ export default function AdminDashboard() {
         <div className="p-4 lg:p-6 h-full overflow-y-auto">
           <div className="flex items-center justify-between mb-6 lg:mb-8">
             <div className="flex items-center">
-              <div className="flex-shrink-0 w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-rose-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg mr-3">
-                <svg className="w-5 h-5 lg:w-7 lg:h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
+              <div className="flex-shrink-0 w-10 h-10 lg:w-12 lg:h-12 rounded-xl flex items-center justify-center shadow-lg mr-3 overflow-hidden bg-white/80 dark:bg-slate-800/80 p-1">
+                <img src={`${process.env.PUBLIC_URL}/favicon.svg`} alt="" className="w-full h-full object-contain" />
               </div>
               <div>
-                <h1 className="text-lg lg:text-xl font-bold bg-gradient-to-r from-rose-600 to-red-600 bg-clip-text text-transparent dark:from-rose-400 dark:to-red-400">
-                  Admin Panel
+                <h1 className="text-lg lg:text-xl font-bold bg-gradient-to-r from-rose-600 to-red-600 bg-clip-text text-transparent dark:from-rose-400 dark:to-red-400 tracking-tight">
+                  S.M.A.R.T
                 </h1>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Control Center</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Admin Panel</p>
               </div>
             </div>
             {/* Close button for mobile */}
