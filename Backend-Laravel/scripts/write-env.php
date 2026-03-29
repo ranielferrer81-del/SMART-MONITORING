@@ -205,6 +205,11 @@ file_put_contents(
     implode("\n", $lines) . "\n"
 );
 
+if ($brevoKey !== '' && ($mailFrom === '' || str_contains(strtolower($mailFrom), 'example.com'))) {
+    fwrite(STDERR, "WARNING: BREVO_API_KEY is set but MAIL_FROM_ADDRESS / BREVO_SENDER_EMAIL is missing or still example.com.\n");
+    fwrite(STDERR, "         Add BREVO_SENDER_EMAIL (verified in Brevo) to Railway Variables — the API key alone cannot send mail.\n");
+}
+
 echo "=== .env written via scripts/write-env.php ===\n";
 echo 'BREVO_API_KEY length: ' . strlen($brevoKey) . "\n";
 echo 'MAIL_FROM_ADDRESS: ' . $mailFrom . "\n";

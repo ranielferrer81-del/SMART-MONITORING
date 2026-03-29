@@ -81,10 +81,19 @@ echo "MAIL_MAILER (effective for PHP) = ${MAIL_MAILER:-<unset>}"
 echo "MAIL_USERNAME (shell/Railway only; Laravel also reads .env) = (${#MAIL_USERNAME} chars)"
 if [ -z "$BREVO_API_KEY" ]; then
   echo "WARNING: BREVO_API_KEY is empty — add it in Railway Variables for transactional email."
+else
+  if [ -z "${BREVO_SENDER_EMAIL:-}" ] && [ -z "${MAIL_FROM_ADDRESS:-}" ]; then
+    echo "WARNING: Set BREVO_SENDER_EMAIL (or MAIL_FROM_ADDRESS) to an address verified in Brevo — API key alone will not deliver mail."
+  fi
 fi
 case "${MAIL_FROM_ADDRESS:-}" in
   *example.com*|""|noreply@example.com)
     echo "WARNING: MAIL_FROM_ADDRESS should match a sender verified in Brevo (not noreply@example.com) or Brevo may reject sends."
+    ;;
+esac
+case "${BREVO_SENDER_EMAIL:-}" in
+  *example.com*|noreply@example.com)
+    echo "WARNING: BREVO_SENDER_EMAIL must be a real verified sender in Brevo (not example.com)."
     ;;
 esac
 case "${MAIL_FROM_ADDRESS:-}" in

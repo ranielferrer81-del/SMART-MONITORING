@@ -283,7 +283,8 @@ export default function EmailVerification({
                 {devCode}
               </p>
               <p className="text-xs text-white/70 mt-2">
-                Enter it below to finish signing in. Email delivery is optional when this code is shown.
+                We could not send the code to your inbox (check server mail settings). Use the code above to finish
+                signing in.
               </p>
             </>
           ) : emailSent === false ? (
