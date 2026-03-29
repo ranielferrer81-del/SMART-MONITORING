@@ -93,7 +93,19 @@ const extractErrorMessage = (error: unknown, context: EmailAuthErrorContext = 'd
       return 'Request timed out. Please try again in a few seconds.';
     }
     const status = error.response?.status;
+    const data = error.response?.data;
     const reqUrl = `${error.config?.baseURL ?? ''}${error.config?.url ?? ''}`;
+    const json404Message =
+      status === 404 &&
+      data &&
+      typeof data === 'object' &&
+      typeof (data as { message?: unknown }).message === 'string'
+        ? String((data as { message: string }).message)
+        : null;
+    // Laravel returns 404 JSON for "email not found" / missing profile — do not blame VITE_API_BASE_URL.
+    if (json404Message) {
+      return json404Message;
+    }
     if (
       status === 404 &&
       (reqUrl.includes('validate-email') ||
