@@ -28,7 +28,17 @@ export default function AdminDashboard() {
   const [activeSection, setActiveSection] = useState('accounts');
 
   const [subjects, setSubjects] = useState([]);
-  const [newSubject, setNewSubject] = useState({ code: '', name: '', course: '', section: '', teacher_user_id: '' });
+  const [newSubject, setNewSubject] = useState({
+    code: '',
+    name: '',
+    course: '',
+    section: '',
+    teacher_user_id: '',
+    day_of_week: '1',
+    start_time: '08:00',
+    end_time: '10:00',
+    late_grace_minutes: '15',
+  });
   const [subErrors, setSubErrors] = useState({});
   const [enrolledStudents, setEnrolledStudents] = useState({}); // Store enrolled students for each subject
   const [showStudentsModal, setShowStudentsModal] = useState(null); // Track which subject's students modal is open

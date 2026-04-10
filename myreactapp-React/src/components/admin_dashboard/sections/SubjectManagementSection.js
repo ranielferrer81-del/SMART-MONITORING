@@ -1,5 +1,5 @@
 import React from 'react';
-import { createSubject, deleteSubject } from '../../../api/client';
+import { createSubject, deleteSubject, saveSubjectSchedules } from '../../../api/client';
 
 const SubjectManagementSection = ({
     subjects, refreshSubjects, newSubject, setNewSubject,
@@ -13,6 +13,11 @@ const SubjectManagementSection = ({
         if (!newSubject.course) errs.course = 'Required';
         if (!newSubject.section.trim()) errs.section = 'Required';
         if (!newSubject.teacher_user_id) errs.teacher_user_id = 'Required';
+        if (!newSubject.start_time) errs.start_time = 'Required';
+        if (!newSubject.end_time) errs.end_time = 'Required';
+        if (newSubject.start_time && newSubject.end_time && newSubject.end_time <= newSubject.start_time) {
+            errs.end_time = 'End time must be after start time';
+        }
         setSubErrors(errs);
         if (Object.keys(errs).length) return;
         try {
@@ -25,8 +30,33 @@ const SubjectManagementSection = ({
             };
             const res = await createSubject(payload);
             if (res?.ok) {
+                const createdSubjectId = res?.data?.id;
+                if (createdSubjectId) {
+                    const schedulePayload = [{
+                        day_of_week: parseInt(newSubject.day_of_week, 10),
+                        start_time: newSubject.start_time,
+                        end_time: newSubject.end_time,
+                        late_grace_minutes: parseInt(newSubject.late_grace_minutes || '15', 10),
+                        is_active: true,
+                    }];
+                    const scheduleRes = await saveSubjectSchedules(createdSubjectId, schedulePayload);
+                    if (!scheduleRes?.ok) {
+                        setToast({ show: true, message: `Subject created but schedule failed: ${scheduleRes.error || 'unknown error'}`, type: 'error' });
+                        setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 4000);
+                    }
+                }
                 await refreshSubjects();
-                setNewSubject({ code: '', name: '', course: '', section: '', teacher_user_id: '' });
+                setNewSubject({
+                    code: '',
+                    name: '',
+                    course: '',
+                    section: '',
+                    teacher_user_id: '',
+                    day_of_week: '1',
+                    start_time: '08:00',
+                    end_time: '10:00',
+                    late_grace_minutes: '15',
+                });
                 setSubErrors({});
                 setToast({ show: true, message: 'Subject created successfully!', type: 'success' });
                 setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 2500);
@@ -141,6 +171,59 @@ const SubjectManagementSection = ({
                                 ))}
                             </select>
                             {subErrors.teacher_user_id && <p className="mt-1 text-[10px] text-red-600">{subErrors.teacher_user_id}</p>}
+                        </div>
+                    </div>
+                    <div className="mt-4 rounded-xl border border-indigo-200/70 bg-indigo-50/70 p-4 dark:border-indigo-800/70 dark:bg-indigo-900/20">
+                        <h4 className="text-sm font-semibold text-indigo-700 dark:text-indigo-200">Class Schedule (required for auto attendance)</h4>
+                        <p className="mt-1 text-xs text-indigo-600 dark:text-indigo-300">Set the day and time now so student PIN check-in only works during class.</p>
+                        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                            <div>
+                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Day</label>
+                                <select
+                                    value={newSubject.day_of_week || '1'}
+                                    onChange={(e) => setNewSubject((s) => ({ ...s, day_of_week: e.target.value }))}
+                                    className="mt-1 block w-full rounded-md border border-slate-300 shadow-sm transition-all duration-300 focus:border-rose-500 focus:ring-rose-500 dark:border-slate-700/50 dark:bg-slate-900/30 dark:text-slate-100"
+                                >
+                                    <option value="1">Monday</option>
+                                    <option value="2">Tuesday</option>
+                                    <option value="3">Wednesday</option>
+                                    <option value="4">Thursday</option>
+                                    <option value="5">Friday</option>
+                                    <option value="6">Saturday</option>
+                                    <option value="0">Sunday</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Start Time</label>
+                                <input
+                                    type="time"
+                                    value={newSubject.start_time || ''}
+                                    onChange={(e) => setNewSubject((s) => ({ ...s, start_time: e.target.value }))}
+                                    className={`mt-1 block w-full rounded-md border shadow-sm transition-all duration-300 focus:border-rose-500 focus:ring-rose-500 ${subErrors.start_time ? 'border-red-300 bg-red-50' : 'border-slate-300 dark:border-slate-700/50 dark:bg-slate-900/30 dark:text-slate-100'}`}
+                                />
+                                {subErrors.start_time && <p className="mt-1 text-[10px] text-red-600">{subErrors.start_time}</p>}
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">End Time</label>
+                                <input
+                                    type="time"
+                                    value={newSubject.end_time || ''}
+                                    onChange={(e) => setNewSubject((s) => ({ ...s, end_time: e.target.value }))}
+                                    className={`mt-1 block w-full rounded-md border shadow-sm transition-all duration-300 focus:border-rose-500 focus:ring-rose-500 ${subErrors.end_time ? 'border-red-300 bg-red-50' : 'border-slate-300 dark:border-slate-700/50 dark:bg-slate-900/30 dark:text-slate-100'}`}
+                                />
+                                {subErrors.end_time && <p className="mt-1 text-[10px] text-red-600">{subErrors.end_time}</p>}
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Late Grace (minutes)</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    max="120"
+                                    value={newSubject.late_grace_minutes || '15'}
+                                    onChange={(e) => setNewSubject((s) => ({ ...s, late_grace_minutes: e.target.value }))}
+                                    className="mt-1 block w-full rounded-md border border-slate-300 shadow-sm transition-all duration-300 focus:border-rose-500 focus:ring-rose-500 dark:border-slate-700/50 dark:bg-slate-900/30 dark:text-slate-100"
+                                />
+                            </div>
                         </div>
                     </div>
                     <div className="flex justify-end mt-3">
