@@ -179,10 +179,12 @@ const StudentProfileModal = ({
                                             if (!selectedSubject || !selectedStudent) return;
                                             setUpdatingAttendance(true);
                                             try {
+                                                const reason = window.prompt('Optional note for this manual update:') || null;
                                                 const res = await markStudentAttendance(
                                                     selectedSubject.id,
                                                     selectedStudent.id,
-                                                    'present'
+                                                    'present',
+                                                    reason
                                                 );
                                                 if (!res?.ok && res?.message) {
                                                     alert(res.message);
@@ -215,10 +217,12 @@ const StudentProfileModal = ({
                                             if (!selectedSubject || !selectedStudent) return;
                                             setUpdatingAttendance(true);
                                             try {
+                                                const reason = window.prompt('Optional note for this manual update:') || null;
                                                 const res = await markStudentAttendance(
                                                     selectedSubject.id,
                                                     selectedStudent.id,
-                                                    'late'
+                                                    'late',
+                                                    reason
                                                 );
                                                 if (!res?.ok && res?.message) {
                                                     alert(res.message);
@@ -252,10 +256,12 @@ const StudentProfileModal = ({
                                             if (!window.confirm('Mark this student as ABSENT for today?')) return;
                                             setUpdatingAttendance(true);
                                             try {
+                                                const reason = window.prompt('Optional note for this manual update:') || null;
                                                 const res = await markStudentAttendance(
                                                     selectedSubject.id,
                                                     selectedStudent.id,
-                                                    'absent'
+                                                    'absent',
+                                                    reason
                                                 );
                                                 if (!res?.ok && res?.message) {
                                                     alert(res.message);

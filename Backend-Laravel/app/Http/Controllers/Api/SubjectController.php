@@ -9,6 +9,28 @@ use Illuminate\Support\Facades\DB;
 
 class SubjectController extends Controller
 {
+    private function assertSubjectAccess(int $subjectId, object $auth)
+    {
+        $subject = DB::table('subjects')->where('id', $subjectId)->first();
+        if (!$subject) {
+            abort(response()->json(['ok' => false, 'message' => 'Subject not found'], 404));
+        }
+        if (($auth->role ?? null) === 'teacher' && (int) $subject->teacher_user_id !== (int) $auth->id) {
+            abort(response()->json(['ok' => false, 'message' => 'Unauthorized'], 403));
+        }
+        return $subject;
+    }
+
+    private function getSubjectSchedules(int $subjectId)
+    {
+        return DB::table('subject_schedules')
+            ->where('subject_id', $subjectId)
+            ->where('is_active', 1)
+            ->orderBy('day_of_week')
+            ->orderBy('start_time')
+            ->get();
+    }
+
     protected function ensureTeacherOrAdmin()
     {
         $authUser = Auth::user();
@@ -123,17 +145,7 @@ class SubjectController extends Controller
     public function show(int $id)
     {
         $auth = $this->ensureTeacherOrAdmin();
-
-        // Get the subject
-        $subject = DB::table('subjects')->where('id', $id)->first();
-        if (!$subject) {
-            return response()->json(['ok' => false, 'message' => 'Subject not found'], 404);
-        }
-
-        // If user is a teacher, verify they are assigned to this subject
-        if ($auth->role === 'teacher' && $subject->teacher_user_id != $auth->id) {
-            return response()->json(['ok' => false, 'message' => 'Unauthorized'], 403);
-        }
+        $this->assertSubjectAccess($id, $auth);
 
         // Get attendance summary per student for this subject
         $attendance = DB::table('attendance_logs')
@@ -182,7 +194,11 @@ class SubjectController extends Controller
                 return $row;
             });
 
-        return response()->json(['ok' => true, 'data' => $enrolledStudents]);
+        return response()->json([
+            'ok' => true,
+            'data' => $enrolledStudents,
+            'schedules' => $this->getSubjectSchedules($id),
+        ]);
     }
 
     public function enrollStudent(Request $request, int $subjectId)
@@ -354,6 +370,7 @@ class SubjectController extends Controller
         $data = $request->validate([
             'student_id' => ['required', 'integer', 'exists:users,id'],
             'status' => ['required', 'in:present,late,absent'],
+            'reason' => ['nullable', 'string', 'max:255'],
         ]);
 
         // Ensure student is actually enrolled in this subject
@@ -381,6 +398,9 @@ class SubjectController extends Controller
                 ->where('id', $existing->id)
                 ->update([
                     'status' => $data['status'],
+                    'source' => 'manual',
+                    'marked_by_user_id' => $auth->id,
+                    'mark_reason' => $data['reason'] ?? null,
                     'scanned_at' => now(),
                     'updated_at' => now(),
                 ]);
@@ -389,7 +409,10 @@ class SubjectController extends Controller
                 'subject_id' => $subjectId,
                 'student_id' => $data['student_id'],
                 'teacher_user_id' => $auth->id,
+                'marked_by_user_id' => $auth->id,
                 'status' => $data['status'],
+                'source' => 'manual',
+                'mark_reason' => $data['reason'] ?? null,
                 'attendance_date' => $today,
                 'scanned_at' => now(),
                 'created_at' => now(),
@@ -441,6 +464,7 @@ class SubjectController extends Controller
 
         $data = $request->validate([
             'status' => ['required', 'in:present,late,absent'],
+            'reason' => ['nullable', 'string', 'max:255'],
         ]);
 
         // Update the attendance record
@@ -448,6 +472,9 @@ class SubjectController extends Controller
             ->where('id', $recordId)
             ->update([
                 'status' => $data['status'],
+                'source' => 'manual',
+                'marked_by_user_id' => $auth->id,
+                'mark_reason' => $data['reason'] ?? null,
                 'updated_at' => now(),
             ]);
 
@@ -494,6 +521,8 @@ class SubjectController extends Controller
                     'id' => $row->id,
                     'date' => $row->attendance_date,
                     'status' => $row->status,
+                    'source' => $row->source ?? 'manual',
+                    'mark_reason' => $row->mark_reason ?? null,
                     'scanned_at' => $row->scanned_at ? date('Y-m-d H:i:s', strtotime($row->scanned_at)) : null,
                     'scanned_at_time' => $row->scanned_at ? date('H:i:s', strtotime($row->scanned_at)) : null,
                     'created_at' => $row->created_at ? date('Y-m-d H:i:s', strtotime($row->created_at)) : null,
@@ -503,6 +532,56 @@ class SubjectController extends Controller
         return response()->json([
             'ok' => true,
             'data' => $logs,
+        ]);
+    }
+
+    public function upsertSchedules(Request $request, int $subjectId)
+    {
+        $auth = $this->ensureTeacherOrAdmin();
+        $this->assertSubjectAccess($subjectId, $auth);
+
+        $data = $request->validate([
+            'schedules' => ['required', 'array'],
+            'schedules.*.day_of_week' => ['required', 'integer', 'between:0,6'],
+            'schedules.*.start_time' => ['required', 'date_format:H:i'],
+            'schedules.*.end_time' => ['required', 'date_format:H:i'],
+            'schedules.*.late_grace_minutes' => ['nullable', 'integer', 'min:0', 'max:120'],
+            'schedules.*.is_active' => ['nullable', 'boolean'],
+        ]);
+
+        foreach ($data['schedules'] as $slot) {
+            if (($slot['end_time'] ?? '') <= ($slot['start_time'] ?? '')) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'Schedule end_time must be after start_time',
+                ], 422);
+            }
+        }
+
+        DB::transaction(function () use ($subjectId, $data) {
+            DB::table('subject_schedules')->where('subject_id', $subjectId)->delete();
+            $rows = [];
+            foreach ($data['schedules'] as $schedule) {
+                $rows[] = [
+                    'subject_id' => $subjectId,
+                    'day_of_week' => (int) $schedule['day_of_week'],
+                    'start_time' => $schedule['start_time'] . ':00',
+                    'end_time' => $schedule['end_time'] . ':00',
+                    'late_grace_minutes' => (int) ($schedule['late_grace_minutes'] ?? 15),
+                    'is_active' => array_key_exists('is_active', $schedule) ? (bool) $schedule['is_active'] : true,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+            if (! empty($rows)) {
+                DB::table('subject_schedules')->insert($rows);
+            }
+        });
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'Subject schedules saved successfully',
+            'data' => $this->getSubjectSchedules($subjectId),
         ]);
     }
 

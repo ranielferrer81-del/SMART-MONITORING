@@ -102,6 +102,16 @@ const AttendanceHistoryModal = ({
                                                 })}</span>
                                             </div>
                                         )}
+                                        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                                            <span className="rounded bg-slate-100 px-2 py-1 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                                                Source: {record.source || 'manual'}
+                                            </span>
+                                            {record.mark_reason && (
+                                                <span className="rounded bg-indigo-100 px-2 py-1 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-200">
+                                                    Note: {record.mark_reason}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                     <div className="flex items-center space-x-3">
                                         <span className="text-xs text-slate-400 dark:text-slate-500 italic">Click to edit</span>

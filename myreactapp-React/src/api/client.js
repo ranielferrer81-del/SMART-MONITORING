@@ -201,6 +201,19 @@ export async function createSubject(payload) {
   return res.data;
 }
 
+export async function saveSubjectSchedules(subjectId, schedules) {
+  try {
+    const res = await api.put(`/api/subjects/${subjectId}/schedules`, { schedules });
+    return { ok: true, data: res.data };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error.response?.data?.message || 'Failed to save subject schedule',
+      raw: error.response?.data,
+    };
+  }
+}
+
 export async function deleteSubject(id) {
   const res = await api.delete(`/api/subjects/${id}`);
   return res.data;
@@ -232,10 +245,11 @@ export async function unenrollStudentFromSubject(subjectId, studentId) {
 }
 
 // Manual attendance update (present / late / absent) for a student in a subject
-export async function markStudentAttendance(subjectId, studentId, status) {
+export async function markStudentAttendance(subjectId, studentId, status, reason = null) {
   const res = await api.post(`/api/subjects/${subjectId}/attendance`, {
     student_id: studentId,
     status,
+    reason,
   });
   return res.data;
 }
@@ -252,10 +266,11 @@ export async function getStudentAttendanceHistory(subjectId, studentId) {
 }
 
 // Update a specific attendance record
-export async function updateAttendanceRecord(subjectId, studentId, recordId, status) {
+export async function updateAttendanceRecord(subjectId, studentId, recordId, status, reason = null) {
   try {
     const res = await api.patch(`/api/subjects/${subjectId}/students/${studentId}/attendance/${recordId}`, {
       status,
+      reason,
     });
     return { ok: true, data: res.data };
   } catch (error) {
@@ -334,6 +349,32 @@ export async function getStudentAttendance(subjectId) {
   } catch (error) {
     const message = error.response?.data?.message || 'Failed to fetch attendance';
     return { ok: false, error: message, raw: error.response?.data };
+  }
+}
+
+export async function getStudentOpenSessions() {
+  try {
+    const res = await api.get('/api/student/open-sessions');
+    return { ok: true, data: res.data };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error.response?.data?.message || 'Failed to fetch open sessions',
+      raw: error.response?.data,
+    };
+  }
+}
+
+export async function checkInStudentSubject(subjectId, pin) {
+  try {
+    const res = await api.post(`/api/student/subjects/${subjectId}/check-in`, { pin });
+    return { ok: true, data: res.data };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error.response?.data?.message || 'Check-in failed',
+      raw: error.response?.data,
+    };
   }
 }
 

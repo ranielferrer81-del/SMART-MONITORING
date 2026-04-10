@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,6 +14,17 @@ use Illuminate\Support\Facades\Hash;
 
 class StudentProfileController extends Controller
 {
+    private function attendanceStatusFromSchedule(object $schedule, Carbon $now): ?string
+    {
+        $start = Carbon::parse($schedule->start_time, $now->timezone)->setDate($now->year, $now->month, $now->day);
+        $end = Carbon::parse($schedule->end_time, $now->timezone)->setDate($now->year, $now->month, $now->day);
+        if ($now->lt($start) || $now->gt($end)) {
+            return null;
+        }
+        $lateBoundary = (clone $start)->addMinutes((int) ($schedule->late_grace_minutes ?? 15));
+        return $now->lte($lateBoundary) ? 'present' : 'late';
+    }
+
     private function isProfilePictureValueTooLongForColumn(QueryException $e): bool
     {
         $m = $e->getMessage();
@@ -77,9 +89,21 @@ class StudentProfileController extends Controller
             ->orderBy('s.name')
             ->get();
 
+        $subjectIds = $subjects->pluck('id')->filter()->values()->all();
+        $schedulesBySubject = DB::table('subject_schedules')
+            ->whereIn('subject_id', $subjectIds)
+            ->where('is_active', 1)
+            ->orderBy('day_of_week')
+            ->orderBy('start_time')
+            ->get()
+            ->groupBy('subject_id');
+
         return response()->json([
             'ok' => true,
-            'data' => $subjects,
+            'data' => $subjects->map(function ($subject) use ($schedulesBySubject) {
+                $subject->schedules = ($schedulesBySubject[$subject->id] ?? collect())->values();
+                return $subject;
+            }),
         ]);
     }
 
@@ -193,6 +217,146 @@ class StudentProfileController extends Controller
         return response()->json([
             'ok' => true,
             'message' => 'PIN validated successfully',
+        ]);
+    }
+
+    public function openSessions(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user || ($user->role ?? 'student') !== 'student') {
+            return response()->json(['ok' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        $today = now();
+        $dayOfWeek = (int) $today->dayOfWeek;
+
+        $rows = DB::table('subject_enrollments as se')
+            ->join('subjects as s', 's.id', '=', 'se.subject_id')
+            ->join('subject_schedules as ss', 'ss.subject_id', '=', 's.id')
+            ->leftJoin('users as t', 't.id', '=', 's.teacher_user_id')
+            ->where('se.student_id', $user->id)
+            ->where('se.status', 'active')
+            ->where('ss.is_active', 1)
+            ->where('ss.day_of_week', $dayOfWeek)
+            ->select(
+                's.id',
+                's.code',
+                's.name',
+                's.section',
+                't.full_name as teacher_name',
+                'ss.start_time',
+                'ss.end_time',
+                'ss.late_grace_minutes'
+            )
+            ->orderBy('ss.start_time')
+            ->get();
+
+        $data = $rows->map(function ($row) use ($today) {
+            $status = $this->attendanceStatusFromSchedule($row, $today);
+            return [
+                'id' => $row->id,
+                'code' => $row->code,
+                'name' => $row->name,
+                'section' => $row->section,
+                'teacher_name' => $row->teacher_name,
+                'start_time' => substr((string) $row->start_time, 0, 5),
+                'end_time' => substr((string) $row->end_time, 0, 5),
+                'late_grace_minutes' => (int) ($row->late_grace_minutes ?? 15),
+                'window_status' => $status ? 'open' : 'closed',
+                'expected_status' => $status,
+            ];
+        });
+
+        return response()->json([
+            'ok' => true,
+            'data' => $data,
+        ]);
+    }
+
+    public function checkInSubject(Request $request, int $subjectId)
+    {
+        $user = Auth::user();
+        if (!$user || ($user->role ?? 'student') !== 'student') {
+            return response()->json(['ok' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        $payload = $request->validate([
+            'pin' => ['required', 'digits:4'],
+        ]);
+
+        $studentProfile = DB::table('student_profiles')->where('user_id', $user->id)->first();
+        if (!$studentProfile || !$studentProfile->pin || !Hash::check($payload['pin'], $studentProfile->pin)) {
+            return response()->json(['ok' => false, 'message' => 'Invalid PIN'], 401);
+        }
+
+        $isEnrolled = DB::table('subject_enrollments')
+            ->where('subject_id', $subjectId)
+            ->where('student_id', $user->id)
+            ->where('status', 'active')
+            ->exists();
+        if (! $isEnrolled) {
+            return response()->json(['ok' => false, 'message' => 'You are not enrolled in this subject'], 422);
+        }
+
+        $schedule = DB::table('subject_schedules')
+            ->where('subject_id', $subjectId)
+            ->where('day_of_week', now()->dayOfWeek)
+            ->where('is_active', 1)
+            ->orderBy('start_time')
+            ->first();
+        if (! $schedule) {
+            return response()->json(['ok' => false, 'message' => 'No class schedule available today'], 422);
+        }
+
+        $now = now();
+        $attendanceStatus = $this->attendanceStatusFromSchedule($schedule, $now);
+        if (! $attendanceStatus) {
+            return response()->json(['ok' => false, 'message' => 'Outside class schedule window'], 422);
+        }
+
+        $today = $now->toDateString();
+        $existing = DB::table('attendance_logs')
+            ->where('subject_id', $subjectId)
+            ->where('student_id', $user->id)
+            ->where('attendance_date', $today)
+            ->first();
+
+        if ($existing) {
+            DB::table('attendance_logs')
+                ->where('id', $existing->id)
+                ->update([
+                    'status' => $attendanceStatus,
+                    'source' => $existing->source === 'manual' ? 'manual' : 'auto',
+                    'mark_reason' => $existing->source === 'manual' ? $existing->mark_reason : 'PIN check-in',
+                    'scanned_at' => $now,
+                    'updated_at' => $now,
+                ]);
+        } else {
+            $subject = DB::table('subjects')->where('id', $subjectId)->select('teacher_user_id')->first();
+            DB::table('attendance_logs')->insert([
+                'subject_id' => $subjectId,
+                'student_id' => $user->id,
+                'teacher_user_id' => $subject->teacher_user_id ?? null,
+                'marked_by_user_id' => $user->id,
+                'status' => $attendanceStatus,
+                'source' => 'auto',
+                'mark_reason' => 'PIN check-in',
+                'attendance_date' => $today,
+                'scanned_at' => $now,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'message' => $attendanceStatus === 'late' ? 'Checked in (Late)' : 'Checked in (Present)',
+            'data' => [
+                'subject_id' => $subjectId,
+                'status' => $attendanceStatus,
+                'attendance_date' => $today,
+                'checked_in_at' => $now->toDateTimeString(),
+            ],
         ]);
     }
 

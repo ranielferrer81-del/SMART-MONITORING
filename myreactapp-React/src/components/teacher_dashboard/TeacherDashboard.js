@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { listSubjects, getSubjectEnrolledStudents, fetchMe, uploadTeacherProfilePicture, deleteTeacherProfilePicture, getStudentAttendanceHistory, fetchAllStudentsForTeacher, enrollStudentToSubject } from '../../api/client';
+import { listSubjects, getSubjectEnrolledStudents, fetchMe, uploadTeacherProfilePicture, deleteTeacherProfilePicture, getStudentAttendanceHistory, fetchAllStudentsForTeacher, enrollStudentToSubject, saveSubjectSchedules } from '../../api/client';
 import { getOnlineStudents, getIncognitoAlerts, getRealtimeBrowserActivity } from '../../api/browserMonitoring';
 import ThemeToggle from '../../components/ThemeToggle';
 
@@ -45,6 +45,7 @@ export default function TeacherDashboard() {
   const [availableStudents, setAvailableStudents] = useState([]);
   const [addStudentsTab, setAddStudentsTab] = useState('bsit');
   const [addStudentsSearchTerm, setAddStudentsSearchTerm] = useState('');
+  const [subjectSchedules, setSubjectSchedules] = useState([]);
   const fileInputRef = useRef(null);
 
   const getProfilePictureUrl = (profilePicture) => {
@@ -229,10 +230,42 @@ export default function TeacherDashboard() {
     setLoadingStudents(true);
     try {
       const res = await getSubjectEnrolledStudents(subject.id);
-      if (res?.ok) { setEnrolledStudents(res.data || []); }
+      if (res?.ok) {
+        setEnrolledStudents(res.data || []);
+        setSubjectSchedules(Array.isArray(res.schedules) ? res.schedules : []);
+      }
       else { setEnrolledStudents([]); }
     } catch (e) { console.log('Error loading enrolled students:', e); setEnrolledStudents([]); }
     finally { setLoadingStudents(false); }
+  };
+
+  const handleConfigureSchedule = async () => {
+    if (!selectedSubject) return;
+    const day = window.prompt('Day of week (0=Sun ... 6=Sat):', '1');
+    const start = window.prompt('Start time (HH:MM, 24h):', '08:00');
+    const end = window.prompt('End time (HH:MM, 24h):', '10:00');
+    const grace = window.prompt('Late grace minutes:', '15');
+    if (day === null || start === null || end === null) return;
+
+    const nextSchedules = [
+      ...subjectSchedules.filter((s) => Number(s.day_of_week) !== Number(day)),
+      {
+        day_of_week: Number(day),
+        start_time: start,
+        end_time: end,
+        late_grace_minutes: Number(grace || 15),
+        is_active: true,
+      },
+    ];
+
+    const response = await saveSubjectSchedules(selectedSubject.id, nextSchedules);
+    if (!response?.ok) {
+      alert(response.error || 'Failed to save schedule');
+      return;
+    }
+    const saved = response.data?.data || [];
+    setSubjectSchedules(saved);
+    alert('Schedule saved.');
   };
 
   const groupStudentsBySection = (students) => {
@@ -552,6 +585,9 @@ export default function TeacherDashboard() {
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
                         <span>Add Students</span>
                       </button>
+                      <button onClick={handleConfigureSchedule} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
+                        Set Schedule
+                      </button>
                       <span className="text-sm text-rose-100 bg-gradient-to-r from-rose-500 to-red-600 px-4 py-2 rounded-full font-semibold shadow-inner dark:text-rose-200">{enrolledStudents.length} {enrolledStudents.length === 1 ? 'Student' : 'Students'}</span>
                       <button onClick={() => { setShowStudentsModal(false); setSelectedSubject(null); setEnrolledStudents([]); }} className="text-rose-500 hover:text-red-600 transition-colors duration-300 p-2 hover:bg-rose-50 rounded-lg dark:hover:bg-rose-900/30">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -559,6 +595,11 @@ export default function TeacherDashboard() {
                     </div>
                   </div>
                   <div className="flex-1 overflow-y-auto p-6">
+                    {subjectSchedules.length > 0 && (
+                      <div className="mb-4 rounded-lg border border-indigo-200 bg-indigo-50/80 p-3 text-xs text-indigo-800 dark:border-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-200">
+                        Active Schedules: {subjectSchedules.map((s) => `D${s.day_of_week} ${String(s.start_time).slice(0, 5)}-${String(s.end_time).slice(0, 5)} (grace ${s.late_grace_minutes}m)`).join(' | ')}
+                      </div>
+                    )}
                     {loadingStudents ? (
                       <div className="text-center py-12 text-slate-600 dark:text-slate-400">Loading students...</div>
                     ) : enrolledStudents.length > 0 ? (

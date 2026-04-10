@@ -20,11 +20,13 @@ const EditAttendanceModal = ({
         if (!selectedSubject || !selectedStudent || !editingRecord) return;
         setUpdatingRecord(true);
         try {
+            const reason = window.prompt('Reason for update (optional):') || null;
             const res = await updateAttendanceRecord(
                 selectedSubject.id,
                 selectedStudent.id,
                 editingRecord.id,
-                newStatus
+                newStatus,
+                reason
             );
             if (res?.ok) {
                 // Refresh attendance history

@@ -179,6 +179,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/student/subjects', [StudentProfileController::class, 'enrolledSubjects']);
     // Student attendance per subject
     Route::get('/student/subjects/{id}/attendance', [StudentProfileController::class, 'attendanceForSubject']);
+    // Student attendance check-in flow
+    Route::get('/student/open-sessions', [StudentProfileController::class, 'openSessions']);
+    Route::post('/student/subjects/{id}/check-in', [StudentProfileController::class, 'checkInSubject']);
 
     // Teacher profile picture
     Route::post('/teacher/profile-picture', [TeacherProfileController::class, 'uploadProfilePicture']);
@@ -195,6 +198,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/subjects', [SubjectController::class, 'store']);
     Route::post('/subjects/{id}/enroll', [SubjectController::class, 'enrollStudent']);
     Route::post('/subjects/{id}/enroll-all', [SubjectController::class, 'enrollAllStudents']);
+    Route::put('/subjects/{id}/schedules', [SubjectController::class, 'upsertSchedules']);
     // Manual attendance controls (present / late / absent)
     Route::post('/subjects/{id}/attendance', [SubjectController::class, 'recordAttendance']);
     // Get attendance history for a student in a subject
