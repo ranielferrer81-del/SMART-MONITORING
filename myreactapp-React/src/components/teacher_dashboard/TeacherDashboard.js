@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { listSubjects, getSubjectEnrolledStudents, fetchMe, uploadTeacherProfilePicture, deleteTeacherProfilePicture, getStudentAttendanceHistory, fetchAllStudentsForTeacher, enrollStudentToSubject, saveSubjectSchedules } from '../../api/client';
+import { listSubjects, getSubjectEnrolledStudents, fetchMe, uploadTeacherProfilePicture, deleteTeacherProfilePicture, getStudentAttendanceHistory, fetchAllStudentsForTeacher, enrollStudentToSubject, saveSubjectSchedules, markStudentAttendance } from '../../api/client';
 import { getOnlineStudents, getIncognitoAlerts, getRealtimeBrowserActivity } from '../../api/browserMonitoring';
 import ThemeToggle from '../../components/ThemeToggle';
 
 // Extracted components
 import BrowserMonitoringSection from './BrowserMonitoringSection';
+import AttendanceSection from './sections/AttendanceSection';
+import ClassScheduleSection from './sections/ClassScheduleSection';
 import StudentProfileModal from './modals/StudentProfileModal';
 import EditAttendanceModal from './modals/EditAttendanceModal';
 import AttendanceHistoryModal from './modals/AttendanceHistoryModal';
@@ -224,9 +226,10 @@ export default function TeacherDashboard() {
     } else { setProfilePictureUrl(null); }
   }, [teacherInfo?.profilePicture]);
 
-  const handleSubjectClick = async (subject) => {
+  const loadSubjectContext = async (subject, openModal = false) => {
+    if (!subject) return;
     setSelectedSubject(subject);
-    setShowStudentsModal(true);
+    if (openModal) setShowStudentsModal(true);
     setLoadingStudents(true);
     try {
       const res = await getSubjectEnrolledStudents(subject.id);
@@ -239,33 +242,46 @@ export default function TeacherDashboard() {
     finally { setLoadingStudents(false); }
   };
 
-  const handleConfigureSchedule = async () => {
-    if (!selectedSubject) return;
-    const day = window.prompt('Day of week (0=Sun ... 6=Sat):', '1');
-    const start = window.prompt('Start time (HH:MM, 24h):', '08:00');
-    const end = window.prompt('End time (HH:MM, 24h):', '10:00');
-    const grace = window.prompt('Late grace minutes:', '15');
-    if (day === null || start === null || end === null) return;
+  const handleSubjectClick = async (subject) => {
+    await loadSubjectContext(subject, true);
+  };
 
-    const nextSchedules = [
-      ...subjectSchedules.filter((s) => Number(s.day_of_week) !== Number(day)),
-      {
-        day_of_week: Number(day),
-        start_time: start,
-        end_time: end,
-        late_grace_minutes: Number(grace || 15),
-        is_active: true,
-      },
-    ];
+  const handleSelectSubjectFromTabs = async (subjectId) => {
+    const subject = subjects.find((s) => Number(s.id) === Number(subjectId));
+    if (!subject) return;
+    await loadSubjectContext(subject, false);
+  };
 
-    const response = await saveSubjectSchedules(selectedSubject.id, nextSchedules);
+  const handleSaveSchedules = async (schedules) => {
+    if (!selectedSubject) {
+      return { ok: false, error: 'Select a subject first.' };
+    }
+    const response = await saveSubjectSchedules(selectedSubject.id, schedules);
     if (!response?.ok) {
-      alert(response.error || 'Failed to save schedule');
-      return;
+      return { ok: false, error: response.error || 'Failed to save schedule' };
     }
     const saved = response.data?.data || [];
     setSubjectSchedules(saved);
-    alert('Schedule saved.');
+    return { ok: true };
+  };
+
+  const handleMarkAttendanceFromTab = async (studentId, status, reason) => {
+    if (!selectedSubject) {
+      return { ok: false, error: 'Select a subject first.' };
+    }
+    try {
+      const res = await markStudentAttendance(selectedSubject.id, studentId, status, reason);
+      if (!res?.ok) {
+        return { ok: false, error: res?.message || 'Failed to mark attendance' };
+      }
+      const refreshed = await getSubjectEnrolledStudents(selectedSubject.id);
+      if (refreshed?.ok) {
+        setEnrolledStudents(refreshed.data || []);
+      }
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: error?.response?.data?.message || 'Failed to mark attendance' };
+    }
   };
 
   const groupStudentsBySection = (students) => {
@@ -363,6 +379,8 @@ export default function TeacherDashboard() {
             {[
               { id: 'profile', label: 'View Profile', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
               { id: 'subjects', label: 'My Subjects', icon: 'M12 6l7 2-7 2-7-2 7-2zM5 10l7 2 7-2M5 14l7 2 7-2' },
+              { id: 'attendance', label: 'Attendance', icon: 'M9 12l2 2 4-4m5 2a9 9 0 11-18 0 9 9 0 0118 0z' },
+              { id: 'schedule', label: 'Class Schedule', icon: 'M8 7V3m8 4V3m-9 8h10m-11 9h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2v11a2 2 0 002 2z' },
               { id: 'monitoring', label: 'Browser Monitoring', icon: 'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
             ].map((item) => (
               <button
@@ -397,10 +415,10 @@ export default function TeacherDashboard() {
                   </button>
                   <div>
                     <h2 className="text-xl lg:text-3xl font-bold bg-gradient-to-r from-rose-600 to-red-600 bg-clip-text text-transparent dark:from-rose-400 dark:to-red-400">
-                      {activeSection === 'profile' ? 'My Profile' : activeSection === 'subjects' ? 'My Subjects' : activeSection === 'monitoring' ? 'Browser Monitoring' : 'Professor Dashboard'}
+                      {activeSection === 'profile' ? 'My Profile' : activeSection === 'subjects' ? 'My Subjects' : activeSection === 'attendance' ? 'Attendance' : activeSection === 'schedule' ? 'Class Schedule' : activeSection === 'monitoring' ? 'Browser Monitoring' : 'Professor Dashboard'}
                     </h2>
                     <p className="text-xs lg:text-sm text-slate-700 dark:text-slate-200 font-medium mt-1">
-                      {activeSection === 'profile' ? 'View your professor profile and information' : activeSection === 'subjects' ? 'View and manage the subjects assigned to you' : activeSection === 'monitoring' ? 'Monitor student browser activity in your subjects' : 'Professor Dashboard'}
+                      {activeSection === 'profile' ? 'View your professor profile and information' : activeSection === 'subjects' ? 'View and manage the subjects assigned to you' : activeSection === 'attendance' ? 'Mark attendance quickly with a dedicated daily workspace' : activeSection === 'schedule' ? 'Set and update class day/time windows for attendance check-in' : activeSection === 'monitoring' ? 'Monitor student browser activity in your subjects' : 'Professor Dashboard'}
                     </p>
                   </div>
                 </div>
@@ -567,6 +585,33 @@ export default function TeacherDashboard() {
             )}
 
             {/* Browser Monitoring Section */}
+            {activeSection === 'attendance' && (
+              <AttendanceSection
+                subjects={subjects}
+                loadingSubjects={loadingSubjects}
+                selectedSubject={selectedSubject}
+                enrolledStudents={enrolledStudents}
+                loadingStudents={loadingStudents}
+                onSelectSubject={handleSelectSubjectFromTabs}
+                onMarkAttendance={handleMarkAttendanceFromTab}
+                onOpenHistory={(student) => {
+                  setSelectedStudent(student);
+                  setShowHistoryModal(true);
+                }}
+              />
+            )}
+
+            {activeSection === 'schedule' && (
+              <ClassScheduleSection
+                subjects={subjects}
+                loadingSubjects={loadingSubjects}
+                selectedSubject={selectedSubject}
+                subjectSchedules={subjectSchedules}
+                onSelectSubject={handleSelectSubjectFromTabs}
+                onSaveSchedules={handleSaveSchedules}
+              />
+            )}
+
             {activeSection === 'monitoring' && (
               <BrowserMonitoringSection subjects={subjects} loadingSubjects={loadingSubjects} isStudentOnline={isStudentOnline} hasIncognitoAlert={hasIncognitoAlert} handleViewActivity={handleViewActivity} />
             )}
@@ -585,8 +630,8 @@ export default function TeacherDashboard() {
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
                         <span>Add Students</span>
                       </button>
-                      <button onClick={handleConfigureSchedule} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
-                        Set Schedule
+                      <button onClick={() => { setShowStudentsModal(false); setActiveSection('schedule'); }} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
+                        Open Schedule
                       </button>
                       <span className="text-sm text-rose-100 bg-gradient-to-r from-rose-500 to-red-600 px-4 py-2 rounded-full font-semibold shadow-inner dark:text-rose-200">{enrolledStudents.length} {enrolledStudents.length === 1 ? 'Student' : 'Students'}</span>
                       <button onClick={() => { setShowStudentsModal(false); setSelectedSubject(null); setEnrolledStudents([]); }} className="text-rose-500 hover:text-red-600 transition-colors duration-300 p-2 hover:bg-rose-50 rounded-lg dark:hover:bg-rose-900/30">
