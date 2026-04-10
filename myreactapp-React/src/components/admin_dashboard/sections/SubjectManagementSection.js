@@ -99,32 +99,38 @@ const SubjectManagementSection = ({
                 </div>
 
                 {/* Create Subject Form */}
-                <div className="mb-6 rounded-2xl border border-slate-200/70 bg-white/60 p-4 shadow-inner transition-all duration-300 hover:shadow-lg dark:border-slate-700/60 dark:bg-slate-900/50">
+                <div className="mb-6 overflow-hidden rounded-2xl border border-rose-200/60 bg-gradient-to-br from-white/85 via-rose-50/60 to-indigo-50/60 shadow-[0_20px_45px_-18px_rgba(244,63,94,0.35)] transition-all duration-300 hover:shadow-[0_24px_55px_-18px_rgba(99,102,241,0.35)] dark:border-rose-800/40 dark:from-slate-900/80 dark:via-slate-900/70 dark:to-indigo-950/45">
+                    <div className="border-b border-rose-200/70 bg-white/70 px-4 py-3 backdrop-blur-sm dark:border-rose-900/60 dark:bg-slate-900/55">
+                        <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-100">Create Subject Details</h4>
+                        <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">Fill out the subject details and class schedule in one place.</p>
+                    </div>
+
+                    <div className="p-4">
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
                         <div>
-                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Subject Code</label>
+                            <label className="block text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300">Subject Code</label>
                             <input
                                 type="text"
                                 value={newSubject.code}
                                 onChange={(e) => setNewSubject((s) => ({ ...s, code: e.target.value }))}
-                                className={`mt-1 block w-full border rounded-md shadow-sm focus:ring-rose-500 focus:border-rose-500 transition-all duration-300 ${subErrors.code ? 'border-red-300 bg-red-50' : 'border-slate-300 dark:bg-slate-900/30 dark:border-slate-700/50 dark:text-slate-100'}`}
+                                className={`mt-1 block w-full rounded-lg border px-3 py-2.5 text-sm shadow-sm transition-all duration-300 focus:border-rose-500 focus:ring-2 focus:ring-rose-200 dark:focus:ring-rose-900/40 ${subErrors.code ? 'border-red-300 bg-red-50' : 'border-slate-300 bg-white/85 dark:border-slate-700/50 dark:bg-slate-900/50 dark:text-slate-100'}`}
                                 placeholder="example:311, 112, 211,"
                             />
                             {subErrors.code && <p className="mt-1 text-[10px] text-red-600">{subErrors.code}</p>}
                         </div>
                         <div className="sm:col-span-2 lg:col-span-2">
-                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Subject Name</label>
+                            <label className="block text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300">Subject Name</label>
                             <input
                                 type="text"
                                 value={newSubject.name}
                                 onChange={(e) => setNewSubject((s) => ({ ...s, name: e.target.value }))}
-                                className={`mt-1 block w-full border rounded-md shadow-sm focus:ring-rose-500 focus:border-rose-500 transition-all duration-300 ${subErrors.name ? 'border-red-300 bg-red-50' : 'border-slate-300 dark:bg-slate-900/30 dark:border-slate-700/50 dark:text-slate-100'}`}
+                                className={`mt-1 block w-full rounded-lg border px-3 py-2.5 text-sm shadow-sm transition-all duration-300 focus:border-rose-500 focus:ring-2 focus:ring-rose-200 dark:focus:ring-rose-900/40 ${subErrors.name ? 'border-red-300 bg-red-50' : 'border-slate-300 bg-white/85 dark:border-slate-700/50 dark:bg-slate-900/50 dark:text-slate-100'}`}
                                 placeholder="WEBDEV, IPTC, DBSA"
                             />
                             {subErrors.name && <p className="mt-1 text-[10px] text-red-600">{subErrors.name}</p>}
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Course</label>
+                            <label className="block text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300">Course</label>
                             <select
                                 value={newSubject.course}
                                 onChange={(e) => {
@@ -132,7 +138,7 @@ const SubjectManagementSection = ({
                                     const options = getAvailableSections(course);
                                     setNewSubject((s) => ({ ...s, course, section: options.includes(s.section) ? s.section : '' }));
                                 }}
-                                className={`mt-1 block w-full border rounded-md shadow-sm focus:ring-rose-500 focus:border-rose-500 transition-all duration-300 ${subErrors.course ? 'border-red-300 bg-red-50' : 'border-slate-300 dark:bg-slate-900/30 dark:border-slate-700/50 dark:text-slate-100'}`}
+                                className={`mt-1 block w-full rounded-lg border px-3 py-2.5 text-sm shadow-sm transition-all duration-300 focus:border-rose-500 focus:ring-2 focus:ring-rose-200 dark:focus:ring-rose-900/40 ${subErrors.course ? 'border-red-300 bg-red-50' : 'border-slate-300 bg-white/85 dark:border-slate-700/50 dark:bg-slate-900/50 dark:text-slate-100'}`}
                             >
                                 <option value="">Select</option>
                                 <option value="BSIT">BSIT</option>
@@ -142,12 +148,12 @@ const SubjectManagementSection = ({
                             {subErrors.course && <p className="mt-1 text-[10px] text-red-600">{subErrors.course}</p>}
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Section</label>
+                            <label className="block text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300">Section</label>
                             <select
                                 value={newSubject.section}
                                 onChange={(e) => setNewSubject((s) => ({ ...s, section: e.target.value }))}
                                 disabled={!newSubject.course}
-                                className={`mt-1 block w-full border rounded-md shadow-sm focus:ring-rose-500 focus:border-rose-500 transition-all duration-300 ${subErrors.section ? 'border-red-300 bg-red-50' : 'border-slate-300 dark:bg-slate-900/30 dark:border-slate-700/50 dark:text-slate-100'}`}
+                                className={`mt-1 block w-full rounded-lg border px-3 py-2.5 text-sm shadow-sm transition-all duration-300 focus:border-rose-500 focus:ring-2 focus:ring-rose-200 dark:focus:ring-rose-900/40 ${subErrors.section ? 'border-red-300 bg-red-50' : 'border-slate-300 bg-white/85 dark:border-slate-700/50 dark:bg-slate-900/50 dark:text-slate-100'}`}
                             >
                                 <option value="">{newSubject.course ? 'Select section' : 'Select course first'}</option>
                                 {getAvailableSections(newSubject.course).map((sec) => (
@@ -157,11 +163,11 @@ const SubjectManagementSection = ({
                             {subErrors.section && <p className="mt-1 text-[10px] text-red-600">{subErrors.section}</p>}
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Professor</label>
+                            <label className="block text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300">Professor</label>
                             <select
                                 value={newSubject.teacher_user_id}
                                 onChange={(e) => setNewSubject((s) => ({ ...s, teacher_user_id: e.target.value }))}
-                                className={`mt-1 block w-full border rounded-md shadow-sm focus:ring-rose-500 focus:border-rose-500 transition-all duration-300 ${subErrors.teacher_user_id ? 'border-red-300 bg-red-50' : 'border-slate-300 dark:bg-slate-900/30 dark:border-slate-700/50 dark:text-slate-100'}`}
+                                className={`mt-1 block w-full rounded-lg border px-3 py-2.5 text-sm shadow-sm transition-all duration-300 focus:border-rose-500 focus:ring-2 focus:ring-rose-200 dark:focus:ring-rose-900/40 ${subErrors.teacher_user_id ? 'border-red-300 bg-red-50' : 'border-slate-300 bg-white/85 dark:border-slate-700/50 dark:bg-slate-900/50 dark:text-slate-100'}`}
                             >
                                 <option value="">Select Professor</option>
                                 {teachers.map((teacher) => (
@@ -173,16 +179,16 @@ const SubjectManagementSection = ({
                             {subErrors.teacher_user_id && <p className="mt-1 text-[10px] text-red-600">{subErrors.teacher_user_id}</p>}
                         </div>
                     </div>
-                    <div className="mt-4 rounded-xl border border-indigo-200/70 bg-indigo-50/70 p-4 dark:border-indigo-800/70 dark:bg-indigo-900/20">
-                        <h4 className="text-sm font-semibold text-indigo-700 dark:text-indigo-200">Class Schedule (required for auto attendance)</h4>
-                        <p className="mt-1 text-xs text-indigo-600 dark:text-indigo-300">Set the day and time now so student PIN check-in only works during class.</p>
+                    <div className="mt-4 rounded-xl border border-indigo-200/70 bg-white/65 p-4 shadow-inner dark:border-indigo-800/70 dark:bg-slate-900/50">
+                        <h4 className="text-sm font-semibold text-indigo-700 dark:text-indigo-200">Class Schedule</h4>
+                        <p className="mt-1 text-xs text-indigo-600 dark:text-indigo-300">Required for auto attendance check-in.</p>
                         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                             <div>
-                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Day</label>
+                                <label className="block text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300">Day</label>
                                 <select
                                     value={newSubject.day_of_week || '1'}
                                     onChange={(e) => setNewSubject((s) => ({ ...s, day_of_week: e.target.value }))}
-                                    className="mt-1 block w-full rounded-md border border-slate-300 shadow-sm transition-all duration-300 focus:border-rose-500 focus:ring-rose-500 dark:border-slate-700/50 dark:bg-slate-900/30 dark:text-slate-100"
+                                    className="mt-1 block w-full rounded-lg border border-slate-300 bg-white/85 px-3 py-2.5 text-sm shadow-sm transition-all duration-300 focus:border-rose-500 focus:ring-2 focus:ring-rose-200 dark:border-slate-700/50 dark:bg-slate-900/50 dark:text-slate-100 dark:focus:ring-rose-900/40"
                                 >
                                     <option value="1">Monday</option>
                                     <option value="2">Tuesday</option>
@@ -194,46 +200,48 @@ const SubjectManagementSection = ({
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Start Time</label>
+                                <label className="block text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300">Start Time</label>
                                 <input
                                     type="time"
                                     value={newSubject.start_time || ''}
                                     onChange={(e) => setNewSubject((s) => ({ ...s, start_time: e.target.value }))}
-                                    className={`mt-1 block w-full rounded-md border shadow-sm transition-all duration-300 focus:border-rose-500 focus:ring-rose-500 ${subErrors.start_time ? 'border-red-300 bg-red-50' : 'border-slate-300 dark:border-slate-700/50 dark:bg-slate-900/30 dark:text-slate-100'}`}
+                                    className={`mt-1 block w-full rounded-lg border px-3 py-2.5 text-sm shadow-sm transition-all duration-300 focus:border-rose-500 focus:ring-2 focus:ring-rose-200 dark:focus:ring-rose-900/40 ${subErrors.start_time ? 'border-red-300 bg-red-50' : 'border-slate-300 bg-white/85 dark:border-slate-700/50 dark:bg-slate-900/50 dark:text-slate-100'}`}
                                 />
                                 {subErrors.start_time && <p className="mt-1 text-[10px] text-red-600">{subErrors.start_time}</p>}
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">End Time</label>
+                                <label className="block text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300">End Time</label>
                                 <input
                                     type="time"
                                     value={newSubject.end_time || ''}
                                     onChange={(e) => setNewSubject((s) => ({ ...s, end_time: e.target.value }))}
-                                    className={`mt-1 block w-full rounded-md border shadow-sm transition-all duration-300 focus:border-rose-500 focus:ring-rose-500 ${subErrors.end_time ? 'border-red-300 bg-red-50' : 'border-slate-300 dark:border-slate-700/50 dark:bg-slate-900/30 dark:text-slate-100'}`}
+                                    className={`mt-1 block w-full rounded-lg border px-3 py-2.5 text-sm shadow-sm transition-all duration-300 focus:border-rose-500 focus:ring-2 focus:ring-rose-200 dark:focus:ring-rose-900/40 ${subErrors.end_time ? 'border-red-300 bg-red-50' : 'border-slate-300 bg-white/85 dark:border-slate-700/50 dark:bg-slate-900/50 dark:text-slate-100'}`}
                                 />
                                 {subErrors.end_time && <p className="mt-1 text-[10px] text-red-600">{subErrors.end_time}</p>}
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Late Grace (minutes)</label>
+                                <label className="block text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300">Late Grace (minutes)</label>
                                 <input
                                     type="number"
                                     min="0"
                                     max="120"
                                     value={newSubject.late_grace_minutes || '15'}
                                     onChange={(e) => setNewSubject((s) => ({ ...s, late_grace_minutes: e.target.value }))}
-                                    className="mt-1 block w-full rounded-md border border-slate-300 shadow-sm transition-all duration-300 focus:border-rose-500 focus:ring-rose-500 dark:border-slate-700/50 dark:bg-slate-900/30 dark:text-slate-100"
+                                    className="mt-1 block w-full rounded-lg border border-slate-300 bg-white/85 px-3 py-2.5 text-sm shadow-sm transition-all duration-300 focus:border-rose-500 focus:ring-2 focus:ring-rose-200 dark:border-slate-700/50 dark:bg-slate-900/50 dark:text-slate-100 dark:focus:ring-rose-900/40"
                                 />
                             </div>
                         </div>
                     </div>
-                    <div className="flex justify-end mt-3">
+                    <div className="mt-4 flex items-center justify-between gap-3 border-t border-slate-200/70 pt-3 dark:border-slate-700/60">
+                        <p className="text-xs text-slate-600 dark:text-slate-300">Tip: keep start/end times strict so attendance windows stay accurate.</p>
                         <button
                             onClick={handleCreateSubject}
-                            className="px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-rose-600 via-red-600 to-red-600 hover:from-rose-700 hover:via-red-700 hover:to-red-700 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-rose-500/40"
+                            className="rounded-xl bg-gradient-to-r from-rose-600 via-red-600 to-red-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-rose-500/30 transition-all duration-300 hover:scale-[1.02] hover:from-rose-700 hover:via-red-700 hover:to-red-700 hover:shadow-rose-500/45"
                         >
                             Add Subject
                         </button>
                     </div>
+                </div>
                 </div>
 
                 {/* Subjects Table */}
