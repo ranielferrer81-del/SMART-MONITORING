@@ -152,7 +152,6 @@ use App\Http\Controllers\Api\LabComputerController;
 use App\Http\Controllers\Api\LabGatewayController;
 
 Route::post('/login', [AuthController::class, 'login']);
-Route::post('/validate-barcode', [AuthController::class, 'validateBarcode']);
 Route::post('/validate-email', [AuthController::class, 'validateEmail']);
 Route::post('/verify-verification-code', [AuthController::class, 'verifyVerificationCode']);
 Route::post('/resend-verification-code', [AuthController::class, 'resendVerificationCode']);
