@@ -16,13 +16,13 @@ Route::get('/', function () {
     return response()->json(['status' => 'ok', 'message' => 'Laravel is running']);
 });
 
-// Simple health check (no database needed)
+// Simple health check (no database needed).
+// Keep this endpoint minimal so platform health checks never fail on app config edge cases.
 Route::get('/health', function () {
     return response()->json([
         'status' => 'ok',
-        'time' => now()->toIso8601String(),
         'php' => PHP_VERSION,
-    ]);
+    ], 200);
 });
 
 // Serve storage files with proper headers (fixes ERR_BLOCKED_BY_ORB with php artisan serve)
