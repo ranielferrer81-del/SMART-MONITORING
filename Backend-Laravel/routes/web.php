@@ -21,23 +21,3 @@ Route::get('/', function () {
 // Serve storage files with proper headers (fixes ERR_BLOCKED_BY_ORB with php artisan serve)
 Route::get('/storage/{path}', [StorageController::class, 'serve'])->where('path', '.*');
 
-// Easy way to run migrations on Railway without the terminal
-Route::get('/run-migrations-for-railway', function () {
-    try {
-        // Only run our new lab tracking migrations (old tables already exist on Railway)
-        \Illuminate\Support\Facades\Artisan::call('migrate', [
-            '--force' => true,
-            '--path' => [
-                'database/migrations/2026_02_26_000001_create_lab_computers_table.php',
-                'database/migrations/2026_02_26_000002_add_computer_name_to_monitoring_sessions_table.php',
-                'database/migrations/2026_03_24_000001_create_lab_gateways_table.php',
-                'database/migrations/2026_03_24_000002_update_lab_computers_for_composite_identity.php',
-                'database/migrations/2026_03_24_000003_add_gateway_fields_to_monitoring_sessions_table.php',
-                'database/migrations/2026_03_28_120000_seed_default_lab_gateways_if_missing.php',
-            ],
-        ]);
-        return "Migration successful! Result: " . \Illuminate\Support\Facades\Artisan::output();
-    } catch (\Exception $e) {
-        return "Migration failed: " . $e->getMessage();
-    }
-});
