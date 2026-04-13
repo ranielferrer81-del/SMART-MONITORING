@@ -34,7 +34,7 @@ fi
 export CACHE_STORE="${CACHE_STORE:-file}"
 export SESSION_DRIVER="${SESSION_DRIVER:-file}"
 export APP_ENV="${APP_ENV:-production}"
-export APP_DEBUG="${APP_DEBUG:-true}"
+export APP_DEBUG="${APP_DEBUG:-false}"
 export APP_URL="${APP_URL:-https://smart-monitoring-production.up.railway.app}"
 
 # ---------------------------------------------------------------
@@ -117,9 +117,14 @@ php artisan view:clear 2>/dev/null || true
 # 6b. Migrations (e.g. profile_picture LONGTEXT) — must not abort boot (set -e).
 # Use `if ! cmd` so migrate failure logs a warning but php artisan serve still runs.
 # ---------------------------------------------------------------
-echo "Running database migrations..."
-if ! php artisan migrate --force --no-interaction; then
-    echo "WARNING: php artisan migrate failed — check DB/logs. API will still start; run migrate manually if needed."
+RUN_MIGRATIONS_ON_BOOT="${RUN_MIGRATIONS_ON_BOOT:-false}"
+if [ "$RUN_MIGRATIONS_ON_BOOT" = "true" ]; then
+    echo "Running database migrations..."
+    if ! php artisan migrate --force --no-interaction; then
+        echo "WARNING: php artisan migrate failed — check DB/logs. API will still start; run migrate manually if needed."
+    fi
+else
+    echo "Skipping automatic migrations on boot (RUN_MIGRATIONS_ON_BOOT=false)."
 fi
 
 echo "Optimizing for production..."
@@ -130,8 +135,13 @@ php artisan route:cache 2>/dev/null || true
 # ---------------------------------------------------------------
 # 7. Test database connection before starting the server
 # ---------------------------------------------------------------
-echo "Testing database connection..."
-php artisan tinker --execute="try { DB::connection()->getPdo(); echo 'DB OK: connected to ' . DB::connection()->getDatabaseName(); } catch(Exception \$e) { echo 'DB WARN: ' . \$e->getMessage(); }" 2>/dev/null || echo "DB test skipped (tinker not available)"
+BOOT_DB_CHECK="${BOOT_DB_CHECK:-false}"
+if [ "$BOOT_DB_CHECK" = "true" ]; then
+    echo "Testing database connection..."
+    php artisan tinker --execute="try { DB::connection()->getPdo(); echo 'DB OK: connected to ' . DB::connection()->getDatabaseName(); } catch(Exception \$e) { echo 'DB WARN: ' . \$e->getMessage(); }" 2>/dev/null || echo "DB test skipped (tinker not available)"
+else
+    echo "Skipping boot DB check (BOOT_DB_CHECK=false)."
+fi
 
 # ---------------------------------------------------------------
 # 8. Start the server
