@@ -16,14 +16,7 @@ Route::get('/', function () {
     return response()->json(['status' => 'ok', 'message' => 'Laravel is running']);
 });
 
-// Simple health check (no database needed).
-// Keep this endpoint minimal so platform health checks never fail on app config edge cases.
-Route::get('/health', function () {
-    return response()->json([
-        'status' => 'ok',
-        'php' => PHP_VERSION,
-    ], 200);
-});
+// /health is handled by Laravel's built-in health route in bootstrap/app.php.
 
 // Serve storage files with proper headers (fixes ERR_BLOCKED_BY_ORB with php artisan serve)
 Route::get('/storage/{path}', [StorageController::class, 'serve'])->where('path', '.*');
