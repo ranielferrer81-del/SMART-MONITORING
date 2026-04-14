@@ -18,9 +18,16 @@ export DB_DATABASE="${DB_DATABASE:-${MYSQLDATABASE:-railway}}"
 export DB_USERNAME="${DB_USERNAME:-${MYSQLUSER:-root}}"
 export DB_PASSWORD="${DB_PASSWORD:-${MYSQLPASSWORD:-${MYSQL_ROOT_PASSWORD:-}}}"
 
-# Always parse MYSQL_URL if it is provided by Railway, as it contains full credentials.
-# Use PHP's URL parser to correctly handle encoded/special characters in passwords.
-if [ -n "$MYSQL_URL" ]; then
+# Parse Railway DB URL when provided.
+# IMPORTANT: Prefer MYSQL_PUBLIC_URL for cross-platform access (Render -> Railway).
+# MYSQL_URL / MYSQLHOST often point to railway.internal and are unreachable outside Railway.
+if [ -n "${MYSQL_PUBLIC_URL:-}" ]; then
+    export DB_HOST=$(php -r '$u=parse_url(getenv("MYSQL_PUBLIC_URL")); echo $u["host"] ?? "";')
+    export DB_PORT=$(php -r '$u=parse_url(getenv("MYSQL_PUBLIC_URL")); echo $u["port"] ?? "3306";')
+    export DB_DATABASE=$(php -r '$u=parse_url(getenv("MYSQL_PUBLIC_URL")); echo isset($u["path"]) ? ltrim($u["path"], "/") : "";')
+    export DB_USERNAME=$(php -r '$u=parse_url(getenv("MYSQL_PUBLIC_URL")); echo isset($u["user"]) ? rawurldecode($u["user"]) : "";')
+    export DB_PASSWORD=$(php -r '$u=parse_url(getenv("MYSQL_PUBLIC_URL")); echo isset($u["pass"]) ? rawurldecode($u["pass"]) : "";')
+elif [ -n "${MYSQL_URL:-}" ]; then
     export DB_HOST=$(php -r '$u=parse_url(getenv("MYSQL_URL")); echo $u["host"] ?? "";')
     export DB_PORT=$(php -r '$u=parse_url(getenv("MYSQL_URL")); echo $u["port"] ?? "3306";')
     export DB_DATABASE=$(php -r '$u=parse_url(getenv("MYSQL_URL")); echo isset($u["path"]) ? ltrim($u["path"], "/") : "";')

@@ -39,8 +39,16 @@ $dbDatabase = g('DB_DATABASE', g('MYSQLDATABASE', 'railway'));
 $dbUsername = g('DB_USERNAME', g('MYSQLUSER', 'root'));
 $dbPassword = g('DB_PASSWORD', g('MYSQLPASSWORD', g('MYSQL_ROOT_PASSWORD', '')));
 
-if (getenv('MYSQL_URL') !== false && getenv('MYSQL_URL') !== '') {
-    $u = parse_url((string) getenv('MYSQL_URL'));
+// Prefer public URL when running backend outside Railway private network (e.g. Render).
+$mysqlUrl = '';
+if (getenv('MYSQL_PUBLIC_URL') !== false && getenv('MYSQL_PUBLIC_URL') !== '') {
+    $mysqlUrl = (string) getenv('MYSQL_PUBLIC_URL');
+} elseif (getenv('MYSQL_URL') !== false && getenv('MYSQL_URL') !== '') {
+    $mysqlUrl = (string) getenv('MYSQL_URL');
+}
+
+if ($mysqlUrl !== '') {
+    $u = parse_url($mysqlUrl);
     if ($u !== false) {
         $dbHost = $u['host'] ?? $dbHost;
         $dbPort = isset($u['port']) ? (string) $u['port'] : $dbPort;
