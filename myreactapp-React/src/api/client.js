@@ -19,7 +19,7 @@ function formatAxiosValidationError(error) {
 export const api = axios.create({
   baseURL: API_BASE,
   headers: { 'Content-Type': 'application/json' },
-  timeout: 30000, // Increased to 30 seconds to handle slow backend
+  timeout: 90000, // Render free instances can cold-start in ~50s; keep enough buffer
 });
 
 // Add token to requests
