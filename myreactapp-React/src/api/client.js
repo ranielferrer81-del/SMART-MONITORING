@@ -44,8 +44,34 @@ api.interceptors.request.use((config) => {
 export async function loginRequest(email, password) {
   try {
     const res = await api.post('/api/login', { email, password });
-    console.log('Login success:', res.data);
-    return { ok: true, data: res.data };
+    const contentType = String(res.headers?.['content-type'] || '');
+    const responseData = res.data;
+    const looksLikeHtml =
+      typeof responseData === 'string' &&
+      /<!doctype html>|<html[\s>]/i.test(responseData);
+    const missingAuthPayload =
+      !responseData ||
+      typeof responseData !== 'object' ||
+      !responseData.token ||
+      !responseData.user;
+
+    if (looksLikeHtml || missingAuthPayload) {
+      console.log('Login invalid payload:', {
+        contentType,
+        preview:
+          typeof responseData === 'string'
+            ? responseData.slice(0, 120)
+            : responseData,
+      });
+      return {
+        ok: false,
+        error:
+          'Login endpoint returned invalid response. Check REACT_APP_API_BASE and backend /api/login route.',
+      };
+    }
+
+    console.log('Login success:', responseData);
+    return { ok: true, data: responseData };
   } catch (error) {
     // Detailed debug output
     console.log('Login error:', {

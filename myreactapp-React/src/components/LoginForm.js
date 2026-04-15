@@ -2,6 +2,25 @@ import React, { useState } from 'react';
 import { loginRequest } from '../api/client';
 import ThemeToggle from './ThemeToggle';
 
+const roleDefaultRoutes = {
+  admin: '/admin/dashboard',
+  teacher: '/teacher/dashboard',
+  student: '/student/dashboard',
+};
+
+function resolveLoginRoute(payload) {
+  const route = payload?.route;
+  if (
+    route === '/admin/dashboard' ||
+    route === '/teacher/dashboard' ||
+    route === '/student/dashboard'
+  ) {
+    return route;
+  }
+  const role = String(payload?.user?.role || '').toLowerCase();
+  return roleDefaultRoutes[role] || '/';
+}
+
 const LoginForm = () => {
   const [formData, setFormData] = useState({
     email: '',
@@ -78,7 +97,7 @@ const LoginForm = () => {
       } catch (_) { }
 
       // Redirect to role-based dashboard
-      window.location.href = result.data.route || '/';
+      window.location.href = resolveLoginRoute(result.data);
     } catch (err) {
       console.error('Login error:', err);
       alert('Network error. Check console for details.');
