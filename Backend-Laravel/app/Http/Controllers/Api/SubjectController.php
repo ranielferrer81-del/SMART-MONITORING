@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class SubjectController extends Controller
 {
@@ -23,6 +24,10 @@ class SubjectController extends Controller
 
     private function getSubjectSchedules(int $subjectId)
     {
+        if (! Schema::hasTable('subject_schedules')) {
+            return collect();
+        }
+
         return DB::table('subject_schedules')
             ->where('subject_id', $subjectId)
             ->where('is_active', 1)
@@ -539,6 +544,13 @@ class SubjectController extends Controller
     {
         $auth = $this->ensureTeacherOrAdmin();
         $this->assertSubjectAccess($subjectId, $auth);
+
+        if (! Schema::hasTable('subject_schedules')) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Schedule tables are missing. Run: php artisan migrate',
+            ], 503);
+        }
 
         $data = $request->validate([
             'schedules' => ['required', 'array'],
