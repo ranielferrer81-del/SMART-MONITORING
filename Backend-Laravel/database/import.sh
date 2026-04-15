@@ -19,7 +19,8 @@ if [ -z "$HOST" ] || [ -z "$USER" ] || [ -z "$DBNAME" ]; then
   exit 1
 fi
 
-SQL_FILE="/app/database/legacy_seed.sql"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SQL_FILE="${SCRIPT_DIR}/legacy_seed.sql"
 
 if [ ! -f "$SQL_FILE" ]; then
   echo "ERROR: SQL file not found at $SQL_FILE"
