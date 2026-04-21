@@ -174,11 +174,14 @@ function setGatewayIp(ip) {
 
 // Set API base URL (called from main.ts, reads from .env)
 function setApiBaseUrl(url) {
-    if (url) {
-        // Normalize: ensure it ends with /api
-        apiBaseUrl = url.replace(/\/+$/, '') + '/api';
-        console.log('🌐 API Base URL set:', apiBaseUrl);
+    if (!url) return;
+    let base = String(url).trim().replace(/\/+$/, '');
+    // Avoid http://host:8000/api + '/api' when .env already includes /api (double prefix → 404 on client too)
+    if (!/\/api$/i.test(base)) {
+        base = base + '/api';
     }
+    apiBaseUrl = base;
+    console.log('🌐 API Base URL set:', apiBaseUrl);
 }
 
 module.exports = {

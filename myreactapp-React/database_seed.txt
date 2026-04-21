@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 17, 2026 at 07:58 PM
+-- Generation Time: Mar 28, 2026 at 10:47 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -114,26 +114,6 @@ CREATE TABLE `browser_activities` (
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `browser_activities`
---
-
-INSERT INTO `browser_activities` (`id`, `student_user_id`, `url`, `page_title`, `visit_timestamp`, `duration_seconds`, `tab_id`, `is_incognito`, `session_id`, `created_at`, `updated_at`) VALUES
-(1585, 38, 'http://localhost/phpmyadmin/index.php?route=/sql&pos=0&db=sia_app&table=browser_activities', 'localhost / 127.0.0.1 / sia_app / browser_activities | phpMyAdmin 5.2.1', '2026-02-12 22:41:43', NULL, '602570674', 0, 17, '2026-02-12 22:41:44', '2026-02-12 22:41:44'),
-(1586, 38, 'http://localhost/phpmyadmin/index.php?route=/sql&pos=0&db=sia_app&table=browser_activities', 'localhost / 127.0.0.1 / sia_app / browser_activities | phpMyAdmin 5.2.1', '2026-02-12 22:41:44', NULL, '602570674', 0, 17, '2026-02-12 22:41:44', '2026-02-12 22:41:44'),
-(1587, 38, 'http://localhost/phpmyadmin/index.php?route=/sql&pos=0&db=sia_app&table=browser_activities', 'localhost / 127.0.0.1 / sia_app / browser_activities | phpMyAdmin 5.2.1', '2026-02-12 22:41:49', NULL, '602570674', 0, 17, '2026-02-12 22:41:50', '2026-02-12 22:41:50'),
-(1588, 38, 'http://localhost/phpmyadmin/index.php?route=/sql&pos=0&db=sia_app&table=browser_activities', 'localhost / 127.0.0.1 / sia_app / browser_activities | phpMyAdmin 5.2.1', '2026-02-12 22:41:53', NULL, '602570674', 0, 17, '2026-02-12 22:41:56', '2026-02-12 22:41:56'),
-(1589, 38, 'http://localhost/phpmyadmin/index.php?route=/sql&pos=0&db=sia_app&table=email_verification_codes', 'localhost / 127.0.0.1 / sia_app / browser_activities | phpMyAdmin 5.2.1', '2026-02-12 22:41:56', NULL, '602570674', 0, 17, '2026-02-12 22:41:58', '2026-02-12 22:41:58'),
-(1590, 38, 'http://localhost/phpmyadmin/index.php?route=/sql&pos=0&db=sia_app&table=email_verification_codes', 'localhost / 127.0.0.1 / sia_app / email_verification_codes | phpMyAdmin 5.2.1', '2026-02-12 22:41:57', NULL, '602570674', 0, 17, '2026-02-12 22:41:58', '2026-02-12 22:41:58'),
-(1591, 38, 'http://localhost/phpmyadmin/index.php?route=/sql&pos=0&db=sia_app&table=email_verification_codes', 'localhost / 127.0.0.1 / sia_app / email_verification_codes | phpMyAdmin 5.2.1', '2026-02-12 22:42:02', NULL, '602570674', 0, 17, '2026-02-12 22:42:03', '2026-02-12 22:42:03'),
-(1592, 38, 'http://localhost/phpmyadmin/index.php?route=/sql&pos=0&db=sia_app&table=email_verification_codes', 'localhost / 127.0.0.1 / sia_app / email_verification_codes | phpMyAdmin 5.2.1', '2026-02-12 22:42:05', NULL, '602570674', 0, 17, '2026-02-12 22:42:06', '2026-02-12 22:42:06'),
-(1593, 38, 'http://localhost:3000/teacher/dashboard', 'Sia Web', '2026-02-12 22:42:08', NULL, '602570652', 0, 17, '2026-02-12 22:42:10', '2026-02-12 22:42:10'),
-(1594, 38, 'http://localhost:3000/teacher/dashboard', 'Sia Web', '2026-02-12 23:02:30', NULL, '602570652', 0, 18, '2026-02-12 23:02:32', '2026-02-12 23:02:32'),
-(1595, 38, 'http://localhost:3000/teacher/dashboard', 'Sia Web', '2026-02-12 23:02:30', NULL, '602570652', 0, 18, '2026-02-12 23:02:33', '2026-02-12 23:02:33'),
-(1597, 38, 'https://www.youtube.com/', 'YouTube', '2026-02-12 23:03:10', NULL, '602570675', 0, 18, '2026-02-12 23:03:12', '2026-02-12 23:03:12'),
-(1598, 38, 'http://localhost:3000/teacher/dashboard', 'Sia Web', '2026-02-12 23:03:11', NULL, '602570652', 0, 18, '2026-02-12 23:03:13', '2026-02-12 23:03:13'),
-(1599, 38, 'FORCE_CLOSE_TAB_COMMAND', 'https://www.youtube.com/', '2026-02-12 23:03:39', NULL, NULL, 0, NULL, '2026-02-12 23:03:39', '2026-02-12 23:03:39');
-
 -- --------------------------------------------------------
 
 --
@@ -199,6 +179,30 @@ INSERT INTO `bsit_students` (`user_id`, `email`, `full_name`, `student_number`, 
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `cache`
+--
+
+CREATE TABLE `cache` (
+  `key` varchar(255) NOT NULL,
+  `value` mediumtext NOT NULL,
+  `expiration` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `cache_locks`
+--
+
+CREATE TABLE `cache_locks` (
+  `key` varchar(255) NOT NULL,
+  `owner` varchar(255) NOT NULL,
+  `expiration` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `course_sections`
 --
 
@@ -233,7 +237,24 @@ CREATE TABLE `email_verification_codes` (
 INSERT INTO `email_verification_codes` (`id`, `email`, `code`, `used`, `expires_at`, `created_at`, `updated_at`) VALUES
 (45, 'kaylepedroza@gmail.com', '959207', 1, '2026-02-13 06:43:47', '2026-02-12 22:43:18', '2026-02-12 22:43:47'),
 (46, 'kaylepedroza@gmail.com', '040087', 1, '2026-02-13 06:59:48', '2026-02-12 22:59:29', '2026-02-12 22:59:48'),
-(47, 'kaylepedroza@gmail.com', '325594', 1, '2026-02-13 07:01:36', '2026-02-12 23:01:14', '2026-02-12 23:01:36');
+(47, 'kaylepedroza@gmail.com', '325594', 1, '2026-02-13 07:01:36', '2026-02-12 23:01:14', '2026-02-12 23:01:36'),
+(48, 'kaylepedroza@gmail.com', '441167', 1, '2026-02-26 15:28:35', '2026-02-26 07:28:07', '2026-02-26 07:28:35');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `failed_jobs`
+--
+
+CREATE TABLE `failed_jobs` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `uuid` varchar(255) NOT NULL,
+  `connection` text NOT NULL,
+  `queue` text NOT NULL,
+  `payload` longtext NOT NULL,
+  `exception` longtext NOT NULL,
+  `failed_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -250,6 +271,86 @@ CREATE TABLE `incognito_alerts` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `jobs`
+--
+
+CREATE TABLE `jobs` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `queue` varchar(255) NOT NULL,
+  `payload` longtext NOT NULL,
+  `attempts` tinyint(3) UNSIGNED NOT NULL,
+  `reserved_at` int(10) UNSIGNED DEFAULT NULL,
+  `available_at` int(10) UNSIGNED NOT NULL,
+  `created_at` int(10) UNSIGNED NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `job_batches`
+--
+
+CREATE TABLE `job_batches` (
+  `id` varchar(255) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `total_jobs` int(11) NOT NULL,
+  `pending_jobs` int(11) NOT NULL,
+  `failed_jobs` int(11) NOT NULL,
+  `failed_job_ids` longtext NOT NULL,
+  `options` mediumtext DEFAULT NULL,
+  `cancelled_at` int(11) DEFAULT NULL,
+  `created_at` int(11) NOT NULL,
+  `finished_at` int(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `lab_computers`
+--
+
+CREATE TABLE `lab_computers` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `computer_name` varchar(255) NOT NULL,
+  `display_name` varchar(255) DEFAULT NULL,
+  `laboratory_room` varchar(255) NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `lab_computers`
+--
+
+INSERT INTO `lab_computers` (`id`, `computer_name`, `display_name`, `laboratory_room`, `created_at`, `updated_at`) VALUES
+(1, 'RANIEL-D15', 'RANIEL-D15', 'Computer Lab 1', '2026-02-26 07:32:27', '2026-02-26 07:32:27');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `lab_gateways`
+--
+
+CREATE TABLE `lab_gateways` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `gateway_ip` varchar(45) NOT NULL,
+  `laboratory_room` varchar(255) NOT NULL,
+  `description` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `lab_gateways`
+--
+
+INSERT INTO `lab_gateways` (`id`, `gateway_ip`, `laboratory_room`, `description`, `created_at`, `updated_at`) VALUES
+(1, '192.168.1.1', 'Laboratory 1', 'Main home router / primary Wi‑Fi (typical 192.168.1.x LAN)', '2026-03-24 11:41:28', '2026-03-24 11:41:28'),
+(2, '192.168.110.1', 'Laboratory 2', 'Second-router subnet (your test lab network 192.168.110.x)', '2026-03-24 11:41:28', '2026-03-24 11:41:28');
 
 -- --------------------------------------------------------
 
@@ -295,7 +396,25 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES
 (3, '2025_11_16_190848_add_profile_picture_to_teacher_profiles_table', 2),
 (4, '2026_01_19_000000_create_monitoring_sessions_table', 3),
 (5, '2026_01_19_000001_create_browser_activities_table', 4),
-(6, '2026_01_19_000002_create_incognito_alerts_table', 5);
+(6, '2026_01_19_000002_create_incognito_alerts_table', 5),
+(7, '2026_02_26_000001_create_lab_computers_table', 6),
+(8, '2026_02_26_000002_add_computer_name_to_monitoring_sessions_table', 6),
+(9, '0001_01_01_000000_create_users_table', 7),
+(10, '0001_01_01_000001_create_cache_table', 7),
+(11, '0001_01_01_000002_create_jobs_table', 7),
+(12, '2024_01_01_000000_create_email_verification_codes_table', 7),
+(13, '2025_10_15_223801_create_personal_access_tokens_table', 7),
+(14, '2025_11_12_053736_drop_auto_enrollment_trigger', 7),
+(15, '2025_12_04_000001_add_pin_to_student_profiles_table', 7),
+(17, '2026_01_16_000000_create_email_verification_codes_table', 7),
+(18, '2026_01_21_032638_create_master_subjects_table', 7),
+(19, '2026_01_21_032751_add_master_subject_id_to_subjects_table', 7),
+(20, '2026_01_30_193026_add_current_active_url_to_monitoring_sessions_table', 7),
+(21, '2026_01_30_200443_add_open_tabs_to_monitoring_sessions_table', 7),
+(22, '2026_03_22_120000_change_profile_picture_columns_to_longtext', 7),
+(23, '2026_03_24_000001_create_lab_gateways_table', 7),
+(24, '2026_03_24_000002_update_lab_computers_for_composite_identity', 7),
+(25, '2026_03_24_000003_add_gateway_fields_to_monitoring_sessions_table', 7);
 
 -- --------------------------------------------------------
 
@@ -309,7 +428,11 @@ CREATE TABLE `monitoring_sessions` (
   `session_start` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `session_end` timestamp NULL DEFAULT NULL,
   `device_info` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`device_info`)),
+  `computer_name` varchar(255) DEFAULT NULL,
+  `gateway_ip` varchar(45) DEFAULT NULL,
+  `laboratory_room` varchar(255) DEFAULT NULL,
   `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `open_tabs` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`open_tabs`)),
   `session_name` varchar(255) DEFAULT NULL,
   `created_by` int(10) UNSIGNED DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
@@ -320,19 +443,31 @@ CREATE TABLE `monitoring_sessions` (
 -- Dumping data for table `monitoring_sessions`
 --
 
-INSERT INTO `monitoring_sessions` (`id`, `student_user_id`, `session_start`, `session_end`, `device_info`, `is_active`, `session_name`, `created_by`, `created_at`, `updated_at`) VALUES
-(7, 38, '2026-02-07 05:12:25', '2026-02-06 21:12:25', NULL, 0, 'Auto-started Session', 38, '2026-02-06 11:26:13', '2026-02-06 21:12:25'),
-(8, 38, '2026-02-08 02:23:18', '2026-02-07 18:23:18', NULL, 0, 'Auto-started Session', 38, '2026-02-07 18:22:21', '2026-02-07 18:23:18'),
-(9, 38, '2026-02-08 13:29:29', '2026-02-08 05:29:29', NULL, 0, 'Auto-started Session', 38, '2026-02-07 18:23:22', '2026-02-08 05:29:29'),
-(10, 38, '2026-02-09 14:45:39', '2026-02-09 06:45:39', NULL, 0, 'Auto-started Session', 38, '2026-02-08 06:16:20', '2026-02-09 06:45:39'),
-(11, 38, '2026-02-09 17:02:22', '2026-02-09 09:02:22', NULL, 0, 'Auto-started Session', 38, '2026-02-09 09:00:44', '2026-02-09 09:02:22'),
-(12, 38, '2026-02-09 17:10:55', '2026-02-09 09:10:55', NULL, 0, 'Auto-started Session', 38, '2026-02-09 09:08:45', '2026-02-09 09:10:55'),
-(13, 38, '2026-02-09 17:20:26', '2026-02-09 09:20:26', NULL, 0, 'Auto-started Session', 38, '2026-02-09 09:11:04', '2026-02-09 09:20:26'),
-(14, 38, '2026-02-09 17:26:25', '2026-02-09 09:26:25', NULL, 0, 'Auto-started Session', 38, '2026-02-09 09:20:28', '2026-02-09 09:26:25'),
-(15, 38, '2026-02-11 18:48:18', '2026-02-11 10:48:18', NULL, 0, 'Auto-started Session', 38, '2026-02-11 10:46:29', '2026-02-11 10:48:18'),
-(16, 38, '2026-02-13 04:44:51', '2026-02-12 20:44:51', NULL, 0, 'Auto-started Session', 38, '2026-02-11 10:48:19', '2026-02-12 20:44:51'),
-(17, 38, '2026-02-13 06:44:18', '2026-02-12 22:44:18', NULL, 0, 'Auto-started Session', 38, '2026-02-12 20:44:55', '2026-02-12 22:44:18'),
-(18, 38, '2026-02-13 09:18:59', NULL, NULL, 1, 'Auto-started Session', 38, '2026-02-12 23:02:22', '2026-02-13 01:18:59');
+INSERT INTO `monitoring_sessions` (`id`, `student_user_id`, `session_start`, `session_end`, `device_info`, `computer_name`, `gateway_ip`, `laboratory_room`, `is_active`, `open_tabs`, `session_name`, `created_by`, `created_at`, `updated_at`) VALUES
+(7, 38, '2026-02-07 05:12:25', '2026-02-06 21:12:25', NULL, NULL, NULL, NULL, 0, NULL, 'Auto-started Session', 38, '2026-02-06 11:26:13', '2026-02-06 21:12:25'),
+(8, 38, '2026-02-08 02:23:18', '2026-02-07 18:23:18', NULL, NULL, NULL, NULL, 0, NULL, 'Auto-started Session', 38, '2026-02-07 18:22:21', '2026-02-07 18:23:18'),
+(9, 38, '2026-02-08 13:29:29', '2026-02-08 05:29:29', NULL, NULL, NULL, NULL, 0, NULL, 'Auto-started Session', 38, '2026-02-07 18:23:22', '2026-02-08 05:29:29'),
+(10, 38, '2026-02-09 14:45:39', '2026-02-09 06:45:39', NULL, NULL, NULL, NULL, 0, NULL, 'Auto-started Session', 38, '2026-02-08 06:16:20', '2026-02-09 06:45:39'),
+(11, 38, '2026-02-09 17:02:22', '2026-02-09 09:02:22', NULL, NULL, NULL, NULL, 0, NULL, 'Auto-started Session', 38, '2026-02-09 09:00:44', '2026-02-09 09:02:22'),
+(12, 38, '2026-02-09 17:10:55', '2026-02-09 09:10:55', NULL, NULL, NULL, NULL, 0, NULL, 'Auto-started Session', 38, '2026-02-09 09:08:45', '2026-02-09 09:10:55'),
+(13, 38, '2026-02-09 17:20:26', '2026-02-09 09:20:26', NULL, NULL, NULL, NULL, 0, NULL, 'Auto-started Session', 38, '2026-02-09 09:11:04', '2026-02-09 09:20:26'),
+(14, 38, '2026-02-09 17:26:25', '2026-02-09 09:26:25', NULL, NULL, NULL, NULL, 0, NULL, 'Auto-started Session', 38, '2026-02-09 09:20:28', '2026-02-09 09:26:25'),
+(15, 38, '2026-02-11 18:48:18', '2026-02-11 10:48:18', NULL, NULL, NULL, NULL, 0, NULL, 'Auto-started Session', 38, '2026-02-11 10:46:29', '2026-02-11 10:48:18'),
+(16, 38, '2026-02-13 04:44:51', '2026-02-12 20:44:51', NULL, NULL, NULL, NULL, 0, NULL, 'Auto-started Session', 38, '2026-02-11 10:48:19', '2026-02-12 20:44:51'),
+(17, 38, '2026-02-13 06:44:18', '2026-02-12 22:44:18', NULL, NULL, NULL, NULL, 0, NULL, 'Auto-started Session', 38, '2026-02-12 20:44:55', '2026-02-12 22:44:18'),
+(18, 38, '2026-02-26 15:29:59', NULL, NULL, NULL, NULL, NULL, 1, NULL, 'Auto-started Session', 38, '2026-02-12 23:02:22', '2026-02-26 07:29:59');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `password_reset_tokens`
+--
+
+CREATE TABLE `password_reset_tokens` (
+  `email` varchar(255) NOT NULL,
+  `token` varchar(255) NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -358,28 +493,28 @@ CREATE TABLE `personal_access_tokens` (
 --
 
 INSERT INTO `personal_access_tokens` (`id`, `tokenable_type`, `tokenable_id`, `name`, `token`, `abilities`, `last_used_at`, `expires_at`, `created_at`, `updated_at`) VALUES
-(69, 'App\\Models\\User', 1, 'web', '9d09bfc2d0b60b7292cb5eacc361189d95e2f9ed10f23c72ff0e868706a375b2', '[\"*\"]', '2026-02-12 20:37:16', NULL, '2026-02-12 20:36:36', '2026-02-12 20:37:16'),
-(73, 'App\\Models\\User', 34, 'web', '0e5a9d89da05c38c5dd8349994461c76a35927a5acb2e065dd636946b1f8fa42', '[\"*\"]', '2026-02-13 01:18:49', NULL, '2026-02-12 22:26:27', '2026-02-13 01:18:49'),
-(80, 'App\\Models\\User', 38, 'web', '5532c06823040fef0fed67b17a51892792091b688fd234deec788fdd068905a8', '[\"*\"]', '2026-02-13 01:18:59', NULL, '2026-02-12 23:02:21', '2026-02-13 01:18:59');
+(82, 'App\\Models\\User', 38, 'web', '844fc3b9b368e6637051c0c06ce90777a623c4d90ad53b18203ef4d957c7d723', '[\"*\"]', '2026-02-26 07:30:00', NULL, '2026-02-26 07:28:35', '2026-02-26 07:30:00'),
+(92, 'App\\Models\\User', 1, 'web', '50e0c0297471e869f46892074f7ae4c09aa4f65bf1a6a6c1e132d3d9f8fb0feb', '[\"*\"]', '2026-03-15 05:56:25', NULL, '2026-03-15 05:55:55', '2026-03-15 05:56:25'),
+(93, 'App\\Models\\User', 34, 'web', '2f08cabe0483314e52c5996e593fc2efe26bed4b3b5488f1a8d4629554c55399', '[\"*\"]', '2026-03-15 05:57:04', NULL, '2026-03-15 05:56:31', '2026-03-15 05:57:04');
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `student_barcodes`
+-- Table structure for table `sessions`
 --
 
-CREATE TABLE `student_barcodes` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `user_id` int(10) UNSIGNED NOT NULL,
-  `barcode` varchar(191) NOT NULL,
-  `expires_at` timestamp NULL DEFAULT NULL,
-  `used` tinyint(1) NOT NULL DEFAULT 0,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+CREATE TABLE `sessions` (
+  `id` varchar(255) NOT NULL,
+  `user_id` bigint(20) UNSIGNED DEFAULT NULL,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `user_agent` text DEFAULT NULL,
+  `payload` longtext NOT NULL,
+  `last_activity` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
+--
 --
 -- Table structure for table `student_pins`
 --
@@ -403,7 +538,7 @@ CREATE TABLE `student_profiles` (
   `course` varchar(100) DEFAULT NULL,
   `year_level` tinyint(3) UNSIGNED DEFAULT NULL,
   `section` varchar(50) DEFAULT NULL,
-  `profile_picture` varchar(255) DEFAULT NULL,
+  `profile_picture` longtext DEFAULT NULL,
   `pin` varchar(255) DEFAULT NULL,
   `status` enum('active','inactive','suspended','graduated') DEFAULT 'active',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
@@ -561,7 +696,7 @@ CREATE TABLE `teacher_profiles` (
   `teacher_number` varchar(50) NOT NULL,
   `department` varchar(100) DEFAULT NULL,
   `specialization` varchar(255) DEFAULT NULL,
-  `profile_picture` varchar(255) DEFAULT NULL,
+  `profile_picture` longtext DEFAULT NULL,
   `status` enum('active','inactive','on_leave') DEFAULT 'active',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
@@ -693,7 +828,7 @@ CREATE TABLE `v_subject_students` (
 ,`student_number` varchar(50)
 ,`course` varchar(100)
 ,`section` varchar(50)
-,`profile_picture` varchar(255)
+,`profile_picture` longtext
 ,`enrolled_at` timestamp
 ,`enrollment_status` enum('active','dropped','completed')
 );
@@ -834,6 +969,18 @@ ALTER TABLE `bsit_students`
   ADD UNIQUE KEY `student_number` (`student_number`);
 
 --
+-- Indexes for table `cache`
+--
+ALTER TABLE `cache`
+  ADD PRIMARY KEY (`key`);
+
+--
+-- Indexes for table `cache_locks`
+--
+ALTER TABLE `cache_locks`
+  ADD PRIMARY KEY (`key`);
+
+--
 -- Indexes for table `course_sections`
 --
 ALTER TABLE `course_sections`
@@ -849,6 +996,13 @@ ALTER TABLE `email_verification_codes`
   ADD KEY `idx_email_used` (`email`,`used`);
 
 --
+-- Indexes for table `failed_jobs`
+--
+ALTER TABLE `failed_jobs`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `failed_jobs_uuid_unique` (`uuid`);
+
+--
 -- Indexes for table `incognito_alerts`
 --
 ALTER TABLE `incognito_alerts`
@@ -856,6 +1010,36 @@ ALTER TABLE `incognito_alerts`
   ADD KEY `incognito_alerts_student_user_id_index` (`student_user_id`),
   ADD KEY `incognito_alerts_detected_at_index` (`detected_at`),
   ADD KEY `incognito_alerts_is_acknowledged_index` (`is_acknowledged`);
+
+--
+-- Indexes for table `jobs`
+--
+ALTER TABLE `jobs`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `jobs_queue_index` (`queue`);
+
+--
+-- Indexes for table `job_batches`
+--
+ALTER TABLE `job_batches`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `lab_computers`
+--
+ALTER TABLE `lab_computers`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `lab_computers_name_room_unique` (`computer_name`,`laboratory_room`),
+  ADD KEY `lab_computers_computer_name_index` (`computer_name`),
+  ADD KEY `lab_computers_laboratory_room_index` (`laboratory_room`);
+
+--
+-- Indexes for table `lab_gateways`
+--
+ALTER TABLE `lab_gateways`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `lab_gateways_gateway_ip_unique` (`gateway_ip`),
+  ADD KEY `lab_gateways_laboratory_room_index` (`laboratory_room`);
 
 --
 -- Indexes for table `master_subjects`
@@ -878,7 +1062,15 @@ ALTER TABLE `monitoring_sessions`
   ADD KEY `monitoring_sessions_created_by_foreign` (`created_by`),
   ADD KEY `monitoring_sessions_student_user_id_index` (`student_user_id`),
   ADD KEY `monitoring_sessions_is_active_index` (`is_active`),
-  ADD KEY `monitoring_sessions_session_start_index` (`session_start`);
+  ADD KEY `monitoring_sessions_session_start_index` (`session_start`),
+  ADD KEY `monitoring_sessions_gateway_ip_index` (`gateway_ip`),
+  ADD KEY `monitoring_sessions_laboratory_room_index` (`laboratory_room`);
+
+--
+-- Indexes for table `password_reset_tokens`
+--
+ALTER TABLE `password_reset_tokens`
+  ADD PRIMARY KEY (`email`);
 
 --
 -- Indexes for table `personal_access_tokens`
@@ -890,13 +1082,12 @@ ALTER TABLE `personal_access_tokens`
   ADD KEY `personal_access_tokens_tokenable_type_tokenable_id_index` (`tokenable_type`,`tokenable_id`);
 
 --
--- Indexes for table `student_barcodes`
+-- Indexes for table `sessions`
 --
-ALTER TABLE `student_barcodes`
+ALTER TABLE `sessions`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `uq_student_barcodes_barcode` (`barcode`),
-  ADD KEY `idx_student_barcodes_user` (`user_id`),
-  ADD KEY `idx_student_barcodes_used` (`used`);
+  ADD KEY `sessions_user_id_index` (`user_id`),
+  ADD KEY `sessions_last_activity_index` (`last_activity`);
 
 --
 -- Indexes for table `student_pins`
@@ -975,13 +1166,37 @@ ALTER TABLE `course_sections`
 -- AUTO_INCREMENT for table `email_verification_codes`
 --
 ALTER TABLE `email_verification_codes`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=48;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=49;
+
+--
+-- AUTO_INCREMENT for table `failed_jobs`
+--
+ALTER TABLE `failed_jobs`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `incognito_alerts`
 --
 ALTER TABLE `incognito_alerts`
   MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `jobs`
+--
+ALTER TABLE `jobs`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `lab_computers`
+--
+ALTER TABLE `lab_computers`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `lab_gateways`
+--
+ALTER TABLE `lab_gateways`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `master_subjects`
@@ -993,7 +1208,7 @@ ALTER TABLE `master_subjects`
 -- AUTO_INCREMENT for table `migrations`
 --
 ALTER TABLE `migrations`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
 
 --
 -- AUTO_INCREMENT for table `monitoring_sessions`
@@ -1005,13 +1220,7 @@ ALTER TABLE `monitoring_sessions`
 -- AUTO_INCREMENT for table `personal_access_tokens`
 --
 ALTER TABLE `personal_access_tokens`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=81;
-
---
--- AUTO_INCREMENT for table `student_barcodes`
---
-ALTER TABLE `student_barcodes`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=42;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=94;
 
 --
 -- AUTO_INCREMENT for table `subjects`
@@ -1085,12 +1294,6 @@ ALTER TABLE `incognito_alerts`
 ALTER TABLE `monitoring_sessions`
   ADD CONSTRAINT `monitoring_sessions_created_by_foreign` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL,
   ADD CONSTRAINT `monitoring_sessions_student_user_id_foreign` FOREIGN KEY (`student_user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
-
---
--- Constraints for table `student_barcodes`
---
-ALTER TABLE `student_barcodes`
-  ADD CONSTRAINT `fk_student_barcodes_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `student_pins`

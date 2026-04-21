@@ -22,6 +22,8 @@ function App() {
   const [verificationLoginDelivery, setVerificationLoginDelivery] = useState<{
     emailSent?: boolean;
     message?: string;
+    /** When email fails but API returns a code (fallback / debug), passed in-memory so Strict Mode cannot lose it. */
+    verificationCode?: string | null;
   }>({});
 
   // Restore session from localStorage if token exists
@@ -130,7 +132,11 @@ function App() {
     sendMessage?: string
   ) => {
     setVerificationEmail(email);
-    setVerificationLoginDelivery({ emailSent, message: sendMessage });
+    setVerificationLoginDelivery({
+      emailSent,
+      message: sendMessage,
+      verificationCode: devCode ?? null,
+    });
     setScreen('email-verification');
     // Store dev code only when backend says the email was NOT delivered.
     // This prevents the "use this verification code" UI from showing when email works.

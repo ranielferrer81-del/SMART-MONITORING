@@ -6,6 +6,15 @@ const DESKTOP_APP_URL = 'http://localhost:9876';
 // Dynamic API URL - updated from Desktop App credentials
 let dynamicApiBaseUrl = null;
 
+// MV3 service worker note:
+// setInterval can be paused when the service worker is suspended.
+// We use chrome.alarms as a persistent wake-up mechanism to keep auto-login reliable.
+const ALARMS = {
+    DESKTOP_POLL: 'sia_desktop_poll',
+    LOGOUT_POLL: 'sia_logout_poll',
+    KEEPALIVE: 'sia_keepalive'
+};
+
 // Get the current API base URL (prefers Desktop App's URL over default)
 function getApiBaseUrl() {
     return dynamicApiBaseUrl || DEFAULT_API_BASE_URL;
@@ -59,52 +68,51 @@ chrome.runtime.onStartup.addListener(async () => {
     startLogoutStatusPolling();
 });
 
-// Poll Desktop App for student credentials every 5 seconds
+function ensureBackgroundAlarms() {
+    // Chrome clamps alarms to a minimum (often 1 minute), but alarms still reliably WAKE the worker.
+    // When woken, we do an immediate poll so auto-login doesn't depend on long-lived setIntervals.
+    chrome.alarms.create(ALARMS.DESKTOP_POLL, { periodInMinutes: 0.4 }); // ~24s (may clamp)
+    chrome.alarms.create(ALARMS.LOGOUT_POLL, { periodInMinutes: 0.4 });  // ~24s (may clamp)
+    chrome.alarms.create(ALARMS.KEEPALIVE, { periodInMinutes: 0.4 });    // ~24s (may clamp)
+}
+
+async function pollDesktopAppOnce() {
+    try {
+        // Always ask Desktop App for credentials, but only re-sync when token/user changes.
+        const result = await chrome.storage.local.get([STORAGE_KEYS.TOKEN, STORAGE_KEYS.USER]);
+        const storedToken = result[STORAGE_KEYS.TOKEN];
+        const storedUserId = result[STORAGE_KEYS.USER]?.id;
+
+        const response = await fetch(`${DESKTOP_APP_URL}/monitoring-credentials`, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' }
+        });
+
+        if (!response.ok) return;
+        const data = await response.json();
+        if (!data?.success || !data?.credentials?.token) return;
+
+        const incomingToken = data.credentials.token;
+        const incomingUserId = data.credentials.userId;
+
+        // If extension already has the same token AND same user, do nothing.
+        if (storedToken && storedToken === incomingToken && storedUserId && storedUserId === incomingUserId) {
+            return;
+        }
+
+        console.log('✅ Desktop App credentials detected! Auto-logging in...');
+        await autoLoginWithDesktopApp(data.credentials);
+    } catch {
+        // Desktop App not running or not reachable - normal
+    }
+}
+
+// Poll Desktop App for student credentials (wake-safe)
 function startDesktopAppPolling() {
     console.log('Starting Desktop App polling...');
-
-    setInterval(async () => {
-        try {
-            // Always ask Desktop App for credentials, but only re-sync when the token changed.
-            const result = await chrome.storage.local.get([STORAGE_KEYS.TOKEN]);
-            const storedToken = result[STORAGE_KEYS.TOKEN];
-
-            // [BUG FIX] MODIFIED BY ANTIGRAVITY
-            // The following check was preventing the extension from detecting a NEW student login
-            // if a previous user had manually logged out. We want the Desktop App to be the
-            // "Source of Truth" - if the app says someone is logged in, we should sync with it.
-            /* 
-            // CHECK: If user manually logged out, DO NOT auto-login
-            if (result[STORAGE_KEYS.MANUAL_LOGOUT]) {
-                // console.log('⏸️ User manually logged out. Skipping auto-login.');
-                return;
-            }
-            */
-
-            // Check Desktop App for credentials
-            const response = await fetch(`${DESKTOP_APP_URL}/monitoring-credentials`, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json'
-                }
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-
-                if (data.success && data.credentials) {
-                    // If extension already has the same token, don't re-login every 5s.
-                    if (storedToken && storedToken === data.credentials.token) {
-                        return;
-                    }
-                    console.log('✅ Desktop App credentials detected! Auto-logging in...');
-                    await autoLoginWithDesktopApp(data.credentials);
-                }
-            }
-        } catch (error) {
-            // Desktop App not running or not reachable - this is normal
-        }
-    }, 5000);
+    ensureBackgroundAlarms();
+    // Do an immediate check (fast path)
+    pollDesktopAppOnce();
 }
 
 // Auto-login using Desktop App credentials
@@ -166,92 +174,58 @@ async function autoLoginWithDesktopApp(credentials) {
     }
 }
 
-// Poll Desktop App for logout status every 3 seconds
+async function pollLogoutStatusOnce() {
+    try {
+        // Only check if currently logged in
+        const result = await chrome.storage.local.get([STORAGE_KEYS.TOKEN, STORAGE_KEYS.LAST_LOGOUT_SIGNAL]);
+
+        if (!result[STORAGE_KEYS.TOKEN]) {
+            return;
+        }
+
+        const response = await fetch(`${DESKTOP_APP_URL}/logout-status`, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' }
+        });
+
+        if (!response.ok) {
+            return;
+        }
+
+        const data = await response.json();
+        if (!data?.success) return;
+
+        const lastKnownSignal = result[STORAGE_KEYS.LAST_LOGOUT_SIGNAL] || 0;
+
+        // Store initial signal on first check
+        if (lastKnownSignal === 0 && data.logoutSignal > 0) {
+            console.log('📝 Storing initial signal:', data.logoutSignal);
+            await chrome.storage.local.set({ [STORAGE_KEYS.LAST_LOGOUT_SIGNAL]: data.logoutSignal });
+            return;
+        }
+
+        // If logout signal changed, Desktop App logged out
+        if (data.logoutSignal > lastKnownSignal) {
+            console.log('🔴 LOGOUT DETECTED! Signal:', lastKnownSignal, '→', data.logoutSignal);
+            await autoLogoutFromDesktopApp();
+            return;
+        }
+
+        if (data.isLoggedOut && result[STORAGE_KEYS.TOKEN]) {
+            console.log('🔴 Desktop App logged out, logging out extension...');
+            await autoLogoutFromDesktopApp();
+        }
+    } catch {
+        // If Desktop App is unreachable, we don't force logout immediately here.
+        // The next alarm ticks will keep checking, and the user can still be logged-in on the backend.
+    }
+}
+
+// Poll Desktop App for logout status (wake-safe)
 function startLogoutStatusPolling() {
     console.log('Starting Desktop App logout status polling...');
-
-    // Track connection failures to detect if Desktop App was closed
-    let consecutiveFailures = 0;
-    const MAX_FAILURES_BEFORE_LOGOUT = 5; // 5 * 3s = 15 seconds grace period
-
-    const pollLogoutStatus = async () => {
-        try {
-            // Only check if currently logged in
-            const result = await chrome.storage.local.get([STORAGE_KEYS.TOKEN, STORAGE_KEYS.LAST_LOGOUT_SIGNAL]);
-
-            // Only poll if logged in (REMOVED AUTO_ACTIVATED CHECK)
-            if (!result[STORAGE_KEYS.TOKEN]) {
-                // console.log('⏸️ No token, skipping logout check');
-                consecutiveFailures = 0; // Reset counter if not logged in
-                return;
-            }
-
-            // console.log('🔍 Checking logout status...');
-
-            // Check Desktop App logout status
-            const response = await fetch(`${DESKTOP_APP_URL}/logout-status`, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json'
-                }
-            });
-
-            if (response.ok) {
-                // Connection successful - reset failure counter
-                consecutiveFailures = 0;
-
-                const data = await response.json();
-                // console.log('📊 Logout check:', data);
-
-                if (data.success) {
-                    const lastKnownSignal = result[STORAGE_KEYS.LAST_LOGOUT_SIGNAL] || 0;
-
-                    // Store initial signal on first check
-                    if (lastKnownSignal === 0 && data.logoutSignal > 0) {
-                        console.log('📝 Storing initial signal:', data.logoutSignal);
-                        await chrome.storage.local.set({
-                            [STORAGE_KEYS.LAST_LOGOUT_SIGNAL]: data.logoutSignal
-                        });
-                        return;
-                    }
-
-                    // If logout signal changed, Desktop App logged out
-                    if (data.logoutSignal > lastKnownSignal) {
-                        console.log('🔴 LOGOUT DETECTED! Signal:', lastKnownSignal, '→', data.logoutSignal);
-
-                        // Auto-logout extension
-                        await autoLogoutFromDesktopApp();
-                    } else if (data.isLoggedOut && result[STORAGE_KEYS.TOKEN]) {
-                        // Desktop App is logged out but extension still has token
-                        console.log('🔴 Desktop App logged out, logging out extension...');
-                        await autoLogoutFromDesktopApp();
-                    }
-                }
-            } else {
-                console.log('❌ Logout check failed:', response.status);
-                // Don't count HTTP errors (like 500) as "App Closed", possibly just server error
-                // but if 404/Connection Refused it might be thrown as error below
-            }
-        } catch (error) {
-            // console.log('⚠️ Logout check error:', error.message);
-
-            // If fetch failed (likely connection refused because App closed), increment counter
-            consecutiveFailures++;
-            console.log(`⚠️ Connection lost (${consecutiveFailures}/${MAX_FAILURES_BEFORE_LOGOUT})`);
-
-            if (consecutiveFailures >= MAX_FAILURES_BEFORE_LOGOUT) {
-                console.log('🔴 Desktop App unreachable for too long. Assuming closed. Logging out...');
-                await autoLogoutFromDesktopApp();
-                consecutiveFailures = 0; // Reset after logout
-            }
-        }
-    };
-
-    // Run immediately
-    pollLogoutStatus();
-
-    // Then run every 3 seconds
-    setInterval(pollLogoutStatus, 3000);
+    ensureBackgroundAlarms();
+    pollLogoutStatusOnce();
 }
 
 // Auto-logout when Desktop App logs out
@@ -579,29 +553,40 @@ function stopHeartbeat() {
         heartbeatIntervalId = null;
         console.log('💓 Heartbeat stopped');
     }
-    // Also clear the keepalive alarm
-    chrome.alarms.clear('keepalive');
+    // Do not clear alarms here: alarms are also used to reliably wake the MV3 worker
+    // for Desktop App auto-login + logout detection even when not monitoring.
 }
 
 // Keep the MV3 service worker alive by creating a long-lived alarm
 // This prevents Chrome from killing the service worker while monitoring is active
 function keepServiceWorkerAlive() {
-    chrome.alarms.create('keepalive', { periodInMinutes: 0.4 }); // ~24 seconds
+    ensureBackgroundAlarms();
 }
 
 chrome.alarms.onAlarm.addListener((alarm) => {
-    if (alarm.name === 'keepalive') {
-        // Just a no-op to wake the service worker; the real work is done by setInterval
-        // If setInterval was cleared by the browser, restart it
+    if (alarm.name === ALARMS.DESKTOP_POLL) {
+        pollDesktopAppOnce();
+        return;
+    }
+    if (alarm.name === ALARMS.LOGOUT_POLL) {
+        pollLogoutStatusOnce();
+        return;
+    }
+    if (alarm.name === ALARMS.KEEPALIVE) {
+        // Wake-up tick:
+        // - try to auto-login if desktop app has credentials
+        // - restart heartbeat if Chrome cleared the interval while monitoring is active
+        pollDesktopAppOnce();
+        pollLogoutStatusOnce();
+
         if (heartbeatIntervalId === null) {
-            // Check if we should be monitoring
             chrome.storage.local.get([STORAGE_KEYS.TOKEN, STORAGE_KEYS.IS_MONITORING], (result) => {
                 if (result[STORAGE_KEYS.TOKEN] && result[STORAGE_KEYS.IS_MONITORING]) {
-                    console.log('🔄 Restarting heartbeat after service worker wake');
+                    console.log('🔄 Restarting heartbeat after keepalive wake');
                     heartbeatIntervalId = setInterval(() => {
                         sendHeartbeat();
                     }, 5000);
-                    sendHeartbeat(); // Immediate heartbeat
+                    sendHeartbeat();
                 }
             });
         }

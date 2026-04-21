@@ -365,21 +365,6 @@ INSERT INTO `personal_access_tokens` (`id`, `tokenable_type`, `tokenable_id`, `n
 -- --------------------------------------------------------
 
 --
--- Table structure for table `student_barcodes`
---
-
-CREATE TABLE `student_barcodes` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `user_id` int(10) UNSIGNED NOT NULL,
-  `barcode` varchar(191) NOT NULL,
-  `expires_at` timestamp NULL DEFAULT NULL,
-  `used` tinyint(1) NOT NULL DEFAULT 0,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- --------------------------------------------------------
-
 --
 -- Table structure for table `student_pins`
 --
@@ -890,15 +875,6 @@ ALTER TABLE `personal_access_tokens`
   ADD KEY `personal_access_tokens_tokenable_type_tokenable_id_index` (`tokenable_type`,`tokenable_id`);
 
 --
--- Indexes for table `student_barcodes`
---
-ALTER TABLE `student_barcodes`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `uq_student_barcodes_barcode` (`barcode`),
-  ADD KEY `idx_student_barcodes_user` (`user_id`),
-  ADD KEY `idx_student_barcodes_used` (`used`);
-
---
 -- Indexes for table `student_pins`
 --
 ALTER TABLE `student_pins`
@@ -1008,12 +984,6 @@ ALTER TABLE `personal_access_tokens`
   MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=81;
 
 --
--- AUTO_INCREMENT for table `student_barcodes`
---
-ALTER TABLE `student_barcodes`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=42;
-
---
 -- AUTO_INCREMENT for table `subjects`
 --
 ALTER TABLE `subjects`
@@ -1085,12 +1055,6 @@ ALTER TABLE `incognito_alerts`
 ALTER TABLE `monitoring_sessions`
   ADD CONSTRAINT `monitoring_sessions_created_by_foreign` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL,
   ADD CONSTRAINT `monitoring_sessions_student_user_id_foreign` FOREIGN KEY (`student_user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
-
---
--- Constraints for table `student_barcodes`
---
-ALTER TABLE `student_barcodes`
-  ADD CONSTRAINT `fk_student_barcodes_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `student_pins`

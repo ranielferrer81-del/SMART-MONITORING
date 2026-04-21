@@ -21,9 +21,13 @@ try {
         const match = envContent.match(/^VITE_API_BASE_URL\s*=\s*(.+)/m);
         if (match) {
             API_BASE_URL = match[1].trim().replace(/["']/g, '');
-            // Remove trailing slash if present
             if (API_BASE_URL.endsWith('/'))
                 API_BASE_URL = API_BASE_URL.slice(0, -1);
+            if (API_BASE_URL.toLowerCase().endsWith('/api')) {
+                API_BASE_URL = API_BASE_URL.slice(0, -4);
+                if (API_BASE_URL.endsWith('/'))
+                    API_BASE_URL = API_BASE_URL.slice(0, -1);
+            }
         }
     }
 }

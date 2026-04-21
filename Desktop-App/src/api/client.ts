@@ -208,12 +208,16 @@ const BACKEND_HEALTH_CHECK_TIMEOUT_MS = 60_000;
 export async function verifyLaravelBackend(): Promise<BackendCheckResult> {
   try {
     const { data } = await api.get('/health', { timeout: BACKEND_HEALTH_CHECK_TIMEOUT_MS });
-    if (
+    const isJsonHealthOk =
       data &&
       typeof data === 'object' &&
-      (data as { status?: string }).status === 'ok' &&
-      typeof (data as { php?: string }).php === 'string'
-    ) {
+      (data as { status?: string }).status === 'ok';
+
+    const isLaravelUpPage =
+      typeof data === 'string' &&
+      /application up|http request received/i.test(data);
+
+    if (isJsonHealthOk || isLaravelUpPage) {
       return { ok: true };
     }
     return {
