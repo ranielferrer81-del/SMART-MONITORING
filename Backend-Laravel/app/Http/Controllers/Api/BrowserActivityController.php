@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use App\Models\BrowserActivity;
 use App\Models\MonitoringSession;
 use App\Models\IncognitoAlert;
@@ -104,6 +105,9 @@ class BrowserActivityController extends Controller
         $computerName = $request->input('computer_name');
         $gatewayIp = $request->input('gateway_ip');
         $labContext = $this->resolveLabContext($computerName, $gatewayIp, true);
+        $hasComputerNameColumn = Schema::hasColumn('monitoring_sessions', 'computer_name');
+        $hasGatewayIpColumn = Schema::hasColumn('monitoring_sessions', 'gateway_ip');
+        $hasLaboratoryRoomColumn = Schema::hasColumn('monitoring_sessions', 'laboratory_room');
 
         // Get or create active session
         $activeSession = MonitoringSession::where('student_user_id', $user->id)
@@ -114,17 +118,29 @@ class BrowserActivityController extends Controller
         if ($activeSession) {
             $hasChanges = false;
 
-            if ($computerName && $activeSession->computer_name !== $labContext['computer_name']) {
+            if (
+                $hasComputerNameColumn &&
+                $computerName &&
+                $activeSession->computer_name !== $labContext['computer_name']
+            ) {
                 $activeSession->computer_name = $labContext['computer_name'];
                 $hasChanges = true;
             }
 
-            if ($gatewayIp !== null && $activeSession->gateway_ip !== $labContext['gateway_ip']) {
+            if (
+                $hasGatewayIpColumn &&
+                $gatewayIp !== null &&
+                $activeSession->gateway_ip !== $labContext['gateway_ip']
+            ) {
                 $activeSession->gateway_ip = $labContext['gateway_ip'];
                 $hasChanges = true;
             }
 
-            if ($gatewayIp !== null && $activeSession->laboratory_room !== $labContext['laboratory_room']) {
+            if (
+                $hasLaboratoryRoomColumn &&
+                $gatewayIp !== null &&
+                $activeSession->laboratory_room !== $labContext['laboratory_room']
+            ) {
                 $activeSession->laboratory_room = $labContext['laboratory_room'];
                 $hasChanges = true;
             }
@@ -136,16 +152,24 @@ class BrowserActivityController extends Controller
             }
         } else {
             // Auto-start a session if none exists
-            $activeSession = MonitoringSession::create([
+            $payload = [
                 'student_user_id' => $user->id,
                 'session_start' => now(),
                 'is_active' => true,
                 'session_name' => 'Auto-started Session',
                 'created_by' => $user->id,
-                'computer_name' => $labContext['computer_name'],
-                'gateway_ip' => $labContext['gateway_ip'],
-                'laboratory_room' => $labContext['laboratory_room'],
-            ]);
+            ];
+            if ($hasComputerNameColumn) {
+                $payload['computer_name'] = $labContext['computer_name'];
+            }
+            if ($hasGatewayIpColumn) {
+                $payload['gateway_ip'] = $labContext['gateway_ip'];
+            }
+            if ($hasLaboratoryRoomColumn) {
+                $payload['laboratory_room'] = $labContext['laboratory_room'];
+            }
+
+            $activeSession = MonitoringSession::create($payload);
         }
 
         return response()->json(['success' => true]);
@@ -718,16 +742,18 @@ class BrowserActivityController extends Controller
     {
         $normalizedComputerName = $computerName ? strtoupper(trim($computerName)) : null;
         $normalizedGatewayIp = $gatewayIp ? trim($gatewayIp) : null;
+        $hasLabGatewaysTable = Schema::hasTable('lab_gateways');
+        $hasLabComputersTable = Schema::hasTable('lab_computers');
 
         $mappedLabRoom = null;
-        if ($normalizedGatewayIp) {
+        if ($normalizedGatewayIp && $hasLabGatewaysTable) {
             $mappedLabRoom = LabGateway::where('gateway_ip', $normalizedGatewayIp)->value('laboratory_room');
         }
 
         $displayName = null;
         $resolvedLabRoom = $mappedLabRoom;
 
-        if ($normalizedComputerName && $mappedLabRoom) {
+        if ($normalizedComputerName && $mappedLabRoom && $hasLabComputersTable) {
             $labComputer = LabComputer::where('computer_name', $normalizedComputerName)
                 ->where('laboratory_room', $mappedLabRoom)
                 ->first();
