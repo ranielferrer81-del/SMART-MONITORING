@@ -752,6 +752,7 @@ class BrowserActivityController extends Controller
 
         $displayName = null;
         $resolvedLabRoom = $mappedLabRoom;
+        $knownComputerRoom = null;
 
         if ($normalizedComputerName && $mappedLabRoom && $hasLabComputersTable) {
             $labComputer = LabComputer::where('computer_name', $normalizedComputerName)
@@ -772,6 +773,21 @@ class BrowserActivityController extends Controller
                 );
                 $displayName = $labComputer->display_name;
             }
+        }
+
+        // If gateway is unknown/unmapped, still try to resolve from existing computer registry.
+        if ($normalizedComputerName && !$displayName && $hasLabComputersTable) {
+            $knownComputer = LabComputer::where('computer_name', $normalizedComputerName)
+                ->orderByDesc('updated_at')
+                ->first();
+            if ($knownComputer) {
+                $displayName = $knownComputer->display_name ?: $knownComputer->computer_name;
+                $knownComputerRoom = $knownComputer->laboratory_room ?: null;
+            }
+        }
+
+        if (!$resolvedLabRoom && $knownComputerRoom) {
+            $resolvedLabRoom = $knownComputerRoom;
         }
 
         if (!$resolvedLabRoom) {

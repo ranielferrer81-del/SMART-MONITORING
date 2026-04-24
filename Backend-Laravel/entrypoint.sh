@@ -124,7 +124,7 @@ php artisan view:clear 2>/dev/null || true
 # 6b. Migrations (e.g. profile_picture LONGTEXT) — must not abort boot (set -e).
 # Use `if ! cmd` so migrate failure logs a warning but php artisan serve still runs.
 # ---------------------------------------------------------------
-RUN_MIGRATIONS_ON_BOOT="${RUN_MIGRATIONS_ON_BOOT:-false}"
+RUN_MIGRATIONS_ON_BOOT="${RUN_MIGRATIONS_ON_BOOT:-true}"
 if [ "$RUN_MIGRATIONS_ON_BOOT" = "true" ]; then
     echo "Running database migrations..."
     if ! php artisan migrate --force --no-interaction; then
