@@ -721,29 +721,49 @@ class EmailService
         $fromHeader = $fromName.' <'.$fromEmail.'>';
         $apiKey = self::normalizeSecret($apiKey);
 
-        try {
-            $response = Http::timeout(28)
-                ->connectTimeout(12)
-                ->withToken($apiKey)
-                ->acceptJson()
-                ->post('https://api.resend.com/emails', [
-                    'from' => $fromHeader,
-                    'to' => [$to],
-                    'subject' => $subject,
-                    'html' => $html,
-                ]);
-        } catch (\Throwable $e) {
-            self::noteDiagnostic('resend_http_exception', Str::limit($e->getMessage(), 400));
-            Log::error('Resend HTTP exception', ['error' => $e->getMessage(), 'to' => $to]);
+        $attempt = 0;
+        $response = null;
+        while ($attempt < 2) {
+            if ($attempt > 0) {
+                usleep(200000);
+            }
+            try {
+                $response = Http::timeout(40)
+                    ->connectTimeout(15)
+                    ->withToken($apiKey)
+                    ->acceptJson()
+                    ->post('https://api.resend.com/emails', [
+                        'from' => $fromHeader,
+                        'to' => [$to],
+                        'subject' => $subject,
+                        'html' => $html,
+                    ]);
 
-            return false;
+                if ($response->successful()) {
+                    self::noteDiagnostic('resend_rest', 'ok HTTP '.$response->status().($attempt > 0 ? ' (retry)' : ''));
+                    return true;
+                }
+
+                $status = $response->status();
+                // Retry once on transient upstream/network pressure.
+                if ($attempt === 0 && ($status >= 500 || $status === 429 || $status === 408)) {
+                    $attempt++;
+                    continue;
+                }
+                break;
+            } catch (\Throwable $e) {
+                if ($attempt === 0) {
+                    $attempt++;
+                    continue;
+                }
+                self::noteDiagnostic('resend_http_exception', Str::limit($e->getMessage(), 400));
+                Log::error('Resend HTTP exception', ['error' => $e->getMessage(), 'to' => $to]);
+
+                return false;
+            }
         }
 
-        if ($response->successful()) {
-            self::noteDiagnostic('resend_rest', 'ok HTTP '.$response->status());
-
-            return true;
-        }
+        if (!$response) return false;
 
         $snippet = Str::limit($response->body(), 600);
         self::noteDiagnostic('resend_rest_error', 'HTTP '.$response->status().': '.$snippet);

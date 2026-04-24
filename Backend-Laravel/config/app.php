@@ -154,6 +154,6 @@ return [
     'email_try_brevo_before_resend_on_railway' => filter_var(env('EMAIL_TRY_BREVO_BEFORE_RESEND_ON_RAILWAY', true), FILTER_VALIDATE_BOOLEAN),
 
     /** Wall-clock budget for OTP mail attempts (seconds). */
-    'verification_mail_time_budget_seconds' => max(8.0, min(120.0, (float) (env('VERIFICATION_MAIL_TIME_BUDGET_SECONDS') ?: 45))),
+    'verification_mail_time_budget_seconds' => max(8.0, min(120.0, (float) (env('VERIFICATION_MAIL_TIME_BUDGET_SECONDS') ?: 90))),
 
 ];
