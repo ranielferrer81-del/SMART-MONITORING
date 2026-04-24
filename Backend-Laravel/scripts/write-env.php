@@ -122,6 +122,11 @@ if ($brevoKey !== '' && (!$hasExplicitSmtpCreds || $useBrevoSmtpRelay)) {
     $mailPass = $smtpKey !== '' ? $smtpKey : $brevoKey;
 }
 
+// Final sender safety: if MAIL_FROM is still placeholder, prefer any valid SMTP login email.
+if (($mailFrom === '' || str_contains(strtolower($mailFrom), 'example.com')) && filter_var($mailUser, FILTER_VALIDATE_EMAIL)) {
+    $mailFrom = $mailUser;
+}
+
 $lines = [
     line('APP_NAME', g('APP_NAME', 'SIA')),
     line('APP_ENV', g('APP_ENV', 'production')),

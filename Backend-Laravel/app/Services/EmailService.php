@@ -13,6 +13,26 @@ use App\Mail\VerificationCodeMail;
 
 class EmailService
 {
+    /**
+     * When MAIL_FROM/BREVO sender are missing, fall back to SMTP username if it looks like an email.
+     * This avoids hard-failing on "example.com" defaults during Railway deploys.
+     */
+    private static function resolveFallbackSenderFromMailUser(): string
+    {
+        $candidates = [
+            trim((string) (getenv('MAIL_USERNAME') ?: '')),
+            trim((string) (config('mail.mailers.smtp.username') ?: '')),
+        ];
+
+        foreach ($candidates as $candidate) {
+            if ($candidate !== '' && filter_var($candidate, FILTER_VALIDATE_EMAIL)) {
+                return $candidate;
+            }
+        }
+
+        return '';
+    }
+
     private static function hasSendmailBinary(): bool
     {
         // Many container/PAAS environments do not include sendmail.
@@ -123,6 +143,9 @@ class EmailService
         if ($email === '' || str_contains(strtolower($email), 'example.com')) {
             $email = trim((string) (getenv('BREVO_SENDER_EMAIL') ?: ''));
         }
+        if ($email === '' || str_contains(strtolower($email), 'example.com')) {
+            $email = self::resolveFallbackSenderFromMailUser();
+        }
 
         $name = trim((string) (getenv('MAIL_FROM_NAME') ?: ''));
         if ($name === '') {
@@ -146,6 +169,9 @@ class EmailService
         }
         if ($email === '' || str_contains(strtolower($email), 'example.com')) {
             $email = trim((string) config('mail.from.address', ''));
+        }
+        if ($email === '' || str_contains(strtolower($email), 'example.com')) {
+            $email = self::resolveFallbackSenderFromMailUser();
         }
 
         $name = trim((string) (getenv('RESEND_FROM_NAME') ?: ''));

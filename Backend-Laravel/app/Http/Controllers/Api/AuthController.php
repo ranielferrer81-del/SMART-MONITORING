@@ -24,6 +24,56 @@ class AuthController extends Controller
             || (bool) config('app.auth_login_code_fallback', true);
     }
 
+    /**
+     * Reuse a fresh, still-valid code for a short window to avoid race conditions
+     * (double-clicks/retries can otherwise invalidate the code shown in the UI).
+     *
+     * @return array{0:string,1:\Illuminate\Support\Carbon}
+     */
+    private function issueOrReuseVerificationCode(string $email): array
+    {
+        $now = now();
+        $reuseWindowSeconds = 45;
+
+        $recentActiveCode = DB::table('email_verification_codes')
+            ->where('email', $email)
+            ->where('used', false)
+            ->where('expires_at', '>', $now)
+            ->where('created_at', '>=', $now->copy()->subSeconds($reuseWindowSeconds))
+            ->orderByDesc('id')
+            ->first();
+
+        if ($recentActiveCode && !empty($recentActiveCode->code)) {
+            \Log::info('Reusing recent verification code', [
+                'email' => $email,
+                'code_id' => $recentActiveCode->id,
+                'reuse_window_seconds' => $reuseWindowSeconds,
+            ]);
+
+            return [(string) $recentActiveCode->code, \Illuminate\Support\Carbon::parse($recentActiveCode->expires_at)];
+        }
+
+        // Invalidate any older active codes before issuing a new one.
+        DB::table('email_verification_codes')
+            ->where('email', $email)
+            ->where('used', false)
+            ->update(['used' => true, 'updated_at' => $now]);
+
+        $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        $expiresAt = $now->copy()->addMinutes(10);
+
+        DB::table('email_verification_codes')->insert([
+            'email' => $email,
+            'code' => $code,
+            'expires_at' => $expiresAt,
+            'used' => false,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        return [$code, $expiresAt];
+    }
+
     public function login(Request $request)
     {
         try {
@@ -279,25 +329,7 @@ class AuthController extends Controller
             ], 404);
         }
 
-        // Generate 6-digit verification code
-        $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-        $expiresAt = now()->addMinutes(10); // Code expires in 10 minutes
-
-        // Invalidate any existing codes for this email
-        DB::table('email_verification_codes')
-            ->where('email', $email)
-            ->where('used', false)
-            ->update(['used' => true]);
-
-        // Store verification code
-        DB::table('email_verification_codes')->insert([
-            'email' => $email,
-            'code' => $code,
-            'expires_at' => $expiresAt,
-            'used' => false,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        [$code, $expiresAt] = $this->issueOrReuseVerificationCode($email);
 
         // Debug: Log code creation
         \Log::info('Verification code created', [
@@ -528,25 +560,7 @@ class AuthController extends Controller
             ], 403);
         }
 
-        // Generate new 6-digit verification code
-        $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-        $expiresAt = now()->addMinutes(10);
-
-        // Invalidate any existing codes for this email
-        DB::table('email_verification_codes')
-            ->where('email', $email)
-            ->where('used', false)
-            ->update(['used' => true]);
-
-        // Store new verification code
-        DB::table('email_verification_codes')->insert([
-            'email' => $email,
-            'code' => $code,
-            'expires_at' => $expiresAt,
-            'used' => false,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        [$code, $expiresAt] = $this->issueOrReuseVerificationCode($email);
 
         // Resend: wait for the real SMTP/Brevo result so the client can show email_sent=false
         // and an error when mail actually fails (async/optimistic path would always say "sent").
