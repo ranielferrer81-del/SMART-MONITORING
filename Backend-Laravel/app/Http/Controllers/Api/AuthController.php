@@ -25,6 +25,38 @@ class AuthController extends Controller
     }
 
     /**
+     * When the synchronous send path fails, retry a couple of times in background.
+     * This helps transient provider/network issues without blocking the user flow.
+     */
+    private function retryVerificationSendAfterResponse(string $email, string $code): void
+    {
+        dispatch(static function () use ($email, $code): void {
+            $attempts = 2;
+            for ($i = 1; $i <= $attempts; $i++) {
+                try {
+                    if ($i > 1) {
+                        usleep(1200000); // 1.2s backoff between retries
+                    }
+                    $sent = EmailService::sendVerificationCode($email, $code);
+                    if ($sent) {
+                        \Log::info('Verification email delivered on background retry', [
+                            'email' => $email,
+                            'attempt' => $i,
+                        ]);
+                        return;
+                    }
+                } catch (\Throwable $e) {
+                    \Log::warning('Verification email background retry failed', [
+                        'email' => $email,
+                        'attempt' => $i,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+        })->afterResponse();
+    }
+
+    /**
      * Reuse a fresh, still-valid code for a short window to avoid race conditions
      * (double-clicks/retries can otherwise invalidate the code shown in the UI).
      *
@@ -723,6 +755,10 @@ class AuthController extends Controller
         );
         if ($showMailDiagnostics) {
             $payload['mail_diagnostics'] = \App\Services\EmailService::getLastSendDiagnostics();
+        }
+
+        if (! $sent) {
+            $this->retryVerificationSendAfterResponse($email, $code);
         }
 
         return response()->json($payload);
