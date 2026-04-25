@@ -19,6 +19,9 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
     const [activityModalOpen, setActivityModalOpen] = useState(false);
     const [studentActivity, setStudentActivity] = useState([]);
     const [currentViewStudent, setCurrentViewStudent] = useState(null);
+    const [tabCloseConfirm, setTabCloseConfirm] = useState(null);
+    const [tabCloseNotice, setTabCloseNotice] = useState(null);
+    const [isSendingTabClose, setIsSendingTabClose] = useState(false);
 
     // Poll online students and alerts
     useEffect(() => {
@@ -43,6 +46,40 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
 
     const hasIncognitoAlert = (studentId) => {
         return incognitoAlerts.some(a => a.student_user_id === studentId && !a.is_acknowledged);
+    };
+
+    const requestTabClose = (student, log) => {
+        setTabCloseConfirm({ student, log });
+    };
+
+    const submitTabClose = async () => {
+        if (!tabCloseConfirm || isSendingTabClose) return;
+
+        const { student, log } = tabCloseConfirm;
+        setIsSendingTabClose(true);
+        try {
+            const result = await forceCloseStudentTab(student.id, log.id, log.url);
+            if (result.ok) {
+                setStudentActivity(prev => prev.filter(item => item.id !== log.id));
+                setTabCloseNotice({
+                    type: 'success',
+                    message: 'Tab close command sent. The tab will close within 5 seconds.',
+                });
+            } else {
+                setTabCloseNotice({
+                    type: 'error',
+                    message: `Failed to close tab: ${result.error || 'Unknown error'}`,
+                });
+            }
+        } catch (error) {
+            setTabCloseNotice({
+                type: 'error',
+                message: `Error closing tab: ${error.message}`,
+            });
+        } finally {
+            setIsSendingTabClose(false);
+            setTabCloseConfirm(null);
+        }
     };
 
     const handleViewActivity = async (student) => {
@@ -434,6 +471,24 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
                                 </button>
                             </div>
                         </div>
+                        {tabCloseNotice && (
+                            <div className={`mx-4 sm:mx-6 mt-4 rounded-lg border px-4 py-3 text-sm ${
+                                tabCloseNotice.type === 'success'
+                                    ? 'border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300'
+                                    : 'border-red-300 bg-red-50 text-red-800 dark:border-red-700 dark:bg-red-900/20 dark:text-red-300'
+                            }`}>
+                                <div className="flex items-center justify-between gap-3">
+                                    <span>{tabCloseNotice.message}</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => setTabCloseNotice(null)}
+                                        className="text-xs font-semibold uppercase tracking-wide opacity-80 hover:opacity-100"
+                                    >
+                                        Dismiss
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                         <div className="flex-1 overflow-auto p-0 w-full">
                             <div className="w-full overflow-x-auto">
                                 <table className="w-full min-w-[800px]">
@@ -451,22 +506,7 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
                                                 <tr key={log.id} className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 ${log.is_incognito ? 'bg-red-50 dark:bg-red-900/10' : ''}`}>
                                                     <td className="px-6 py-4 text-center sticky left-0 bg-white dark:bg-slate-800 z-10 border-r border-slate-200 dark:border-slate-700">
                                                         <button
-                                                            onClick={async () => {
-                                                                if (!window.confirm(`Close this tab for ${currentViewStudent.full_name}?\n\nURL: ${log.url}\n\nThe tab will close within 5 seconds.`)) {
-                                                                    return;
-                                                                }
-                                                                try {
-                                                                    const result = await forceCloseStudentTab(currentViewStudent.id, log.id, log.url);
-                                                                    if (result.ok) {
-                                                                        setStudentActivity(prev => prev.filter(item => item.id !== log.id));
-                                                                        alert('Tab close command sent! The tab will close within 5 seconds.');
-                                                                    } else {
-                                                                        alert('Failed to close tab: ' + (result.error || 'Unknown error'));
-                                                                    }
-                                                                } catch (error) {
-                                                                    alert('Error closing tab: ' + error.message);
-                                                                }
-                                                            }}
+                                                            onClick={() => requestTabClose(currentViewStudent, log)}
                                                             className="inline-flex items-center px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold rounded-lg transition-all duration-200 shadow hover:shadow-md transform hover:scale-105"
                                                             title="Close this tab on student's browser"
                                                         >
@@ -500,6 +540,46 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
                                     </tbody>
                                 </table>
                             </div>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {tabCloseConfirm && createPortal(
+                <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="w-full max-w-lg rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl">
+                        <div className="p-5 border-b border-slate-200 dark:border-slate-700">
+                            <h4 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                                Close This Tab?
+                            </h4>
+                            <p className="mt-2 text-sm text-slate-600 dark:text-slate-400 break-all">
+                                {tabCloseConfirm.log.url}
+                            </p>
+                            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                                Student: <span className="font-semibold">{tabCloseConfirm.student.full_name}</span>
+                            </p>
+                            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                The tab will close within 5 seconds after sending.
+                            </p>
+                        </div>
+                        <div className="p-4 flex justify-end gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setTabCloseConfirm(null)}
+                                disabled={isSendingTabClose}
+                                className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-60"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={submitTabClose}
+                                disabled={isSendingTabClose}
+                                className="px-4 py-2 rounded-lg bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-60"
+                            >
+                                {isSendingTabClose ? 'Sending...' : 'Send Close Command'}
+                            </button>
                         </div>
                     </div>
                 </div>,
