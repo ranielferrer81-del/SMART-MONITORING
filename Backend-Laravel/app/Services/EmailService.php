@@ -436,12 +436,23 @@ class EmailService
 
         // Laravel Mail over configured SMTP (Gmail, Brevo relay via MAIL_*, etc.)
         // Always use the "smtp" mailer here — config("mail.default") may be "sendmail" (no binary in Docker/Railway).
-        // When write-env.php pointed MAIL_HOST at smtp-relay.brevo.com, allow SMTP on Railway even if
-        // EMAIL_RAILWAY_SKIP_LARAVEL_SMTP=true — REST may fail (IP restriction, etc.) while relay:587 still works.
+        //
+        // IMPORTANT:
+        // If execution reaches this point, all API transports above already failed.
+        // On Railway, EMAIL_RAILWAY_SKIP_LARAVEL_SMTP=true used to skip SMTP entirely, which could make OTP
+        // undeliverable even when valid Gmail/Brevo SMTP credentials were configured. Keep "skip" behavior for
+        // normal fast-path, but still allow SMTP as a final fallback after API failures.
+        $apiPathWasTried = $brevoRestAttempted
+            || $brevoKey !== ''
+            || (strlen($resendKey) > 8)
+            || (strlen($sendGridKey) > 20)
+            || ($mailgunKey !== '' && $mailgunDomain !== '');
+
         $allowSmtpOnRailway = ! $runningOnRailway
             || ! (bool) config('app.email_railway_skip_laravel_smtp', true)
             || (bool) config('app.email_otp_try_smtp_first', false)
-            || str_contains($smtpHostCfg, 'brevo');
+            || str_contains($smtpHostCfg, 'brevo')
+            || $apiPathWasTried;
 
         if ($runningOnRailway && ! $allowSmtpOnRailway) {
             self::noteDiagnostic('smtp_skipped_reason', 'railway_EMAIL_RAILWAY_SKIP_LARAVEL_SMTP');
