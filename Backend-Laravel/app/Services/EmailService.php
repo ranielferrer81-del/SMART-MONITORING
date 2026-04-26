@@ -115,6 +115,22 @@ class EmailService
     }
 
     /**
+     * Keep API calls short during OTP so SMTP fallback still has a chance.
+     */
+    private static function otpApiTimeoutSeconds(): int
+    {
+        return (int) env('VERIFICATION_API_TIMEOUT', 12);
+    }
+
+    /**
+     * Keep connect timeout shorter than request timeout for fast failover.
+     */
+    private static function otpApiConnectTimeoutSeconds(): int
+    {
+        return (int) env('VERIFICATION_API_CONNECT_TIMEOUT', 6);
+    }
+
+    /**
      * From address for Brevo: dedicated BREVO_SENDER_EMAIL, then mail.from, then getenv (Railway).
      */
     private static function resolveBrevoSender(): array
@@ -556,8 +572,8 @@ class EmailService
                 usleep(150000);
             }
             try {
-                $response = Http::timeout(25)
-                    ->connectTimeout(10)
+                $response = Http::timeout(max(6, self::otpApiTimeoutSeconds()))
+                    ->connectTimeout(max(3, min(self::otpApiConnectTimeoutSeconds(), self::otpApiTimeoutSeconds() - 2)))
                     ->withHeaders([
                         'api-key' => $apiKey,
                         'Content-Type' => 'application/json',
@@ -728,8 +744,8 @@ class EmailService
                 usleep(200000);
             }
             try {
-                $response = Http::timeout(40)
-                    ->connectTimeout(15)
+                $response = Http::timeout(max(6, self::otpApiTimeoutSeconds()))
+                    ->connectTimeout(max(3, min(self::otpApiConnectTimeoutSeconds(), self::otpApiTimeoutSeconds() - 2)))
                     ->withToken($apiKey)
                     ->acceptJson()
                     ->post('https://api.resend.com/emails', [
