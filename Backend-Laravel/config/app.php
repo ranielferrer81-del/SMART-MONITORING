@@ -153,7 +153,18 @@ return [
     /** On Railway, attempt Brevo REST (HTTPS) before Resend when BREVO_API_KEY is set (no SMTP required). */
     'email_try_brevo_before_resend_on_railway' => filter_var(env('EMAIL_TRY_BREVO_BEFORE_RESEND_ON_RAILWAY', true), FILTER_VALIDATE_BOOLEAN),
 
-    /** Wall-clock budget for OTP mail attempts (seconds). */
-    'verification_mail_time_budget_seconds' => max(8.0, min(120.0, (float) (env('VERIFICATION_MAIL_TIME_BUDGET_SECONDS') ?: 90))),
+    /**
+     * Wall-clock budget for OTP mail attempts (seconds).
+     *
+     * Default kept low (30s) so /api/validate-email and /api/resend-verification-code
+     * always return quickly even when SMTP is slow or a transport is timing out.
+     * The desktop client retries once and the backend dispatches a background retry
+     * via retryVerificationSendAfterResponse, so a tight budget improves perceived
+     * reliability on poor demo Wi-Fi without losing eventual delivery.
+     *
+     * Override with VERIFICATION_MAIL_TIME_BUDGET_SECONDS if you need more headroom
+     * (e.g. when troubleshooting a specific provider).
+     */
+    'verification_mail_time_budget_seconds' => max(8.0, min(120.0, (float) (env('VERIFICATION_MAIL_TIME_BUDGET_SECONDS') ?: 30))),
 
 ];

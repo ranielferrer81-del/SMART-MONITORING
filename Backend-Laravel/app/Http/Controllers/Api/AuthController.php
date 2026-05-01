@@ -17,6 +17,20 @@ class AuthController extends Controller
     /** Shown when mail fails but a one-time code is returned — never mentions Brevo/Railway/Resend (avoids user-facing config errors). */
     private const FALLBACK_VERIFICATION_USER_MESSAGE = 'Use the verification code below to sign in. You can also check your email.';
 
+    /**
+     * Read the desktop client's OTP correlation id (set by emailAuthRequest in
+     * Desktop-App/src/api/client.ts). Falls back to "-" so log lines stay aligned.
+     */
+    private function otpTraceId(Request $request): string
+    {
+        $raw = $request->header('X-OTP-Trace-Id');
+        if (! is_string($raw) || $raw === '') {
+            return '-';
+        }
+        // Trim and clamp; this is operator-controlled metadata but we still keep it small.
+        return substr(preg_replace('/[^A-Za-z0-9_#\-\.]/', '', $raw) ?? '', 0, 32) ?: '-';
+    }
+
     /** Default true: login always works when mail fails (code in JSON). Set AUTH_LOGIN_CODE_FALLBACK=false to disable. */
     private function authLoginCodeFallbackEnabled(): bool
     {
@@ -363,12 +377,13 @@ class AuthController extends Controller
 
         [$code, $expiresAt] = $this->issueOrReuseVerificationCode($email);
 
-        // Debug: Log code creation
+        $traceId = $this->otpTraceId($request);
         \Log::info('Verification code created', [
+            'trace' => $traceId,
             'email' => $email,
             'code' => $code,
             'expires_at' => $expiresAt->toDateTimeString(),
-            'current_time' => now()->toDateTimeString()
+            'current_time' => now()->toDateTimeString(),
         ]);
 
         try {
@@ -410,11 +425,12 @@ class AuthController extends Controller
         $email = strtolower(trim($validated['email']));
         $code = trim($validated['code']);
 
-        // Debug: Log what we're looking for
+        $traceId = $this->otpTraceId($request);
         \Log::info('Verifying code', [
+            'trace' => $traceId,
             'email' => $email,
             'code' => $code,
-            'current_time' => now()->toDateTimeString()
+            'current_time' => now()->toDateTimeString(),
         ]);
 
         // Find valid verification code
@@ -593,6 +609,12 @@ class AuthController extends Controller
         }
 
         [$code, $expiresAt] = $this->issueOrReuseVerificationCode($email);
+
+        \Log::info('Verification code resend requested', [
+            'trace' => $this->otpTraceId($request),
+            'email' => $email,
+            'expires_at' => $expiresAt->toDateTimeString(),
+        ]);
 
         // Resend: wait for the real SMTP/Brevo result so the client can show email_sent=false
         // and an error when mail actually fails (async/optimistic path would always say "sent").
