@@ -7,6 +7,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 
 class TeacherProfileController extends Controller
@@ -151,6 +152,68 @@ class TeacherProfileController extends Controller
                 'message' => 'Failed to delete profile picture: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Update authenticated teacher's name, password, department, and specialization.
+     */
+    public function updateProfile(Request $request)
+    {
+        $user = Auth::user();
+        if (! $user || ($user->role ?? 'teacher') !== 'teacher') {
+            return response()->json(['ok' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        $data = $request->validate([
+            'full_name' => ['sometimes', 'string', 'max:191'],
+            'password' => ['sometimes', 'string', 'min:6'],
+            'current_password' => ['required_with:password', 'string'],
+            'department' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'specialization' => ['sometimes', 'nullable', 'string', 'max:255'],
+        ]);
+
+        if (isset($data['password'])) {
+            $userWithPassword = DB::table('users')
+                ->where('id', $user->id)
+                ->select('id', 'password')
+                ->first();
+
+            if (! $userWithPassword || ! Hash::check($data['current_password'], $userWithPassword->password)) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'Current password is incorrect',
+                ], 422);
+            }
+        }
+
+        $updateUser = [];
+        if (isset($data['full_name'])) {
+            $updateUser['full_name'] = trim($data['full_name']);
+        }
+        if (isset($data['password'])) {
+            $updateUser['password'] = Hash::make($data['password']);
+        }
+        if (! empty($updateUser)) {
+            $updateUser['updated_at'] = now();
+            DB::table('users')->where('id', $user->id)->update($updateUser);
+        }
+
+        $updateTp = [];
+        if (array_key_exists('department', $data)) {
+            $updateTp['department'] = $data['department'];
+        }
+        if (array_key_exists('specialization', $data)) {
+            $updateTp['specialization'] = $data['specialization'];
+        }
+        if (! empty($updateTp)) {
+            $updateTp['updated_at'] = now();
+            DB::table('teacher_profiles')->where('user_id', $user->id)->update($updateTp);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'Profile updated successfully',
+        ]);
     }
 }
 

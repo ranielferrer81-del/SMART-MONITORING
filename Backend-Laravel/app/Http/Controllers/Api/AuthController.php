@@ -227,6 +227,10 @@ class AuthController extends Controller
         $course = null;
         $section = null;
         $profilePicture = null;
+        $teacherNumber = null;
+        $department = null;
+        $specialization = null;
+        $adminPosition = null;
         if ($role === 'student') {
             $sp = \DB::table('student_profiles')->where('user_id', $user->id)->first();
             if ($sp) {
@@ -239,6 +243,14 @@ class AuthController extends Controller
             $tp = \DB::table('teacher_profiles')->where('user_id', $user->id)->first();
             if ($tp) {
                 $profilePicture = $tp->profile_picture;
+                $teacherNumber = $tp->teacher_number;
+                $department = $tp->department;
+                $specialization = $tp->specialization;
+            }
+        } elseif ($role === 'admin') {
+            $ap = \DB::table('admin_profiles')->where('user_id', $user->id)->first();
+            if ($ap) {
+                $adminPosition = $ap->position;
             }
         }
 
@@ -282,6 +294,10 @@ class AuthController extends Controller
                 'section' => $section,
                 'profile_picture' => $profilePicture,
                 'role' => $role,
+                'teacher_number' => $teacherNumber,
+                'department' => $department,
+                'specialization' => $specialization,
+                'position' => $adminPosition,
             ],
         ]);
     }

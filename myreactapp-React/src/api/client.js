@@ -425,3 +425,23 @@ export async function updateStudentProfile(data) {
     return { ok: false, error: message, raw: error.response?.data };
   }
 }
+
+export async function updateTeacherProfile(data) {
+  try {
+    const res = await api.patch('/api/teacher/profile', data);
+    return { ok: true, data: res.data };
+  } catch (error) {
+    const message = formatAxiosValidationError(error);
+    return { ok: false, error: message, raw: error.response?.data };
+  }
+}
+
+export async function updateAdminProfile(data) {
+  try {
+    const res = await api.patch('/api/admin/profile', data);
+    return { ok: true, data: res.data };
+  } catch (error) {
+    const message = formatAxiosValidationError(error);
+    return { ok: false, error: message, raw: error.response?.data };
+  }
+}

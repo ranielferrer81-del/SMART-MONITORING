@@ -12,6 +12,8 @@ import EditAttendanceModal from './modals/EditAttendanceModal';
 import AttendanceHistoryModal from './modals/AttendanceHistoryModal';
 import BrowserActivityModal from './modals/BrowserActivityModal';
 import AddStudentsModal from './modals/AddStudentsModal';
+import StaffDashboardSettings from '../StaffDashboardSettings';
+import { getMonitoringPollSeconds } from '../../utils/dashboardPrefs';
 
 export default function TeacherDashboard() {
   const [user, setUser] = useState(null);
@@ -49,6 +51,7 @@ export default function TeacherDashboard() {
   const [addStudentsSearchTerm, setAddStudentsSearchTerm] = useState('');
   const [subjectSchedules, setSubjectSchedules] = useState([]);
   const fileInputRef = useRef(null);
+  const [monitoringPollSec, setMonitoringPollSec] = useState(() => getMonitoringPollSeconds());
 
   const getProfilePictureUrl = (profilePicture) => {
     if (!profilePicture) return null;
@@ -92,9 +95,9 @@ export default function TeacherDashboard() {
       }
     };
     fetchOnlineData();
-    const interval = setInterval(fetchOnlineData, 15000);
+    const interval = setInterval(fetchOnlineData, Math.max(5000, monitoringPollSec * 1000));
     return () => clearInterval(interval);
-  }, []);
+  }, [monitoringPollSec]);
 
   const getAttendanceSummary = (student) => {
     if (!student) return { present: 0, late: 0, absent: 0 };
@@ -382,6 +385,7 @@ export default function TeacherDashboard() {
               { id: 'attendance', label: 'Attendance', icon: 'M9 12l2 2 4-4m5 2a9 9 0 11-18 0 9 9 0 0118 0z' },
               { id: 'schedule', label: 'Class Schedule', icon: 'M8 7V3m8 4V3m-9 8h10m-11 9h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2v11a2 2 0 002 2z' },
               { id: 'monitoring', label: 'Browser Monitoring', icon: 'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
+              { id: 'settings', label: 'Settings', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z' },
             ].map((item) => (
               <button
                 key={item.id}
@@ -415,10 +419,10 @@ export default function TeacherDashboard() {
                   </button>
                   <div>
                     <h2 className="text-xl lg:text-3xl font-bold bg-gradient-to-r from-rose-600 to-red-600 bg-clip-text text-transparent dark:from-rose-400 dark:to-red-400">
-                      {activeSection === 'profile' ? 'My Profile' : activeSection === 'subjects' ? 'My Subjects' : activeSection === 'attendance' ? 'Attendance' : activeSection === 'schedule' ? 'Class Schedule' : activeSection === 'monitoring' ? 'Browser Monitoring' : 'Professor Dashboard'}
+                      {activeSection === 'profile' ? 'My Profile' : activeSection === 'subjects' ? 'My Subjects' : activeSection === 'attendance' ? 'Attendance' : activeSection === 'schedule' ? 'Class Schedule' : activeSection === 'monitoring' ? 'Browser Monitoring' : activeSection === 'settings' ? 'Settings' : 'Professor Dashboard'}
                     </h2>
                     <p className="text-xs lg:text-sm text-slate-700 dark:text-slate-200 font-medium mt-1">
-                      {activeSection === 'profile' ? 'View your professor profile and information' : activeSection === 'subjects' ? 'View and manage the subjects assigned to you' : activeSection === 'attendance' ? 'Mark attendance quickly with a dedicated daily workspace' : activeSection === 'schedule' ? 'Set and update class day/time windows for attendance check-in' : activeSection === 'monitoring' ? 'Monitor student browser activity in your subjects' : 'Professor Dashboard'}
+                      {activeSection === 'profile' ? 'View your professor profile and information' : activeSection === 'subjects' ? 'View and manage the subjects assigned to you' : activeSection === 'attendance' ? 'Mark attendance quickly with a dedicated daily workspace' : activeSection === 'schedule' ? 'Set and update class day/time windows for attendance check-in' : activeSection === 'monitoring' ? 'Monitor student browser activity in your subjects' : activeSection === 'settings' ? 'Account, appearance, and monitoring refresh preferences' : 'Professor Dashboard'}
                     </p>
                   </div>
                 </div>
@@ -614,6 +618,15 @@ export default function TeacherDashboard() {
 
             {activeSection === 'monitoring' && (
               <BrowserMonitoringSection subjects={subjects} loadingSubjects={loadingSubjects} isStudentOnline={isStudentOnline} hasIncognitoAlert={hasIncognitoAlert} handleViewActivity={handleViewActivity} />
+            )}
+
+            {activeSection === 'settings' && user && (
+              <StaffDashboardSettings
+                role="teacher"
+                user={user}
+                setUser={setUser}
+                onMonitoringPollSaved={(sec) => setMonitoringPollSec(sec)}
+              />
             )}
 
             {/* Enrolled Students Modal */}

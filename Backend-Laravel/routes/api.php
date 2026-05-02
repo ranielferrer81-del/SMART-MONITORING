@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\TeacherProfileController;
 use App\Http\Controllers\Api\BrowserActivityController;
 use App\Http\Controllers\Api\LabComputerController;
 use App\Http\Controllers\Api\LabGatewayController;
+use App\Http\Controllers\Api\AdminProfileController;
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/validate-email', [AuthController::class, 'validateEmail']);
@@ -59,6 +60,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Teacher profile picture
     Route::post('/teacher/profile-picture', [TeacherProfileController::class, 'uploadProfilePicture']);
     Route::delete('/teacher/profile-picture', [TeacherProfileController::class, 'deleteProfilePicture']);
+    Route::patch('/teacher/profile', [TeacherProfileController::class, 'updateProfile']);
+
+    Route::patch('/admin/profile', [AdminProfileController::class, 'updateProfile']);
 });
 
 // Teacher access to students by course (requires teacher token)

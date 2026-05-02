@@ -10,6 +10,7 @@ import AddAccountSection from './sections/AddAccountSection';
 import SubjectCardsSection from './sections/SubjectCardsSection';
 import SubjectManagementSection from './sections/SubjectManagementSection';
 import EditAccountModal from './modals/EditAccountModal';
+import StaffDashboardSettings from '../StaffDashboardSettings';
 import { EnrolledStudentsModal, AddStudentsModal } from './modals/SubjectManagementModals';
 
 export default function AdminDashboard() {
@@ -753,6 +754,19 @@ export default function AdminDashboard() {
               </svg>
               Create Subject
             </button>
+
+            <button
+              onClick={() => { setActiveSection('settings'); setMobileMenuOpen(false); }}
+              className={`flex w-full items-center rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 ${activeSection === 'settings'
+                ? 'bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-lg shadow-rose-500/35 ring-2 ring-rose-400/40'
+                : 'text-slate-600 hover:translate-x-0.5 hover:bg-white/70 hover:text-rose-700 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-rose-200'
+                }`}
+            >
+              <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Settings
+            </button>
           </nav>
 
           {/* Logout Button */}
@@ -798,7 +812,9 @@ export default function AdminDashboard() {
                               ? 'Create Subject'
                               : activeSection === 'monitoring'
                                 ? 'Browser Monitoring'
-                                : 'Subject List'}
+                                : activeSection === 'settings'
+                                  ? 'Settings'
+                                  : 'Subject List'}
                       </h2>
                     </div>
                     <p className="mt-1 line-clamp-2 text-xs font-medium text-slate-700 dark:text-slate-200 lg:text-sm">
@@ -807,6 +823,7 @@ export default function AdminDashboard() {
                       {activeSection === 'subjects' && 'View subjects, sections, enrolled students, and open monitoring context.'}
                       {activeSection === 'manage-subjects' && 'Create subjects, assign professors, and set class schedule.'}
                       {activeSection === 'monitoring' && 'Pick a course and section to view live browser activity and sessions.'}
+                      {activeSection === 'settings' && 'Your account, password, position title, and website appearance.'}
                     </p>
                   </div>
                 </div>
@@ -815,7 +832,7 @@ export default function AdminDashboard() {
                     <div className="h-2 w-2 animate-pulse rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
                     <div className="text-sm text-slate-700 dark:text-slate-200">
                       Welcome,{' '}
-                      <span className="font-semibold text-rose-600 dark:text-rose-300">{user?.fullName || 'Admin'}</span>
+                      <span className="font-semibold text-rose-600 dark:text-rose-300">{user?.fullName || user?.full_name || 'Admin'}</span>
                     </div>
                   </div>
                   <button
@@ -922,6 +939,10 @@ export default function AdminDashboard() {
               getAvailableSections={getAvailableSections}
               setToast={setToast}
             />
+          )}
+
+          {activeSection === 'settings' && user && (
+            <StaffDashboardSettings role="admin" user={user} setUser={setUser} />
           )}
             </div>
           </div>
