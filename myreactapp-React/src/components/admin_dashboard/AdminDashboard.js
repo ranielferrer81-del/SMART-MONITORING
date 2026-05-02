@@ -12,10 +12,11 @@ import SubjectManagementSection from './sections/SubjectManagementSection';
 import EditAccountModal from './modals/EditAccountModal';
 import StaffDashboardSettings from '../StaffDashboardSettings';
 import { EnrolledStudentsModal, AddStudentsModal } from './modals/SubjectManagementModals';
+import { getAdminDefaultAccountsTab, setAdminDefaultAccountsTab, getAdminConfirmBeforeDelete } from '../../utils/dashboardPrefs';
 
 export default function AdminDashboard() {
   const [user, setUser] = useState(null);
-  const [tab, setTab] = useState('teachers');
+  const [tab, setTab] = useState(() => getAdminDefaultAccountsTab());
   const [teachers, setTeachers] = useState([]);
   const [studentsBSIT, setStudentsBSIT] = useState([]);
   const [studentsBSCS, setStudentsBSCS] = useState([]);
@@ -99,10 +100,13 @@ export default function AdminDashboard() {
     window.location.href = '/';
   };
 
-
+  const setTabAndPersist = (t) => {
+    setTab(t);
+    setAdminDefaultAccountsTab(t);
+  };
 
   const handleDeleteAccount = async (accountId) => {
-    if (!window.confirm('Are you sure you want to delete this account?')) return;
+    if (getAdminConfirmBeforeDelete() && !window.confirm('Are you sure you want to delete this account?')) return;
     try {
       setLoading(true);
       const res = await deleteAccount(accountId);
@@ -823,7 +827,7 @@ export default function AdminDashboard() {
                       {activeSection === 'subjects' && 'View subjects, sections, enrolled students, and open monitoring context.'}
                       {activeSection === 'manage-subjects' && 'Create subjects, assign professors, and set class schedule.'}
                       {activeSection === 'monitoring' && 'Pick a course and section to view live browser activity and sessions.'}
-                      {activeSection === 'settings' && 'Your account, password, position title, and website appearance.'}
+                      {activeSection === 'settings' && 'Your account, password, position title, account-management defaults, and delete confirmations.'}
                     </p>
                   </div>
                 </div>
@@ -878,7 +882,7 @@ export default function AdminDashboard() {
           {/* ── Account Management Section ── */}
           {activeSection === 'accounts' && (
             <AccountManagementSection
-              tab={tab} setTab={setTab}
+              tab={tab} setTab={setTabAndPersist}
               searchTerm={searchTerm} setSearchTerm={setSearchTerm}
               teachers={teachers}
               studentsBSIT={studentsBSIT} studentsBSCS={studentsBSCS} studentsBSEMC={studentsBSEMC}
@@ -942,7 +946,13 @@ export default function AdminDashboard() {
           )}
 
           {activeSection === 'settings' && user && (
-            <StaffDashboardSettings role="admin" user={user} setUser={setUser} />
+            <StaffDashboardSettings
+              role="admin"
+              user={user}
+              setUser={setUser}
+              adminAccountsTab={tab}
+              setAdminAccountsTab={setTabAndPersist}
+            />
           )}
             </div>
           </div>

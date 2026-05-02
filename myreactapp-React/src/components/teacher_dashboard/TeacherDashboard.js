@@ -13,7 +13,7 @@ import AttendanceHistoryModal from './modals/AttendanceHistoryModal';
 import BrowserActivityModal from './modals/BrowserActivityModal';
 import AddStudentsModal from './modals/AddStudentsModal';
 import StaffDashboardSettings from '../StaffDashboardSettings';
-import { getMonitoringPollSeconds } from '../../utils/dashboardPrefs';
+import { getMonitoringPollSeconds, getNotifyIncognitoDesktop } from '../../utils/dashboardPrefs';
 
 export default function TeacherDashboard() {
   const [user, setUser] = useState(null);
@@ -51,6 +51,8 @@ export default function TeacherDashboard() {
   const [addStudentsSearchTerm, setAddStudentsSearchTerm] = useState('');
   const [subjectSchedules, setSubjectSchedules] = useState([]);
   const fileInputRef = useRef(null);
+  const alertsPollInitializedRef = useRef(false);
+  const seenIncognitoAlertIdsRef = useRef(new Set());
   const [monitoringPollSec, setMonitoringPollSec] = useState(() => getMonitoringPollSeconds());
 
   const getProfilePictureUrl = (profilePicture) => {
@@ -80,10 +82,38 @@ export default function TeacherDashboard() {
         } else if (Array.isArray(studentsResp)) {
           setOnlineStudents(studentsResp);
         }
+        let alertsList = [];
         if (alertsResp.ok && alertsResp.data) {
-          setIncognitoAlerts(Array.isArray(alertsResp.data) ? alertsResp.data : []);
+          alertsList = Array.isArray(alertsResp.data) ? alertsResp.data : [];
         } else if (Array.isArray(alertsResp)) {
-          setIncognitoAlerts(alertsResp);
+          alertsList = alertsResp;
+        }
+        setIncognitoAlerts(alertsList);
+
+        if (Array.isArray(alertsList)) {
+          if (!alertsPollInitializedRef.current) {
+            alertsList.forEach((a) => {
+              if (a && a.id != null) seenIncognitoAlertIdsRef.current.add(a.id);
+            });
+            alertsPollInitializedRef.current = true;
+          } else if (
+            typeof window !== 'undefined' &&
+            typeof Notification !== 'undefined' &&
+            getNotifyIncognitoDesktop() &&
+            Notification.permission === 'granted'
+          ) {
+            alertsList.forEach((a) => {
+              if (!a || a.id == null || seenIncognitoAlertIdsRef.current.has(a.id)) return;
+              seenIncognitoAlertIdsRef.current.add(a.id);
+              if (a.is_acknowledged) return;
+              try {
+                new Notification('SMART — Incognito alert', {
+                  body: 'A student may be browsing in incognito. Review Browser Monitoring.',
+                  tag: `smart-incognito-${a.id}`,
+                });
+              } catch (_) {}
+            });
+          }
         }
         if (activityResp.ok && activityResp.data) {
           setRealtimeActivity(Array.isArray(activityResp.data) ? activityResp.data : []);
@@ -422,7 +452,7 @@ export default function TeacherDashboard() {
                       {activeSection === 'profile' ? 'My Profile' : activeSection === 'subjects' ? 'My Subjects' : activeSection === 'attendance' ? 'Attendance' : activeSection === 'schedule' ? 'Class Schedule' : activeSection === 'monitoring' ? 'Browser Monitoring' : activeSection === 'settings' ? 'Settings' : 'Professor Dashboard'}
                     </h2>
                     <p className="text-xs lg:text-sm text-slate-700 dark:text-slate-200 font-medium mt-1">
-                      {activeSection === 'profile' ? 'View your professor profile and information' : activeSection === 'subjects' ? 'View and manage the subjects assigned to you' : activeSection === 'attendance' ? 'Mark attendance quickly with a dedicated daily workspace' : activeSection === 'schedule' ? 'Set and update class day/time windows for attendance check-in' : activeSection === 'monitoring' ? 'Monitor student browser activity in your subjects' : activeSection === 'settings' ? 'Account, appearance, and monitoring refresh preferences' : 'Professor Dashboard'}
+                      {activeSection === 'profile' ? 'View your professor profile and information' : activeSection === 'subjects' ? 'View and manage the subjects assigned to you' : activeSection === 'attendance' ? 'Mark attendance quickly with a dedicated daily workspace' : activeSection === 'schedule' ? 'Set and update class day/time windows for attendance check-in' : activeSection === 'monitoring' ? 'Monitor student browser activity in your subjects' : activeSection === 'settings' ? 'Account, live refresh interval, and incognito alert notifications' : 'Professor Dashboard'}
                     </p>
                   </div>
                 </div>

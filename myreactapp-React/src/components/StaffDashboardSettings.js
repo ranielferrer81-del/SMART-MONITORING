@@ -3,8 +3,12 @@ import { fetchMe, updateTeacherProfile, updateAdminProfile } from '../api/client
 import {
   getMonitoringPollSeconds,
   setMonitoringPollSeconds,
-  getThemeMode,
-  setThemeMode,
+  getNotifyIncognitoDesktop,
+  setNotifyIncognitoDesktop,
+  getAdminDefaultAccountsTab,
+  setAdminDefaultAccountsTab,
+  getAdminConfirmBeforeDelete,
+  setAdminConfirmBeforeDelete,
 } from '../utils/dashboardPrefs';
 
 function normalizeStoredUser(d) {
@@ -16,9 +20,19 @@ function normalizeStoredUser(d) {
 }
 
 /**
- * Settings for professor (teacher) and admin dashboards: account, password, appearance, teacher-only monitoring poll interval.
+ * Settings for professor and admin dashboards: account, monitoring, and workspace preferences.
  */
-export default function StaffDashboardSettings({ role, user, setUser, onMonitoringPollSaved }) {
+const ADMIN_TAB_IDS = ['teachers', 'bsit', 'bscs', 'bsemc'];
+
+export default function StaffDashboardSettings({
+  role,
+  user,
+  setUser,
+  onMonitoringPollSaved,
+  /** Current Account Management tab — keeps settings dropdown in sync */
+  adminAccountsTab,
+  setAdminAccountsTab,
+}) {
   const [form, setForm] = useState({
     full_name: '',
     department: '',
@@ -30,8 +44,13 @@ export default function StaffDashboardSettings({ role, user, setUser, onMonitori
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState('');
-  const [themeMode, setThemeModeState] = useState(() => getThemeMode());
   const [pollSec, setPollSec] = useState(() => getMonitoringPollSeconds());
+  const [notifyIncognito, setNotifyIncognito] = useState(() => getNotifyIncognitoDesktop());
+  const [notifPermission, setNotifPermission] = useState(
+    typeof Notification !== 'undefined' ? Notification.permission : 'denied'
+  );
+  const [defaultAdminTab, setDefaultAdminTab] = useState(() => getAdminDefaultAccountsTab());
+  const [confirmDelete, setConfirmDelete] = useState(() => getAdminConfirmBeforeDelete());
 
   useEffect(() => {
     if (!user) return;
@@ -66,6 +85,12 @@ export default function StaffDashboardSettings({ role, user, setUser, onMonitori
     void refreshUserFromApi();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (role === 'admin' && adminAccountsTab && ADMIN_TAB_IDS.includes(adminAccountsTab)) {
+      setDefaultAdminTab(adminAccountsTab);
+    }
+  }, [role, adminAccountsTab]);
 
   const handleAccountSubmit = async (e) => {
     e.preventDefault();
@@ -115,13 +140,6 @@ export default function StaffDashboardSettings({ role, user, setUser, onMonitori
     }
   };
 
-  const handleAppearanceSave = (e) => {
-    e.preventDefault();
-    setThemeMode(themeMode);
-    setSuccess('Appearance updated.');
-    setTimeout(() => setSuccess(''), 3000);
-  };
-
   const handlePollSave = (e) => {
     e.preventDefault();
     const n = setMonitoringPollSeconds(pollSec);
@@ -130,6 +148,52 @@ export default function StaffDashboardSettings({ role, user, setUser, onMonitori
       onMonitoringPollSaved(n);
     }
     setSuccess(`Monitoring refresh interval set to ${n} seconds.`);
+    setTimeout(() => setSuccess(''), 4000);
+  };
+
+  const handleNotifySave = (e) => {
+    e.preventDefault();
+    setNotifyIncognitoDesktop(notifyIncognito);
+    setSuccess(
+      notifyIncognito
+        ? 'Desktop notifications enabled for new incognito alerts (after permission is granted).'
+        : 'Desktop notifications for incognito alerts are off.'
+    );
+    setTimeout(() => setSuccess(''), 4000);
+  };
+
+  const requestNotificationPermission = async () => {
+    if (typeof Notification === 'undefined') {
+      setSuccess('This browser does not support notifications.');
+      setTimeout(() => setSuccess(''), 4000);
+      return;
+    }
+    try {
+      const p = await Notification.requestPermission();
+      setNotifPermission(p);
+      if (p === 'granted') {
+        setNotifyIncognito(true);
+        setNotifyIncognitoDesktop(true);
+        setSuccess('Notifications allowed. New incognito alerts will show a desktop message.');
+      } else {
+        setSuccess('Notifications were blocked. Allow them in your browser settings to use this feature.');
+      }
+      setTimeout(() => setSuccess(''), 5000);
+    } catch (_) {
+      setSuccess('Could not request notification permission.');
+      setTimeout(() => setSuccess(''), 4000);
+    }
+  };
+
+  const handleAdminWorkspaceSave = (e) => {
+    e.preventDefault();
+    const t = setAdminDefaultAccountsTab(defaultAdminTab);
+    setDefaultAdminTab(t);
+    if (typeof setAdminAccountsTab === 'function') {
+      setAdminAccountsTab(t);
+    }
+    setAdminConfirmBeforeDelete(confirmDelete);
+    setSuccess('Admin workspace preferences saved.');
     setTimeout(() => setSuccess(''), 4000);
   };
 
@@ -150,7 +214,7 @@ export default function StaffDashboardSettings({ role, user, setUser, onMonitori
               {title}
             </h3>
             <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-              Account, security, and display preferences for this website
+              Account, security, and SMART monitoring preferences for this browser
             </p>
           </div>
         </div>
@@ -271,71 +335,131 @@ export default function StaffDashboardSettings({ role, user, setUser, onMonitori
         </div>
       </form>
 
-      <form onSubmit={handleAppearanceSave} className="bg-white/40 backdrop-blur-md shadow-2xl rounded-2xl border border-white/20 dark:bg-slate-900/40 dark:border-white/10 overflow-hidden">
-        <div className="bg-gradient-to-r from-indigo-50/50 to-violet-50/50 dark:from-indigo-900/20 dark:to-violet-900/20 border-b border-indigo-200/50 dark:border-indigo-800/50 px-6 lg:px-8 py-4">
-          <h4 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Appearance</h4>
-          <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">Theme is saved in this browser</p>
-        </div>
-        <div className="p-6 lg:p-8 space-y-4">
-          <div className="flex flex-wrap gap-3">
-            {[
-              { id: 'light', label: 'Light' },
-              { id: 'dark', label: 'Dark' },
-              { id: 'system', label: 'Match system' },
-            ].map(({ id, label }) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => {
-                  setThemeModeState(id);
-                  setThemeMode(id);
-                }}
-                className={`px-4 py-2 rounded-xl text-sm font-semibold border-2 transition-all ${
-                  themeMode === id
-                    ? 'border-rose-500 bg-rose-50 text-rose-800 dark:bg-rose-900/40 dark:text-rose-100'
-                    : 'border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:border-rose-300'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          <button
-            type="submit"
-            className="px-5 py-2.5 rounded-xl bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 text-sm font-semibold"
-          >
-            Apply appearance
-          </button>
-        </div>
-      </form>
-
       {role === 'teacher' && (
-        <form onSubmit={handlePollSave} className="bg-white/40 backdrop-blur-md shadow-2xl rounded-2xl border border-white/20 dark:bg-slate-900/40 dark:border-white/10 overflow-hidden">
-          <div className="bg-gradient-to-r from-emerald-50/50 to-teal-50/50 dark:from-emerald-900/20 dark:to-teal-900/20 border-b border-emerald-200/50 dark:border-emerald-800/50 px-6 lg:px-8 py-4">
-            <h4 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Browser monitoring</h4>
+        <>
+          <form onSubmit={handlePollSave} className="bg-white/40 backdrop-blur-md shadow-2xl rounded-2xl border border-white/20 dark:bg-slate-900/40 dark:border-white/10 overflow-hidden">
+            <div className="bg-gradient-to-r from-emerald-50/50 to-teal-50/50 dark:from-emerald-900/20 dark:to-teal-900/20 border-b border-emerald-200/50 dark:border-emerald-800/50 px-6 lg:px-8 py-4">
+              <h4 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Live monitoring refresh</h4>
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                How often online students, incognito alerts, and activity data refresh on this device
+              </p>
+            </div>
+            <div className="p-6 lg:p-8 space-y-4">
+              <label className="block text-sm font-semibold text-slate-900 dark:text-slate-50">
+                Refresh every{' '}
+                <input
+                  type="number"
+                  min={5}
+                  max={120}
+                  step={5}
+                  value={pollSec}
+                  onChange={(e) => setPollSec(parseInt(e.target.value, 10) || 15)}
+                  className="w-20 mx-1 px-2 py-1 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-center font-mono"
+                />{' '}
+                seconds (5–120)
+              </label>
+              <button
+                type="submit"
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-semibold shadow"
+              >
+                Save interval
+              </button>
+            </div>
+          </form>
+
+          <form onSubmit={handleNotifySave} className="bg-white/40 backdrop-blur-md shadow-2xl rounded-2xl border border-white/20 dark:bg-slate-900/40 dark:border-white/10 overflow-hidden">
+            <div className="bg-gradient-to-r from-amber-50/50 to-orange-50/50 dark:from-amber-900/20 dark:to-orange-900/20 border-b border-amber-200/50 dark:border-amber-800/50 px-6 lg:px-8 py-4">
+              <h4 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Incognito alerts</h4>
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                Get a desktop notification when a new incognito alert is reported (same timing as your refresh interval)
+              </p>
+            </div>
+            <div className="p-6 lg:p-8 space-y-4">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={notifyIncognito}
+                  onChange={(e) => setNotifyIncognito(e.target.checked)}
+                  className="mt-1 rounded border-slate-300 text-rose-600 focus:ring-rose-500"
+                />
+                <span className="text-sm text-slate-800 dark:text-slate-200">
+                  Show desktop notifications for new incognito alerts
+                </span>
+              </label>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Browser status: <strong className="text-slate-700 dark:text-slate-300">{notifPermission}</strong>
+                {notifPermission !== 'granted' && (
+                  <>
+                    {' '}
+                    — use the button below so your browser can show alerts while this tab is in the background.
+                  </>
+                )}
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={requestNotificationPermission}
+                  className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold"
+                >
+                  Allow notifications in browser
+                </button>
+                <button type="submit" className="px-4 py-2 rounded-xl border-2 border-slate-300 dark:border-slate-600 text-sm font-semibold text-slate-800 dark:text-slate-100">
+                  Save alert preference
+                </button>
+              </div>
+            </div>
+          </form>
+        </>
+      )}
+
+      {role === 'admin' && (
+        <form onSubmit={handleAdminWorkspaceSave} className="bg-white/40 backdrop-blur-md shadow-2xl rounded-2xl border border-white/20 dark:bg-slate-900/40 dark:border-white/10 overflow-hidden">
+          <div className="bg-gradient-to-r from-sky-50/50 to-indigo-50/50 dark:from-sky-900/20 dark:to-indigo-900/20 border-b border-sky-200/50 dark:border-sky-800/50 px-6 lg:px-8 py-4">
+            <h4 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Account management workspace</h4>
             <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-              How often the dashboard refreshes online students and alerts (this device only)
+              Defaults when you open Account Management and safer deletes (stored in this browser)
             </p>
           </div>
-          <div className="p-6 lg:p-8 space-y-4">
-            <label className="block text-sm font-semibold text-slate-900 dark:text-slate-50">
-              Refresh every{' '}
+          <div className="p-6 lg:p-8 space-y-6">
+            <div>
+              <label className="block text-sm font-semibold text-slate-900 dark:text-slate-50 mb-2">
+                Default tab when opening Account Management
+              </label>
+              <select
+                value={defaultAdminTab}
+                onChange={(e) => setDefaultAdminTab(e.target.value)}
+                className="w-full max-w-md px-4 py-3 rounded-xl border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+              >
+                <option value="teachers">Professors</option>
+                <option value="bsit">BSIT students</option>
+                <option value="bscs">BSCS students</option>
+                <option value="bsemc">BSEMC students</option>
+              </select>
+              <p className="text-xs text-slate-500 mt-2">
+                Current tab is kept in sync when you change it in Account Management.
+              </p>
+            </div>
+            <label className="flex items-start gap-3 cursor-pointer">
               <input
-                type="number"
-                min={5}
-                max={120}
-                step={5}
-                value={pollSec}
-                onChange={(e) => setPollSec(parseInt(e.target.value, 10) || 15)}
-                className="w-20 mx-1 px-2 py-1 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-center font-mono"
-              />{' '}
-              seconds (5–120)
+                type="checkbox"
+                checked={confirmDelete}
+                onChange={(e) => setConfirmDelete(e.target.checked)}
+                className="mt-1 rounded border-slate-300 text-rose-600 focus:ring-rose-500"
+              />
+              <span className="text-sm text-slate-800 dark:text-slate-200">
+                Ask for confirmation before deleting an account
+              </span>
             </label>
+            {!confirmDelete && (
+              <p className="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3 border border-amber-200 dark:border-amber-800">
+                Disabling this will delete accounts immediately when Delete is clicked. Use only if you trust this device.
+              </p>
+            )}
             <button
               type="submit"
-              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-semibold shadow"
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 to-indigo-600 text-white text-sm font-semibold shadow"
             >
-              Save interval
+              Save workspace preferences
             </button>
           </div>
         </form>

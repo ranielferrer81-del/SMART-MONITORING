@@ -1,5 +1,9 @@
 const POLL_KEY = 'smart_teacher_monitoring_poll_sec';
-const THEME_MODE_KEY = 'smart_dashboard_theme_mode';
+const NOTIFY_INCOGNITO_KEY = 'smart_teacher_notify_incognito_desktop';
+const ADMIN_TAB_KEY = 'smart_admin_accounts_default_tab';
+const ADMIN_CONFIRM_DELETE_KEY = 'smart_admin_confirm_delete';
+
+const VALID_ADMIN_TABS = ['teachers', 'bsit', 'bscs', 'bsemc'];
 
 export function getMonitoringPollSeconds() {
   try {
@@ -19,49 +23,48 @@ export function setMonitoringPollSeconds(sec) {
   return n;
 }
 
-export function getThemeMode() {
+/** Desktop notifications when new incognito alerts appear (teacher dashboard). */
+export function getNotifyIncognitoDesktop() {
   try {
-    const m = localStorage.getItem(THEME_MODE_KEY);
-    if (m === 'light' || m === 'dark' || m === 'system') return m;
-  } catch (_) {}
-  try {
-    const t = localStorage.getItem('theme');
-    if (t === 'dark') return 'dark';
-    if (t === 'light') return 'light';
-  } catch (_) {}
-  return 'system';
-}
-
-export function setThemeMode(mode) {
-  const m = mode === 'light' || mode === 'dark' || mode === 'system' ? mode : 'system';
-  try {
-    localStorage.setItem(THEME_MODE_KEY, m);
-  } catch (_) {}
-  applyThemeMode(m);
-  return m;
-}
-
-/** Apply theme to document root (works with existing ThemeToggle localStorage `theme` for light/dark). */
-export function applyThemeMode(mode) {
-  if (typeof document === 'undefined') return;
-  if (mode === 'system') {
-    try {
-      localStorage.removeItem('theme');
-    } catch (_) {}
-    const prefers =
-      typeof window !== 'undefined' &&
-      window.matchMedia &&
-      window.matchMedia('(prefers-color-scheme: dark)').matches;
-    document.documentElement.classList.toggle('dark', !!prefers);
-  } else if (mode === 'dark') {
-    try {
-      localStorage.setItem('theme', 'dark');
-    } catch (_) {}
-    document.documentElement.classList.add('dark');
-  } else {
-    try {
-      localStorage.setItem('theme', 'light');
-    } catch (_) {}
-    document.documentElement.classList.remove('dark');
+    return localStorage.getItem(NOTIFY_INCOGNITO_KEY) === 'true';
+  } catch (_) {
+    return false;
   }
+}
+
+export function setNotifyIncognitoDesktop(enabled) {
+  try {
+    localStorage.setItem(NOTIFY_INCOGNITO_KEY, enabled ? 'true' : 'false');
+  } catch (_) {}
+}
+
+/** Default tab in Admin → Account Management (Professors / BSIT / BSCS / BSEMC). */
+export function getAdminDefaultAccountsTab() {
+  try {
+    const v = localStorage.getItem(ADMIN_TAB_KEY);
+    if (VALID_ADMIN_TABS.includes(v)) return v;
+  } catch (_) {}
+  return 'teachers';
+}
+
+export function setAdminDefaultAccountsTab(tab) {
+  const v = VALID_ADMIN_TABS.includes(tab) ? tab : 'teachers';
+  try {
+    localStorage.setItem(ADMIN_TAB_KEY, v);
+  } catch (_) {}
+  return v;
+}
+
+/** When true (default), account delete asks for confirmation. */
+export function getAdminConfirmBeforeDelete() {
+  try {
+    if (localStorage.getItem(ADMIN_CONFIRM_DELETE_KEY) === 'false') return false;
+  } catch (_) {}
+  return true;
+}
+
+export function setAdminConfirmBeforeDelete(enabled) {
+  try {
+    localStorage.setItem(ADMIN_CONFIRM_DELETE_KEY, enabled ? 'true' : 'false');
+  } catch (_) {}
 }
