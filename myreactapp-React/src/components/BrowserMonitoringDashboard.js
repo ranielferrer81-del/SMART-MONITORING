@@ -8,7 +8,6 @@ import {
     forceCloseStudentBrowser,
     forceCloseStudentTab
 } from '../api/browserMonitoring';
-import { formatMonitoringDateTime, formatPcLogoutAt, getPcLoginAt } from '../utils/monitoringDisplay';
 
 const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
     const API_BASE = process.env.REACT_APP_API_BASE || 'http://127.0.0.1:8000';
@@ -261,7 +260,7 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
                     </div>
 
                     <div className="overflow-x-auto w-full overflow-x-scroll">
-                        <table className="w-full min-w-[860px]">
+                        <table className="w-full min-w-[720px]">
                             <thead className="bg-slate-100/50 dark:bg-slate-800/50">
                                 <tr>
                                     <th className="px-6 py-3 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
@@ -278,9 +277,6 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                                         Lab Room
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider whitespace-normal max-w-[200px]">
-                                        PC logged in · logged out
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                                         Status
@@ -360,21 +356,6 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
                                                     </span>
                                                 ) : (
                                                     <span className="text-slate-400 dark:text-slate-500">-</span>
-                                                )}
-                                            </td>
-                                            <td className="px-6 py-4 text-xs text-slate-600 dark:text-slate-400 max-w-[220px] align-top whitespace-normal">
-                                                {!isStudentOnline(student.id) && '—'}
-                                                {isStudentOnline(student.id) && onlineInfo && (
-                                                    <div className="space-y-1">
-                                                        <div>
-                                                            <span className="font-medium text-slate-700 dark:text-slate-300">Logged in:</span>{' '}
-                                                            {formatMonitoringDateTime(getPcLoginAt(onlineInfo))}
-                                                        </div>
-                                                        <div>
-                                                            <span className="font-medium text-slate-700 dark:text-slate-300">Logged out:</span>{' '}
-                                                            <span className="text-slate-600 dark:text-slate-400">{formatPcLogoutAt(onlineInfo)}</span>
-                                                        </div>
-                                                    </div>
                                                 )}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">

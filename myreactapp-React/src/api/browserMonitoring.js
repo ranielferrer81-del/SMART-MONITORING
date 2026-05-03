@@ -279,3 +279,45 @@ export const forceCloseStudentTab = async (studentId, activityId, url) => {
         };
     }
 };
+
+/** Students with course/section from profile (admin: all; teacher: enrollments). */
+export const getMonitoringTimeStudents = async () => {
+    try {
+        const token = getAuthToken();
+        const response = await axios.get(`${API_BASE}/api/monitoring-time/students`, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                Accept: 'application/json',
+            },
+        });
+        return { ok: true, data: response.data };
+    } catch (error) {
+        return {
+            ok: false,
+            error: error.response?.data?.message || error.message,
+        };
+    }
+};
+
+/** Sessions for one student overlapping a calendar day (date = YYYY-MM-DD). */
+export const getMonitoringTimeSessionsForDate = async (studentId, date) => {
+    try {
+        const token = getAuthToken();
+        const response = await axios.get(
+            `${API_BASE}/api/monitoring-time/students/${studentId}/sessions`,
+            {
+                params: { date },
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    Accept: 'application/json',
+                },
+            }
+        );
+        return { ok: true, data: response.data };
+    } catch (error) {
+        return {
+            ok: false,
+            error: error.response?.data?.message || error.message,
+        };
+    }
+};

@@ -3,6 +3,7 @@ import { createAccount, fetchTeachers, fetchAllStudents, fetchStudentsByCourse, 
 import { getStudentBrowserActivity, getRealtimeBrowserActivity, getIncognitoAlerts, acknowledgeIncognitoAlert, startMonitoringSession, endMonitoringSession, getMonitoringSessions } from '../../api/browserMonitoring';
 import ThemeToggle from '../../components/ThemeToggle';
 import BrowserMonitoringDashboard from '../BrowserMonitoringDashboard';
+import StudentsTimeClockSection from '../StudentsTimeClockSection';
 
 // Extracted components
 import AccountManagementSection from './sections/AccountManagementSection';
@@ -746,6 +747,20 @@ export default function AdminDashboard() {
             </button>
 
             <button
+              type="button"
+              onClick={() => { setActiveSection('time-clock'); setMobileMenuOpen(false); }}
+              className={`flex w-full items-center rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 ${activeSection === 'time-clock'
+                ? 'bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-lg shadow-rose-500/35 ring-2 ring-rose-400/40'
+                : 'text-slate-600 hover:translate-x-0.5 hover:bg-white/70 hover:text-rose-700 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-rose-200'
+                }`}
+            >
+              <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Students time-in / out
+            </button>
+
+            <button
               onClick={() => { setActiveSection('manage-subjects'); setMobileMenuOpen(false); }}
               className={`flex w-full items-center rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 ${activeSection === 'manage-subjects'
                 ? 'bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-lg shadow-rose-500/35 ring-2 ring-rose-400/40'
@@ -816,9 +831,11 @@ export default function AdminDashboard() {
                               ? 'Create Subject'
                               : activeSection === 'monitoring'
                                 ? 'Browser Monitoring'
-                                : activeSection === 'settings'
-                                  ? 'Settings'
-                                  : 'Subject List'}
+                                : activeSection === 'time-clock'
+                                  ? 'Students time-in / time-out'
+                                  : activeSection === 'settings'
+                                    ? 'Settings'
+                                    : 'Subject List'}
                       </h2>
                     </div>
                     <p className="mt-1 line-clamp-2 text-xs font-medium text-slate-700 dark:text-slate-200 lg:text-sm">
@@ -827,6 +844,7 @@ export default function AdminDashboard() {
                       {activeSection === 'subjects' && 'View subjects, sections, enrolled students, and open monitoring context.'}
                       {activeSection === 'manage-subjects' && 'Create subjects, assign professors, and set class schedule.'}
                       {activeSection === 'monitoring' && 'Pick a course and section to view live browser activity and sessions.'}
+                      {activeSection === 'time-clock' && 'Browse all students by course and section; open date-based PC sign-in and sign-out history.'}
                       {activeSection === 'settings' && 'Your account, password, position title, account-management defaults, and delete confirmations.'}
                     </p>
                   </div>
@@ -917,6 +935,8 @@ export default function AdminDashboard() {
               setActiveSection={setActiveSection}
             />
           )}
+
+          {activeSection === 'time-clock' && <StudentsTimeClockSection />}
 
           {/* ── Browser Monitoring Section ── */}
           {activeSection === 'monitoring' && (

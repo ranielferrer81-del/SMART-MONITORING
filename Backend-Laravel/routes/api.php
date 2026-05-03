@@ -24,6 +24,7 @@ use App\Http\Controllers\Api\BrowserActivityController;
 use App\Http\Controllers\Api\LabComputerController;
 use App\Http\Controllers\Api\LabGatewayController;
 use App\Http\Controllers\Api\AdminProfileController;
+use App\Http\Controllers\Api\MonitoringTimeClockController;
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/validate-email', [AuthController::class, 'validateEmail']);
@@ -129,5 +130,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/lab-gateways', [LabGatewayController::class, 'store']);
     Route::patch('/lab-gateways/{id}', [LabGatewayController::class, 'update']);
     Route::delete('/lab-gateways/{id}', [LabGatewayController::class, 'destroy']);
+
+    // PC lab time-in / time-out history (admin + teacher)
+    Route::get('/monitoring-time/students', [MonitoringTimeClockController::class, 'students']);
+    Route::get('/monitoring-time/students/{studentId}/sessions', [MonitoringTimeClockController::class, 'studentSessions']);
 });
 

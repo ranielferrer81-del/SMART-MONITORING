@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { getSubjectEnrolledStudents } from '../../api/client';
-import { formatMonitoringDateTime, formatPcLogoutAt, getPcLoginAt } from '../../utils/monitoringDisplay';
-
 // Browser Monitoring Section Component
-const BrowserMonitoringSection = ({ subjects, loadingSubjects, onlineStudents = [], isStudentOnline, hasIncognitoAlert, handleViewActivity }) => {
+const BrowserMonitoringSection = ({ subjects, loadingSubjects, isStudentOnline, hasIncognitoAlert, handleViewActivity }) => {
     const [selectedSubject, setSelectedSubject] = useState(null);
     const [showStudentsModal, setShowStudentsModal] = useState(false);
     const [enrolledStudents, setEnrolledStudents] = useState([]);
@@ -148,9 +146,7 @@ const BrowserMonitoringSection = ({ subjects, loadingSubjects, onlineStudents = 
                                 <div className="text-center py-12 text-slate-600 dark:text-slate-400">Loading students...</div>
                             ) : enrolledStudents.length > 0 ? (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {enrolledStudents.map((student) => {
-                                        const onlineInfo = onlineStudents.find((s) => s.id === student.id);
-                                        return (
+                                    {enrolledStudents.map((student) => (
                                         <div
                                             key={student.id}
                                             onClick={() => handleViewActivity(student)}
@@ -204,13 +200,6 @@ const BrowserMonitoringSection = ({ subjects, loadingSubjects, onlineStudents = 
                                                             <span className="text-xs font-semibold text-red-800 dark:text-red-300 animate-pulse">🚨 Incognito Alert</span>
                                                         </div>
                                                     )}
-
-                                                    {isStudentOnline(student.id) && onlineInfo && (
-                                                        <div className="mt-2 rounded-lg border border-slate-200/80 bg-slate-50/80 px-3 py-2 text-[10px] leading-snug text-slate-600 dark:border-slate-600 dark:bg-slate-800/60 dark:text-slate-300 space-y-1">
-                                                            <div><span className="font-semibold text-slate-700 dark:text-slate-200">Logged in (PC):</span> {formatMonitoringDateTime(getPcLoginAt(onlineInfo))}</div>
-                                                            <div><span className="font-semibold text-slate-700 dark:text-slate-200">Logged out:</span> <span className="text-slate-600 dark:text-slate-400">{formatPcLogoutAt(onlineInfo)}</span></div>
-                                                        </div>
-                                                    )}
                                                 </div>
 
                                                 <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
@@ -220,8 +209,7 @@ const BrowserMonitoringSection = ({ subjects, loadingSubjects, onlineStudents = 
                                                 </div>
                                             </div>
                                         </div>
-                                    );
-                                    })}
+                                    ))}
                                 </div>
                             ) : (
                                 <div className="text-center py-12">
