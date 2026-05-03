@@ -8,4 +8,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
     setIgnoreMouseEvents: (ignore, options) => ipcRenderer.invoke('set-ignore-mouse-events', ignore, options),
     logout: () => ipcRenderer.invoke('logout'),
     studentLoggedIn: (data) => ipcRenderer.invoke('student-logged-in', data),
+    reportDesktopScreen: (screenName) => ipcRenderer.invoke('desktop-screen-changed', screenName),
 });

@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   hideProfileOverlay: () => ipcRenderer.invoke('hide-profile-overlay'),
   setIgnoreMouseEvents: (ignore: boolean, options?: { forward: boolean }) => ipcRenderer.invoke('set-ignore-mouse-events', ignore, options),
   logout: () => ipcRenderer.invoke('logout'),
-  studentLoggedIn: (data: any) => ipcRenderer.invoke('student-logged-in', data),
+  studentLoggedIn: (data: Record<string, unknown>) => ipcRenderer.invoke('student-logged-in', data),
+  reportDesktopScreen: (screenName: string) => ipcRenderer.invoke('desktop-screen-changed', screenName),
 });
 

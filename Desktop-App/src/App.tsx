@@ -82,15 +82,20 @@ function App() {
     }
   }, [isOverlay, screen, session]);
 
-  // Helper to notify Electron about login
+  useEffect(() => {
+    window.electronAPI?.reportDesktopScreen?.(screen).catch(() => undefined);
+  }, [screen]);
+
+  // Extend browser token to monitoring (no PIN yet — monitoring_ready_at set only after PIN)
   const notifyElectronLogin = (session: LoginResult) => {
-    const electronAPI = (window as any).electronAPI;
+    const electronAPI = window.electronAPI;
     if (electronAPI && session.user) {
       electronAPI.studentLoggedIn({
         userId: session.user.id,
         email: session.user.email,
         fullName: session.user.fullName,
-        token: session.token
+        token: session.token,
+        monitoringReady: false,
       }).catch(console.error);
     }
   };
@@ -254,7 +259,8 @@ function App() {
                   userId: session.user.id,
                   email: session.user.email,
                   fullName: session.user.fullName,
-                  token: session.token
+                  token: session.token,
+                  monitoringReady: true,
                 });
               }
             }

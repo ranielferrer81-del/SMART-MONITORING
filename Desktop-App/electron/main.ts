@@ -37,9 +37,19 @@ try {
 console.log(`🌐 API Base URL: ${API_BASE_URL}`);
 
 // Import monitoring server (using require for CommonJS module)
-const { startMonitoringServer, setStudentCredentials, clearStudentCredentials, setComputerName, setGatewayIp, setApiBaseUrl } = require('./monitoring-server.cjs');
+const {
+  startMonitoringServer,
+  setStudentCredentials,
+  clearStudentCredentials,
+  mergeDesktopHeartbeatFields,
+  setComputerName,
+  setGatewayIp,
+  setApiBaseUrl,
+} = require('./monitoring-server.cjs');
 
 let GATEWAY_IP: string | null = null;
+/** Timestamp when student completes PIN (monitoringReady); cleared on logout. */
+let monitoringReadyStickyIso: string | null = null;
 
 const IPV4_RE = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/;
 
@@ -246,6 +256,7 @@ ipcMain.handle('hide-profile-overlay', () => {
 });
 
 ipcMain.handle('logout', () => {
+  monitoringReadyStickyIso = null;
   // Close profile window
   if (profileWindow) {
     profileWindow.close();
@@ -263,20 +274,49 @@ ipcMain.handle('logout', () => {
 });
 
 // IPC handler for student login (for browser monitoring)
-ipcMain.handle('student-logged-in', async (event, studentData) => {
+ipcMain.handle('student-logged-in', async (_event, studentData: Record<string, unknown>) => {
   await resolveGatewayIp();
+  const monitoringReady =
+    studentData !== null &&
+    typeof studentData === 'object' &&
+    studentData.monitoringReady === true;
+  if (monitoringReady) {
+    if (!monitoringReadyStickyIso) {
+      monitoringReadyStickyIso = new Date().toISOString();
+    }
+  }
+
+  const desktopHeartbeat: Record<string, string> = {
+    app_version: app.getVersion(),
+    electron_version: String(process.versions.electron ?? ''),
+    platform: process.platform,
+  };
+  if (monitoringReady && monitoringReadyStickyIso) {
+    desktopHeartbeat.monitoring_ready_at = monitoringReadyStickyIso;
+  }
+
   setStudentCredentials({
     email: studentData.email,
     token: studentData.token,
     userId: studentData.userId,
     fullName: studentData.fullName,
     computerName: COMPUTER_NAME,
-    gatewayIp: GATEWAY_IP
+    gatewayIp: GATEWAY_IP,
+    desktopHeartbeat,
+  });
+});
+
+ipcMain.handle('desktop-screen-changed', (_event, screen: unknown) => {
+  const label = typeof screen === 'string' ? screen.slice(0, 64) : 'unknown';
+  mergeDesktopHeartbeatFields({
+    current_screen: label,
+    screen_entered_at: new Date().toISOString(),
   });
 });
 
 // IPC handler for student logout (for browser monitoring)
 ipcMain.handle('student-logged-out', () => {
+  monitoringReadyStickyIso = null;
   clearStudentCredentials();
 });
 

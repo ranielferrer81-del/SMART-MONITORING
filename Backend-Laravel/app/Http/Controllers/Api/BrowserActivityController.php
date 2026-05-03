@@ -12,9 +12,63 @@ use App\Models\MonitoringSession;
 use App\Models\IncognitoAlert;
 use App\Models\LabComputer;
 use App\Models\LabGateway;
+use Illuminate\Support\Facades\Validator;
 
 class BrowserActivityController extends Controller
 {
+    /**
+     * Validate and filter desktop telemetry (optional JSON body key "desktop").
+     * Chrome extension does not send this key — device_info.desktop is unchanged.
+     *
+     * @return array<string, mixed>
+     */
+    private function validatedDesktopTelemetry(Request $request): array
+    {
+        if (! $request->has('desktop')) {
+            return [];
+        }
+
+        $validated = Validator::make($request->all(), [
+            'desktop' => ['required', 'array'],
+            'desktop.app_version' => ['nullable', 'string', 'max:120'],
+            'desktop.electron_version' => ['nullable', 'string', 'max:80'],
+            'desktop.platform' => ['nullable', 'string', 'max:80'],
+            'desktop.current_screen' => ['nullable', 'string', 'max:64'],
+            'desktop.screen_entered_at' => ['nullable', 'date'],
+            'desktop.monitoring_ready_at' => ['nullable', 'date'],
+            'desktop.client_reported_at' => ['nullable', 'date'],
+        ])->validate();
+
+        $desktop = isset($validated['desktop']) && is_array($validated['desktop']) ? $validated['desktop'] : [];
+
+        return array_filter(
+            $desktop,
+            static fn ($v) => $v !== null && $v !== ''
+        );
+    }
+
+    /**
+     * Shallow-merge desktop patch into monitoring_sessions.device_info.
+     *
+     * @param  array<string, mixed>|null  $deviceInfo
+     * @param  array<string, mixed>  $desktopPatch
+     * @return array<string, mixed>
+     */
+    private function mergeDesktopIntoDeviceInfo($deviceInfo, array $desktopPatch): array
+    {
+        $base = is_array($deviceInfo) ? $deviceInfo : [];
+        $cur = isset($base['desktop']) && is_array($base['desktop']) ? $base['desktop'] : [];
+        foreach ($desktopPatch as $k => $v) {
+            if ($v === '' || $v === null) {
+                continue;
+            }
+            $cur[$k] = $v;
+        }
+        $base['desktop'] = $cur;
+
+        return $base;
+    }
+
     /**
      * Log browser activity from Chrome extension
      */
@@ -101,6 +155,8 @@ class BrowserActivityController extends Controller
             'gateway_ip' => 'nullable|ip',
         ]);
 
+        $desktopPatch = $this->validatedDesktopTelemetry($request);
+
         // Keep backward compatibility: both fields are optional.
         $computerName = $request->input('computer_name');
         $gatewayIp = $request->input('gateway_ip');
@@ -145,6 +201,16 @@ class BrowserActivityController extends Controller
                 $hasChanges = true;
             }
 
+            if ($desktopPatch !== [] && Schema::hasColumn('monitoring_sessions', 'device_info')) {
+                $merged = $this->mergeDesktopIntoDeviceInfo($activeSession->device_info, $desktopPatch);
+                $before = json_encode($activeSession->device_info ?? []);
+                $after = json_encode($merged);
+                if ($before !== $after) {
+                    $activeSession->device_info = $merged;
+                    $hasChanges = true;
+                }
+            }
+
             if ($hasChanges) {
                 $activeSession->save();
             } else {
@@ -167,6 +233,10 @@ class BrowserActivityController extends Controller
             }
             if ($hasLaboratoryRoomColumn) {
                 $payload['laboratory_room'] = $labContext['laboratory_room'];
+            }
+
+            if ($desktopPatch !== [] && Schema::hasColumn('monitoring_sessions', 'device_info')) {
+                $payload['device_info'] = $this->mergeDesktopIntoDeviceInfo(null, $desktopPatch);
             }
 
             $activeSession = MonitoringSession::create($payload);

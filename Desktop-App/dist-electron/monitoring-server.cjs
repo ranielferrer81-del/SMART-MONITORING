@@ -17,6 +17,9 @@ let gatewayIp = null;
 // Heartbeat interval reference
 let heartbeatInterval = null;
 
+// Merged into POST /browser-activity/heartbeat as JSON key "desktop" (not exposed to Chrome extension credential API)
+let desktopHeartbeatFields = {};
+
 // Create Express server
 const server = express();
 server.use(cors());
@@ -25,13 +28,17 @@ server.use(express.json());
 // Endpoint for Chrome Extension to get current student credentials
 server.get('/monitoring-credentials', (req, res) => {
     if (currentStudentCredentials) {
+        const { desktopHeartbeat: _omit, ...rest } =
+            typeof currentStudentCredentials === 'object' && currentStudentCredentials !== null
+                ? currentStudentCredentials
+                : {};
         res.json({
             success: true,
             credentials: {
-                ...currentStudentCredentials,
-                computerName: computerName,  // Include hostname for lab tracking
-                gatewayIp: gatewayIp,        // Include gateway IP for lab tracking
-                apiBaseUrl: apiBaseUrl        // Tell the extension which backend to use
+                ...rest,
+                computerName: computerName,
+                gatewayIp: gatewayIp,
+                apiBaseUrl: apiBaseUrl
             }
         });
     } else {
@@ -51,13 +58,27 @@ server.get('/logout-status', (req, res) => {
     });
 });
 
+function resetDesktopHeartbeatFields() {
+    desktopHeartbeatFields = {};
+}
+
+function mergeDesktopHeartbeatFields(partial) {
+    if (!partial || typeof partial !== 'object') {
+        return;
+    }
+    desktopHeartbeatFields = { ...desktopHeartbeatFields, ...partial };
+}
+
 // ─── Direct heartbeat from Desktop App to backend ───────────────────────────
-// This ensures the student appears online and computer_name is tracked
-// even when Chrome/Extension is not running.
 async function sendDirectHeartbeat() {
     if (!currentStudentCredentials || !currentStudentCredentials.token) {
-        return; // No student logged in, skip
+        return;
     }
+
+    const desktop = {
+        ...desktopHeartbeatFields,
+        client_reported_at: new Date().toISOString()
+    };
 
     try {
         const response = await fetch(`${apiBaseUrl}/browser-activity/heartbeat`, {
@@ -69,7 +90,8 @@ async function sendDirectHeartbeat() {
             },
             body: JSON.stringify({
                 computer_name: computerName,
-                gateway_ip: gatewayIp
+                gateway_ip: gatewayIp,
+                desktop
             })
         });
 
@@ -79,19 +101,13 @@ async function sendDirectHeartbeat() {
             console.error('❌ Desktop heartbeat failed:', response.status);
         }
     } catch (error) {
-        // Backend not reachable - this is fine, just skip
         console.error('❌ Desktop heartbeat error:', error.message);
     }
 }
 
 function startDirectHeartbeat() {
-    // Stop any existing interval
     stopDirectHeartbeat();
-
-    // Send first heartbeat immediately
     sendDirectHeartbeat();
-
-    // Then send every 30 seconds (Chrome Extension sends every 5s, so this is backup)
     heartbeatInterval = setInterval(sendDirectHeartbeat, 30000);
     console.log('💓 Desktop direct heartbeat started (every 30s)');
 }
@@ -103,14 +119,11 @@ function stopDirectHeartbeat() {
         console.log('💓 Desktop direct heartbeat stopped');
     }
 }
-// ─────────────────────────────────────────────────────────────────────────────
 
-// Start server
 const PORT = 9876;
 let serverInstance = null;
 
 function startMonitoringServer() {
-    // Prevent multiple instances
     if (serverInstance) {
         console.log('⚠️ Monitoring server already running');
         return;
@@ -139,44 +152,46 @@ function startMonitoringServer() {
     }
 }
 
-// Update credentials when student logs in
 function setStudentCredentials(studentData) {
-    currentStudentCredentials = studentData;
-    console.log('✅ Student logged in for monitoring:', studentData.email);
-    if (studentData.computerName) {
-        computerName = studentData.computerName;
+    resetDesktopHeartbeatFields();
+    const copy = typeof studentData === 'object' && studentData !== null ? { ...studentData } : {};
+    const heartbeat = copy.desktopHeartbeat;
+    delete copy.desktopHeartbeat;
+    currentStudentCredentials = copy;
+
+    console.log('✅ Student logged in for monitoring:', copy.email);
+    if (copy.computerName) {
+        computerName = copy.computerName;
         console.log('🖥️ Computer Name set from login:', computerName);
     }
-    // Start sending heartbeats directly from Desktop App
+    if (heartbeat && typeof heartbeat === 'object') {
+        mergeDesktopHeartbeatFields(heartbeat);
+    }
+
     startDirectHeartbeat();
 }
 
-// Clear credentials when student logs out
 function clearStudentCredentials() {
     currentStudentCredentials = null;
-    logoutSignal++; // Increment signal so extension knows to logout
-    // Stop sending heartbeats
+    logoutSignal++;
+    resetDesktopHeartbeatFields();
     stopDirectHeartbeat();
     console.log('✅ Student logged out from monitoring (signal:', logoutSignal + ')');
 }
 
-// Set computer name (called from main.ts on startup)
 function setComputerName(name) {
     computerName = name;
     console.log('🖥️ Computer Name set:', computerName);
 }
 
-// Set gateway IP (called from main.ts on startup and refresh)
 function setGatewayIp(ip) {
     gatewayIp = ip || null;
     console.log('🌐 Gateway IP set:', gatewayIp || 'N/A');
 }
 
-// Set API base URL (called from main.ts, reads from .env)
 function setApiBaseUrl(url) {
     if (!url) return;
     let base = String(url).trim().replace(/\/+$/, '');
-    // Avoid http://host:8000/api + '/api' when .env already includes /api (double prefix → 404 on client too)
     if (!/\/api$/i.test(base)) {
         base = base + '/api';
     }
@@ -188,6 +203,8 @@ module.exports = {
     startMonitoringServer,
     setStudentCredentials,
     clearStudentCredentials,
+    mergeDesktopHeartbeatFields,
+    resetDesktopHeartbeatFields,
     setComputerName,
     setGatewayIp,
     setApiBaseUrl
