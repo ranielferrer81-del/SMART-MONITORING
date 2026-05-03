@@ -336,6 +336,9 @@ class BrowserActivityController extends Controller
             $student->monitoring_session_start = $session->session_start
                 ? $session->session_start->toIso8601String()
                 : null;
+            $student->monitoring_session_end = $session->session_end
+                ? $session->session_end->toIso8601String()
+                : null;
             $student->desktop_telemetry = $desktop !== [] ? $desktop : null;
 
             return $student;

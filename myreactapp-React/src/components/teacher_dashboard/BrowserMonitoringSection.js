@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { getSubjectEnrolledStudents } from '../../api/client';
-import { formatMonitoringDateTime } from '../../utils/monitoringDisplay';
+import { formatMonitoringDateTime, formatPcLogoutAt, getPcLoginAt } from '../../utils/monitoringDisplay';
 
 // Browser Monitoring Section Component
 const BrowserMonitoringSection = ({ subjects, loadingSubjects, onlineStudents = [], isStudentOnline, hasIncognitoAlert, handleViewActivity }) => {
@@ -150,7 +150,6 @@ const BrowserMonitoringSection = ({ subjects, loadingSubjects, onlineStudents = 
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                     {enrolledStudents.map((student) => {
                                         const onlineInfo = onlineStudents.find((s) => s.id === student.id);
-                                        const dt = onlineInfo?.desktop_telemetry;
                                         return (
                                         <div
                                             key={student.id}
@@ -206,21 +205,10 @@ const BrowserMonitoringSection = ({ subjects, loadingSubjects, onlineStudents = 
                                                         </div>
                                                     )}
 
-                                                    {isStudentOnline(student.id) && (onlineInfo?.monitoring_session_start || dt) && (
+                                                    {isStudentOnline(student.id) && onlineInfo && (
                                                         <div className="mt-2 rounded-lg border border-slate-200/80 bg-slate-50/80 px-3 py-2 text-[10px] leading-snug text-slate-600 dark:border-slate-600 dark:bg-slate-800/60 dark:text-slate-300 space-y-1">
-                                                            <div className="font-semibold text-slate-700 dark:text-slate-200">Desktop session</div>
-                                                            {onlineInfo?.monitoring_session_start && (
-                                                                <div><span className="text-slate-500 dark:text-slate-400">Session started:</span> {formatMonitoringDateTime(onlineInfo.monitoring_session_start)}</div>
-                                                            )}
-                                                            {dt?.monitoring_ready_at && (
-                                                                <div><span className="text-slate-500 dark:text-slate-400">PIN / monitoring ready:</span> {formatMonitoringDateTime(dt.monitoring_ready_at)}</div>
-                                                            )}
-                                                            {dt?.current_screen && (
-                                                                <div><span className="text-slate-500 dark:text-slate-400">App screen:</span> {dt.current_screen}</div>
-                                                            )}
-                                                            {dt?.client_reported_at && (
-                                                                <div><span className="text-slate-500 dark:text-slate-400">Last report:</span> {formatMonitoringDateTime(dt.client_reported_at)}</div>
-                                                            )}
+                                                            <div><span className="font-semibold text-slate-700 dark:text-slate-200">Logged in (PC):</span> {formatMonitoringDateTime(getPcLoginAt(onlineInfo))}</div>
+                                                            <div><span className="font-semibold text-slate-700 dark:text-slate-200">Logged out:</span> <span className="text-slate-600 dark:text-slate-400">{formatPcLogoutAt(onlineInfo)}</span></div>
                                                         </div>
                                                     )}
                                                 </div>

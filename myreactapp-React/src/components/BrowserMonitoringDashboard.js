@@ -8,7 +8,7 @@ import {
     forceCloseStudentBrowser,
     forceCloseStudentTab
 } from '../api/browserMonitoring';
-import { formatMonitoringDateTime } from '../utils/monitoringDisplay';
+import { formatMonitoringDateTime, formatPcLogoutAt, getPcLoginAt } from '../utils/monitoringDisplay';
 
 const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
     const API_BASE = process.env.REACT_APP_API_BASE || 'http://127.0.0.1:8000';
@@ -261,7 +261,7 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
                     </div>
 
                     <div className="overflow-x-auto w-full overflow-x-scroll">
-                        <table className="w-full min-w-[980px]">
+                        <table className="w-full min-w-[860px]">
                             <thead className="bg-slate-100/50 dark:bg-slate-800/50">
                                 <tr>
                                     <th className="px-6 py-3 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
@@ -279,8 +279,8 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
                                     <th className="px-6 py-3 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                                         Lab Room
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider whitespace-normal max-w-[220px]">
-                                        Desktop session times
+                                    <th className="px-6 py-3 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider whitespace-normal max-w-[200px]">
+                                        PC logged in · logged out
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                                         Status
@@ -299,7 +299,6 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
                                         ? `Unknown Lab (${onlineInfo.gateway_ip})`
                                         : 'Unknown Lab';
                                     const labRoom = onlineInfo?.laboratory_room || fallbackUnknownLab;
-                                    const dt = onlineInfo?.desktop_telemetry;
 
                                     return (
                                         <tr key={student.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
@@ -363,14 +362,18 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
                                                     <span className="text-slate-400 dark:text-slate-500">-</span>
                                                 )}
                                             </td>
-                                            <td className="px-6 py-4 text-xs text-slate-600 dark:text-slate-400 max-w-[240px] align-top whitespace-normal">
+                                            <td className="px-6 py-4 text-xs text-slate-600 dark:text-slate-400 max-w-[220px] align-top whitespace-normal">
                                                 {!isStudentOnline(student.id) && '—'}
-                                                {isStudentOnline(student.id) && (
+                                                {isStudentOnline(student.id) && onlineInfo && (
                                                     <div className="space-y-1">
-                                                        <div><span className="text-slate-500 dark:text-slate-500">Session:</span> {onlineInfo?.monitoring_session_start ? formatMonitoringDateTime(onlineInfo.monitoring_session_start) : '—'}</div>
-                                                        <div><span className="text-slate-500 dark:text-slate-500">PIN ready:</span> {dt?.monitoring_ready_at ? formatMonitoringDateTime(dt.monitoring_ready_at) : '—'}</div>
-                                                        <div><span className="text-slate-500 dark:text-slate-500">Screen:</span> {dt?.current_screen ?? '—'}</div>
-                                                        <div><span className="text-slate-500 dark:text-slate-500">Last report:</span> {dt?.client_reported_at ? formatMonitoringDateTime(dt.client_reported_at) : '—'}</div>
+                                                        <div>
+                                                            <span className="font-medium text-slate-700 dark:text-slate-300">Logged in:</span>{' '}
+                                                            {formatMonitoringDateTime(getPcLoginAt(onlineInfo))}
+                                                        </div>
+                                                        <div>
+                                                            <span className="font-medium text-slate-700 dark:text-slate-300">Logged out:</span>{' '}
+                                                            <span className="text-slate-600 dark:text-slate-400">{formatPcLogoutAt(onlineInfo)}</span>
+                                                        </div>
                                                     </div>
                                                 )}
                                             </td>
