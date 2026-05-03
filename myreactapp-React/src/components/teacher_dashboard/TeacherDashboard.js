@@ -647,7 +647,7 @@ export default function TeacherDashboard() {
             )}
 
             {activeSection === 'monitoring' && (
-              <BrowserMonitoringSection subjects={subjects} loadingSubjects={loadingSubjects} isStudentOnline={isStudentOnline} hasIncognitoAlert={hasIncognitoAlert} handleViewActivity={handleViewActivity} />
+              <BrowserMonitoringSection subjects={subjects} loadingSubjects={loadingSubjects} onlineStudents={onlineStudents} isStudentOnline={isStudentOnline} hasIncognitoAlert={hasIncognitoAlert} handleViewActivity={handleViewActivity} />
             )}
 
             {activeSection === 'settings' && user && (

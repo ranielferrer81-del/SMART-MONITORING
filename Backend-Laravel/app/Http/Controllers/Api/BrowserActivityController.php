@@ -329,6 +329,15 @@ class BrowserActivityController extends Controller
             $student->display_name = $labContext['display_name'];
             $student->laboratory_room = $labContext['laboratory_room'];
 
+            $deviceInfo = $session->device_info;
+            $desktop = is_array($deviceInfo) && isset($deviceInfo['desktop']) && is_array($deviceInfo['desktop'])
+                ? $deviceInfo['desktop']
+                : [];
+            $student->monitoring_session_start = $session->session_start
+                ? $session->session_start->toIso8601String()
+                : null;
+            $student->desktop_telemetry = $desktop !== [] ? $desktop : null;
+
             return $student;
         })->filter()->unique('id')->values();
 
