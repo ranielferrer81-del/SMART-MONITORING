@@ -134,22 +134,12 @@ export default function EmailVerification({
     setResendStatus(null);
     setVerificationFailed(false);
 
-    let resendUiTimer: ReturnType<typeof setTimeout> | undefined;
-    const RESEND_UI_MAX_MS = 40_000;
-
+    // The actual axios timeout for resend is ~120s and the request retries once internally
+    // on transient network errors. We don't add a *separate* UI deadline anymore: the old
+    // 40s race was firing while the request was still in flight after Wi-Fi switches,
+    // showing "failed" even when the backend was still about to deliver the email.
     try {
-      const deadline = new Promise<never>((_, reject) => {
-        resendUiTimer = setTimeout(() => {
-          reject(
-            new Error(
-              'This is taking too long. If you already see a sign-in code above, enter it — it is still valid. Otherwise try Resend again in a moment.'
-            )
-          );
-        }, RESEND_UI_MAX_MS);
-      });
-
-      await Promise.race([
-        (async () => {
+      await (async () => {
           let result;
 
           if (onResend) {
@@ -208,9 +198,7 @@ export default function EmailVerification({
           }
 
           setCountdown(60);
-        })(),
-        deadline,
-      ]);
+        })();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to resend code. Please try again.';
       const hasCodeOnScreen = code.trim().length === 6;
@@ -222,9 +210,6 @@ export default function EmailVerification({
         message,
       });
     } finally {
-      if (resendUiTimer !== undefined) {
-        clearTimeout(resendUiTimer);
-      }
       setIsResending(false);
     }
   };

@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\LabComputerController;
 use App\Http\Controllers\Api\LabGatewayController;
 use App\Http\Controllers\Api\AdminProfileController;
 use App\Http\Controllers\Api\MonitoringTimeClockController;
+use App\Http\Controllers\Api\PresentationController;
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/validate-email', [AuthController::class, 'validateEmail']);
@@ -134,5 +135,15 @@ Route::middleware('auth:sanctum')->group(function () {
     // PC lab time-in / time-out history (admin + teacher)
     Route::get('/monitoring-time/students', [MonitoringTimeClockController::class, 'students']);
     Route::get('/monitoring-time/students/{studentId}/sessions', [MonitoringTimeClockController::class, 'studentSessions']);
+
+    // Live screen presentations (teacher host + enrolled students via WebRTC signaling)
+    Route::post('/presentations/start', [PresentationController::class, 'start']);
+    Route::get('/presentations/teacher/active', [PresentationController::class, 'statusForTeacher']);
+    Route::post('/presentations/{uuid}/end', [PresentationController::class, 'end']);
+    Route::get('/presentations/student/active', [PresentationController::class, 'activeForStudent']);
+    Route::post('/presentations/{uuid}/join', [PresentationController::class, 'join']);
+    Route::get('/presentations/{uuid}/viewers', [PresentationController::class, 'viewers']);
+    Route::post('/presentations/{uuid}/signals', [PresentationController::class, 'sendSignal']);
+    Route::get('/presentations/{uuid}/signals', [PresentationController::class, 'pollSignals']);
 });
 

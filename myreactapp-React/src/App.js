@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import LoginForm from './components/LoginForm';
 import StudentDashboard from './components/student_dashboard/StudentDashboard';
 import TeacherDashboard from './components/teacher_dashboard/TeacherDashboard';
+import StudentLivePresentation from './components/student_dashboard/StudentLivePresentation';
 import AdminDashboard from './components/admin_dashboard/AdminDashboard';
 import './App.css';
 
@@ -26,6 +27,14 @@ function App() {
         element={
           <RequireAuth>
             <StudentDashboard />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/student/live-presentation"
+        element={
+          <RequireAuth>
+            <StudentLivePresentation />
           </RequireAuth>
         }
       />

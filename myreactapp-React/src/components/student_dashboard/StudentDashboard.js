@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { fetchMe, uploadProfilePicture, deleteProfilePicture, getStudentEnrolledSubjects, getStudentAttendance, listSubjects, getSubjectEnrolledStudents, getStudentOpenSessions, checkInStudentSubject } from '../../api/client';
 import ThemeToggle from '../../components/ThemeToggle';
 
@@ -251,6 +252,14 @@ export default function StudentDashboard() {
                 {item.label}
               </button>
             ))}
+            <Link
+              to="/student/live-presentation"
+              onClick={() => setMobileMenuOpen(false)}
+              className="w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-300 text-slate-600 hover:bg-gradient-to-r hover:from-rose-50 hover:to-red-50 hover:text-rose-700 dark:text-slate-300 dark:hover:from-rose-900/20 dark:hover:to-red-900/20 dark:hover:text-rose-300"
+            >
+              <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+              Live presentation
+            </Link>
           </nav>
         </div>
       </div>

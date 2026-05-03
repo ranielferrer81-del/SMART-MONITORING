@@ -1,5 +1,6 @@
-import axios, { AxiosError } from 'axios';
+import axios, { AxiosError, type AxiosRequestConfig } from 'axios';
 import { getViteApiBaseUrl } from '../config/apiBase';
+import { startOtpTrace, type OtpEndpoint, type OtpTraceHandle } from '../utils/otpTelemetry';
 
 const API_BASE_URL = getViteApiBaseUrl();
 
@@ -7,14 +8,28 @@ const API_BASE_URL = getViteApiBaseUrl();
 const DEFAULT_TIMEOUT_MS = 15000;
 /**
  * validate-email / resend send mail on the server before responding; Brevo/SMTP + cold start
- * often needs more than the default window.
+ * often needs more than the default window. Backend OTP wall-clock budget is configurable
+ * (config('app.verification_mail_time_budget_seconds')); 120s gives a comfortable margin even
+ * on slow demo Wi-Fi.
  */
 const EMAIL_AUTH_TIMEOUT_MS = 120_000;
-/** Aligned with backend OTP time budget (~32s + margin); avoids “Sending…” stuck for 90s. */
-const RESEND_VERIFICATION_TIMEOUT_MS = 45_000;
+/**
+ * Resend goes through the same provider chain as the initial send (Brevo/Resend/SMTP). When
+ * the user is on a slow/changing Wi-Fi, the response can take just as long. Keep this >= the
+ * backend budget so we never abort a request that is actually still working.
+ */
+const RESEND_VERIFICATION_TIMEOUT_MS = 120_000;
 /** Cold Railway + DB: allow verify to finish without default 15s axios abort. */
 const VERIFY_VERIFICATION_CODE_TIMEOUT_MS = 60_000;
 const COLD_START_WARMUP_TIMEOUT_MS = 120_000;
+/**
+ * Retry policy for OTP send/resend/verify. We retry exactly once on transient failures
+ * (timeout, lost connection, gateway 5xx, 408, 429). One retry is enough to recover from a
+ * brief Wi-Fi flap without making the server send two real emails — the backend reuses an
+ * unused, still-fresh code within a 45s window so a retry is safe.
+ */
+const EMAIL_AUTH_MAX_ATTEMPTS = 2;
+const EMAIL_AUTH_RETRY_DELAY_MS = 1_500;
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -77,12 +92,113 @@ const normalizeUser = (payload: Record<string, unknown>): AuthenticatedUser => (
 
 type EmailAuthErrorContext = 'email_login' | 'resend' | 'verify_code' | 'default';
 
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+const isOnline = (): boolean => {
+  if (typeof navigator === 'undefined') return true;
+  return navigator.onLine !== false;
+};
+
+/**
+ * Errors that are safe to retry: transient TCP/TLS issues caused by Wi-Fi flapping or
+ * the upstream provider hiccupping. We deliberately do NOT retry 4xx (other than 408/429)
+ * because those are real client-side rejections (bad code, wrong password, 403).
+ */
+const isRetryableEmailAuthError = (error: unknown): boolean => {
+  if (!(error instanceof AxiosError)) return false;
+  if (error.code === 'ECONNABORTED') return true;
+  if (error.code === 'ERR_NETWORK') return true;
+  if (error.code === 'ETIMEDOUT') return true;
+  if (error.code === 'ECONNRESET') return true;
+  const status = error.response?.status;
+  if (typeof status !== 'number') {
+    // No HTTP response = the request never made it back. Treat as retryable.
+    return true;
+  }
+  return status === 408 || status === 429 || status >= 500;
+};
+
+type AxiosResponseLike<T> = { data: T };
+
+/**
+ * Wrapper around `api.request` that:
+ *   1. Short-circuits with a clear message if the OS already reports offline.
+ *   2. Retries once on transient errors (Wi-Fi flap, gateway 5xx, etc.).
+ *   3. Emits OTP trace events so we can correlate with backend logs.
+ *
+ * The backend's OTP code-reuse window makes a retry idempotent for the user: if the
+ * first request actually succeeded after we gave up on it, the second request will
+ * receive the same code and the email may already be on its way.
+ */
+async function emailAuthRequest<T>(
+  endpoint: OtpEndpoint,
+  config: AxiosRequestConfig
+): Promise<AxiosResponseLike<T>> {
+  if (!isOnline()) {
+    const offlineTrace = startOtpTrace(endpoint, 1);
+    offlineTrace.finish('offline', { errorCode: 'OFFLINE' });
+    throw new AxiosError(
+      'You appear to be offline. Reconnect to Wi-Fi and try again.',
+      'ERR_NETWORK'
+    );
+  }
+
+  let lastError: unknown;
+  let trace: OtpTraceHandle | undefined;
+  for (let attempt = 1; attempt <= EMAIL_AUTH_MAX_ATTEMPTS; attempt += 1) {
+    trace = startOtpTrace(endpoint, attempt, trace?.id);
+    const tracedConfig: AxiosRequestConfig = {
+      ...config,
+      headers: {
+        ...(config.headers ?? {}),
+        // Sent so backend Log entries can be correlated with the desktop ring-buffer
+        // when something fails on a different Wi-Fi.
+        'X-OTP-Trace-Id': `${trace.id}#${attempt}`,
+      },
+    };
+    try {
+      const response = await api.request<T>(tracedConfig);
+      trace.finish('ok', { httpStatus: response.status });
+      return { data: response.data };
+    } catch (error) {
+      lastError = error;
+      const httpStatus =
+        error instanceof AxiosError ? error.response?.status : undefined;
+      const errorCode =
+        error instanceof AxiosError ? error.code ?? undefined : undefined;
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
+      const canRetry =
+        attempt < EMAIL_AUTH_MAX_ATTEMPTS && isRetryableEmailAuthError(error);
+      trace.finish(canRetry ? 'retry' : 'fail', {
+        errorCode,
+        errorMessage,
+        httpStatus,
+      });
+
+      if (!canRetry) break;
+      await sleep(EMAIL_AUTH_RETRY_DELAY_MS);
+    }
+  }
+
+  throw lastError;
+}
+
 const extractErrorMessage = (error: unknown, context: EmailAuthErrorContext = 'default') => {
   if (typeof error === 'string') return error;
   if (error instanceof AxiosError) {
+    if (error.code === 'ERR_NETWORK') {
+      if (context === 'resend' || context === 'email_login') {
+        return 'Connection lost while sending the code. This often happens right after switching Wi-Fi. Reconnect and try again.';
+      }
+      if (context === 'verify_code') {
+        return 'Connection lost while checking your code. Reconnect to Wi-Fi and try again.';
+      }
+      return 'Network connection lost. Reconnect and try again.';
+    }
     if (error.code === 'ECONNABORTED') {
       if (context === 'resend') {
-        return 'Resend timed out. Check your connection or try again in a moment.';
+        return 'Resend is taking longer than expected. If you receive the code, just enter it. Otherwise try again in a moment.';
       }
       if (context === 'email_login') {
         return 'Login request timed out while sending verification code. Please try again in a few seconds.';
@@ -165,14 +281,21 @@ export async function emailLogin(
       throw new Error('Password is required.');
     }
 
-    const { data } = await api.post(
-      '/api/validate-email',
-      {
+    const { data } = await emailAuthRequest<{
+      ok?: boolean;
+      message?: string;
+      email?: string;
+      verification_code?: string | null;
+      email_sent?: boolean;
+    }>('validate-email', {
+      method: 'POST',
+      url: '/api/validate-email',
+      data: {
         email: email.trim().toLowerCase(),
         password: password,
       },
-      { timeout: EMAIL_AUTH_TIMEOUT_MS }
-    );
+      timeout: EMAIL_AUTH_TIMEOUT_MS,
+    });
 
     if (!data?.ok) {
       throw new Error(data?.message || 'Failed to send verification code.');
@@ -235,14 +358,22 @@ export async function verifyLaravelBackend(): Promise<BackendCheckResult> {
 
 export async function verifyEmailCode(email: string, code: string): Promise<LoginResult> {
   try {
-    const { data } = await api.post(
-      '/api/verify-verification-code',
-      {
+    const { data } = await emailAuthRequest<{
+      ok?: boolean;
+      token?: string;
+      route?: string;
+      user?: Record<string, unknown>;
+      credentials?: unknown;
+      message?: string;
+    }>('verify-verification-code', {
+      method: 'POST',
+      url: '/api/verify-verification-code',
+      data: {
         email: email.trim().toLowerCase(),
         code: code.trim(),
       },
-      { timeout: VERIFY_VERIFICATION_CODE_TIMEOUT_MS }
-    );
+      timeout: VERIFY_VERIFICATION_CODE_TIMEOUT_MS,
+    });
 
     if (!data?.ok || !data?.token) {
       throw new Error(data?.message || 'Invalid verification code.');
@@ -271,13 +402,19 @@ export async function resendVerificationCode(
   email: string
 ): Promise<{ ok: boolean; message: string; email_sent: boolean; verification_code?: string | null }> {
   try {
-    const { data } = await api.post(
-      '/api/resend-verification-code',
-      {
+    const { data } = await emailAuthRequest<{
+      ok?: boolean;
+      message?: string;
+      email_sent?: boolean;
+      verification_code?: string | null;
+    }>('resend-verification-code', {
+      method: 'POST',
+      url: '/api/resend-verification-code',
+      data: {
         email: email.trim().toLowerCase(),
       },
-      { timeout: RESEND_VERIFICATION_TIMEOUT_MS }
-    );
+      timeout: RESEND_VERIFICATION_TIMEOUT_MS,
+    });
 
     if (!data?.ok) {
       throw new Error(data?.message || 'Failed to resend verification code.');
