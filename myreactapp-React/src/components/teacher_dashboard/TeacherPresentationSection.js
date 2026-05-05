@@ -116,7 +116,7 @@ export default function TeacherPresentationSection() {
       try {
         const cfg = getDefaultRtcConfiguration();
         pc = new RTCPeerConnection(cfg);
-        peersRef.current.set(studentId, { pc });
+        peersRef.current.set(studentId, { pc, pendingIce: [], remoteSet: false });
         stream.getTracks().forEach((track) => pc.addTrack(track, stream));
         pc.onicecandidate = (ev) => {
           if (ev.candidate) sendIce(studentId, ev.candidate);
@@ -156,12 +156,28 @@ export default function TeacherPresentationSection() {
           if (!entry?.pc || !sig.payload?.sdp) continue;
           try {
             await entry.pc.setRemoteDescription(new RTCSessionDescription(sig.payload));
+            entry.remoteSet = true;
+            // Apply any ICE candidates that arrived before the remote SDP.
+            const pending = entry.pendingIce || [];
+            if (pending.length) {
+              for (const cand of pending) {
+                try {
+                  await entry.pc.addIceCandidate(new RTCIceCandidate(cand));
+                } catch (_) {}
+              }
+              entry.pendingIce = [];
+            }
           } catch (_) {}
         } else if (sig.message_type === 'iceCandidate' && sig.payload) {
           const sid = sig.sender_user_id;
           const entry = peersRef.current.get(sid);
           if (!entry?.pc) continue;
           try {
+            if (!entry.remoteSet || !entry.pc.remoteDescription) {
+              entry.pendingIce = entry.pendingIce || [];
+              entry.pendingIce.push(sig.payload);
+              continue;
+            }
             await entry.pc.addIceCandidate(new RTCIceCandidate(sig.payload));
           } catch (_) {}
         }

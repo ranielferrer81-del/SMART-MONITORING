@@ -24,6 +24,7 @@ export default function StudentLivePresentation() {
   const [teacherName, setTeacherName] = useState('');
 
   const videoRef = useRef(null);
+  const pendingIceCandidatesRef = useRef([]);
 
   useEffect(() => {
     const user = readStoredUser();
@@ -106,6 +107,7 @@ export default function StudentLivePresentation() {
           sess.uuid = null;
           sess.teacherId = null;
           sess.lastId = 0;
+          pendingIceCandidatesRef.current = [];
           setStatus('ended');
           setMessage('The presentation has ended.');
           return;
@@ -120,6 +122,7 @@ export default function StudentLivePresentation() {
             sess.uuid = null;
             sess.teacherId = null;
             sess.lastId = 0;
+            pendingIceCandidatesRef.current = [];
             setStatus('ended');
             setMessage('The presenter stopped sharing.');
             return;
@@ -128,6 +131,16 @@ export default function StudentLivePresentation() {
             const pc = makePc();
             try {
               await pc.setRemoteDescription(new RTCSessionDescription(sig.payload));
+              // Apply any ICE candidates that arrived before the offer.
+              const pending = pendingIceCandidatesRef.current || [];
+              if (pending.length) {
+                for (const cand of pending) {
+                  try {
+                    await pc.addIceCandidate(new RTCIceCandidate(cand));
+                  } catch (_) {}
+                }
+                pendingIceCandidatesRef.current = [];
+              }
               const ans = await pc.createAnswer();
               await pc.setLocalDescription(ans);
               await presentationSendSignal(sess.uuid, {
@@ -139,6 +152,11 @@ export default function StudentLivePresentation() {
             }
           } else if (sig.message_type === 'iceCandidate' && sig.payload && sess.pc) {
             try {
+              if (!sess.pc.remoteDescription) {
+                pendingIceCandidatesRef.current = pendingIceCandidatesRef.current || [];
+                pendingIceCandidatesRef.current.push(sig.payload);
+                continue;
+              }
               await sess.pc.addIceCandidate(new RTCIceCandidate(sig.payload));
             } catch (_) {}
           }
@@ -154,6 +172,7 @@ export default function StudentLivePresentation() {
       cancelled = true;
       clearInterval(id);
       closePc();
+        pendingIceCandidatesRef.current = [];
     };
   }, []);
 
