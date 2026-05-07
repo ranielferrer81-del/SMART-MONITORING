@@ -120,6 +120,95 @@ class AuthController extends Controller
         return [$code, $expiresAt];
     }
 
+    private function attendanceStatusFromSchedule(object $schedule, \Carbon\Carbon $now): ?string
+    {
+        $start = \Carbon\Carbon::parse($schedule->start_time, $now->timezone)->setDate($now->year, $now->month, $now->day);
+        $end = \Carbon\Carbon::parse($schedule->end_time, $now->timezone)->setDate($now->year, $now->month, $now->day);
+        if ($now->lt($start) || $now->gt($end)) {
+            return null;
+        }
+
+        $lateBoundary = (clone $start)->addMinutes((int) ($schedule->late_grace_minutes ?? 15));
+        return $now->lte($lateBoundary) ? 'present' : 'late';
+    }
+
+    /**
+     * Automatically record attendance for enrolled subjects when a student logs in
+     * during an active schedule window.
+     */
+    private function autoRecordStudentAttendanceOnLogin(int $studentUserId): void
+    {
+        if (
+            ! DB::getSchemaBuilder()->hasTable('subject_enrollments')
+            || ! DB::getSchemaBuilder()->hasTable('subject_schedules')
+            || ! DB::getSchemaBuilder()->hasTable('attendance_logs')
+        ) {
+            return;
+        }
+
+        $now = now();
+        $dayOfWeek = (int) $now->dayOfWeek;
+        $today = $now->toDateString();
+
+        $rows = DB::table('subject_enrollments as se')
+            ->join('subjects as s', 's.id', '=', 'se.subject_id')
+            ->join('subject_schedules as ss', 'ss.subject_id', '=', 's.id')
+            ->where('se.student_id', $studentUserId)
+            ->where('se.status', 'active')
+            ->where('ss.is_active', 1)
+            ->where('ss.day_of_week', $dayOfWeek)
+            ->select(
+                's.id as subject_id',
+                's.teacher_user_id',
+                'ss.start_time',
+                'ss.end_time',
+                'ss.late_grace_minutes'
+            )
+            ->orderBy('ss.start_time')
+            ->get();
+
+        foreach ($rows as $row) {
+            $status = $this->attendanceStatusFromSchedule($row, $now);
+            if (! $status) {
+                continue;
+            }
+
+            $existing = DB::table('attendance_logs')
+                ->where('subject_id', $row->subject_id)
+                ->where('student_id', $studentUserId)
+                ->where('attendance_date', $today)
+                ->first();
+
+            if ($existing) {
+                DB::table('attendance_logs')
+                    ->where('id', $existing->id)
+                    ->update([
+                        'status' => $existing->source === 'manual' ? $existing->status : $status,
+                        'source' => $existing->source === 'manual' ? 'manual' : 'auto',
+                        'mark_reason' => $existing->source === 'manual'
+                            ? $existing->mark_reason
+                            : 'Auto check-in on login',
+                        'scanned_at' => $now,
+                        'updated_at' => $now,
+                    ]);
+            } else {
+                DB::table('attendance_logs')->insert([
+                    'subject_id' => $row->subject_id,
+                    'student_id' => $studentUserId,
+                    'teacher_user_id' => $row->teacher_user_id,
+                    'marked_by_user_id' => $studentUserId,
+                    'status' => $status,
+                    'source' => 'auto',
+                    'mark_reason' => 'Auto check-in on login',
+                    'attendance_date' => $today,
+                    'scanned_at' => $now,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+            }
+        }
+    }
+
     public function login(Request $request)
     {
         try {
@@ -187,6 +276,7 @@ class AuthController extends Controller
                 $course = $sp->course;
                 $section = $sp->section;
             }
+            $this->autoRecordStudentAttendanceOnLogin((int) $user->id);
         }
 
             return response()->json([
@@ -567,6 +657,8 @@ class AuthController extends Controller
 
         // Issue Sanctum token for desktop app
         $token = $user->createToken('web')->plainTextToken;
+
+        $this->autoRecordStudentAttendanceOnLogin((int) $user->id);
 
         return response()->json([
             'ok' => true,
