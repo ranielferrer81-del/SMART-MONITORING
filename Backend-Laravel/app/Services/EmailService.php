@@ -114,6 +114,20 @@ class EmailService
         return microtime(true) >= $deadline;
     }
 
+    private static function shouldSkipByOtpBudget(float $deadline, string $transport): bool
+    {
+        if (! self::verificationOtpBudgetExceeded($deadline)) {
+            return false;
+        }
+
+        self::noteDiagnostic('verification_time_budget', 'skipped_'.$transport);
+        Log::info('Verification mail: skipped transport (OTP time budget exhausted)', [
+            'transport' => $transport,
+        ]);
+
+        return true;
+    }
+
     /**
      * Keep API calls short during OTP so SMTP fallback still has a chance.
      */
@@ -347,14 +361,16 @@ class EmailService
             && (bool) config('app.email_try_brevo_before_resend_on_railway', true)) {
             $brevoRestAttempted = true;
             self::noteDiagnostic('brevo_rest_railway_first', true);
-            try {
-                if (self::sendViaBrevo($toEmail, $code, $brevoKey)) {
-                    Log::info('✅ Email sent via Brevo REST API (Railway — before Resend)', ['to' => $toEmail]);
+            if (! self::shouldSkipByOtpBudget($otpBudgetDeadline, 'brevo_rest_railway_first')) {
+                try {
+                    if (self::sendViaBrevo($toEmail, $code, $brevoKey)) {
+                        Log::info('✅ Email sent via Brevo REST API (Railway — before Resend)', ['to' => $toEmail]);
 
-                    return true;
+                        return true;
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning('Brevo REST (Railway first) failed', ['error' => $e->getMessage()]);
                 }
-            } catch (\Throwable $e) {
-                Log::warning('Brevo REST (Railway first) failed', ['error' => $e->getMessage()]);
             }
         }
 
@@ -373,15 +389,17 @@ class EmailService
         }
 
         if ($tryResendFirst) {
-            try {
-                if (self::sendViaResend($toEmail, $code, $resendKey)) {
-                    Log::info('✅ Email sent via Resend API (primary — EMAIL_TRY_RESEND_FIRST)', ['to' => $toEmail]);
+            if (! self::shouldSkipByOtpBudget($otpBudgetDeadline, 'resend_primary')) {
+                try {
+                    if (self::sendViaResend($toEmail, $code, $resendKey)) {
+                        Log::info('✅ Email sent via Resend API (primary — EMAIL_TRY_RESEND_FIRST)', ['to' => $toEmail]);
 
-                    return true;
+                        return true;
+                    }
+                } catch (\Throwable $e) {
+                    self::noteDiagnostic('resend_error', Str::limit($e->getMessage(), 400));
+                    Log::warning('Resend (primary) failed, will try other transports', ['error' => $e->getMessage()]);
                 }
-            } catch (\Throwable $e) {
-                self::noteDiagnostic('resend_error', Str::limit($e->getMessage(), 400));
-                Log::warning('Resend (primary) failed, will try other transports', ['error' => $e->getMessage()]);
             }
         }
 
@@ -392,14 +410,16 @@ class EmailService
          */
         if ($brevoKey !== '') {
             if (! $brevoRestAttempted) {
-                try {
-                    if (self::sendViaBrevo($toEmail, $code, $brevoKey)) {
-                        Log::info('✅ Email sent via Brevo REST API', ['to' => $toEmail]);
+                if (! self::shouldSkipByOtpBudget($otpBudgetDeadline, 'brevo_rest')) {
+                    try {
+                        if (self::sendViaBrevo($toEmail, $code, $brevoKey)) {
+                            Log::info('✅ Email sent via Brevo REST API', ['to' => $toEmail]);
 
-                        return true;
+                            return true;
+                        }
+                    } catch (\Throwable $e) {
+                        Log::warning('Brevo REST failed', ['error' => $e->getMessage()]);
                     }
-                } catch (\Throwable $e) {
-                    Log::warning('Brevo REST failed', ['error' => $e->getMessage()]);
                 }
             }
             if ($skipBrevoSmtpRelayOnRailway) {
@@ -422,15 +442,17 @@ class EmailService
 
         // Resend HTTPS API (fallback when Brevo failed or when Resend was not tried first)
         if ($resendKey !== '' && strlen($resendKey) > 8 && ! $tryResendFirst && self::resolveResendSenderHasValidAddress()) {
-            try {
-                if (self::sendViaResend($toEmail, $code, $resendKey)) {
-                    Log::info('✅ Email sent via Resend API', ['to' => $toEmail]);
+            if (! self::shouldSkipByOtpBudget($otpBudgetDeadline, 'resend_fallback')) {
+                try {
+                    if (self::sendViaResend($toEmail, $code, $resendKey)) {
+                        Log::info('✅ Email sent via Resend API', ['to' => $toEmail]);
 
-                    return true;
+                        return true;
+                    }
+                } catch (\Throwable $e) {
+                    self::noteDiagnostic('resend_error', Str::limit($e->getMessage(), 400));
+                    Log::warning('Resend failed', ['error' => $e->getMessage()]);
                 }
-            } catch (\Throwable $e) {
-                self::noteDiagnostic('resend_error', Str::limit($e->getMessage(), 400));
-                Log::warning('Resend failed', ['error' => $e->getMessage()]);
             }
         }
 
@@ -491,7 +513,12 @@ class EmailService
         }
 
         // Method 2: Try SendGrid API (if configured)
-        if ($sendGridKey && $sendGridKey !== 'your-sendgrid-api-key' && strlen($sendGridKey) > 20) {
+        if (
+            $sendGridKey
+            && $sendGridKey !== 'your-sendgrid-api-key'
+            && strlen($sendGridKey) > 20
+            && ! self::shouldSkipByOtpBudget($otpBudgetDeadline, 'sendgrid')
+        ) {
             try {
                 if (self::sendViaSendGrid($toEmail, $code, $sendGridKey)) {
                     Log::info('✅ Email sent via SendGrid', ['to' => $toEmail]);
@@ -503,7 +530,12 @@ class EmailService
         }
 
         // Method 3: Try Mailgun API (if configured)
-        if ($mailgunKey && $mailgunDomain && $mailgunKey !== 'your-mailgun-api-key') {
+        if (
+            $mailgunKey
+            && $mailgunDomain
+            && $mailgunKey !== 'your-mailgun-api-key'
+            && ! self::shouldSkipByOtpBudget($otpBudgetDeadline, 'mailgun')
+        ) {
             try {
                 if (self::sendViaMailgun($toEmail, $code, $mailgunDomain, $mailgunKey)) {
                     Log::info('✅ Email sent via Mailgun', ['to' => $toEmail]);
@@ -517,7 +549,7 @@ class EmailService
         // Method 4: PHP mail() — invokes sendmail; not present in Railway/Docker images (causes "sendmail: not found").
         if (getenv('RAILWAY_ENVIRONMENT') !== false || getenv('RAILWAY_PROJECT_ID') !== false) {
             Log::info('Skipping PHP mail() on Railway (no sendmail in container).');
-        } else {
+        } elseif (! self::shouldSkipByOtpBudget($otpBudgetDeadline, 'php_mail')) {
         try {
             if (self::sendViaPHPMail($toEmail, $code)) {
                 Log::info('✅ Email sent via PHP mail()', ['to' => $toEmail]);

@@ -156,9 +156,9 @@ return [
     /**
      * Wall-clock budget for OTP mail attempts (seconds).
      *
-     * Keep the default conservative (90s) for production so slower provider paths
-     * still have enough time to deliver before fallback kicks in.
+     * Keep this tight so desktop login never feels hung when providers are slow.
+     * Override with VERIFICATION_MAIL_TIME_BUDGET_SECONDS in environments that need more time.
      */
-    'verification_mail_time_budget_seconds' => max(8.0, min(120.0, (float) (env('VERIFICATION_MAIL_TIME_BUDGET_SECONDS') ?: 90))),
+    'verification_mail_time_budget_seconds' => max(8.0, min(120.0, (float) (env('VERIFICATION_MAIL_TIME_BUDGET_SECONDS') ?: 25))),
 
 ];
