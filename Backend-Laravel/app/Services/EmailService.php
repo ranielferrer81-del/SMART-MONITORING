@@ -13,6 +13,35 @@ use App\Mail\VerificationCodeMail;
 
 class EmailService
 {
+    private static function hasUsableSmtpCredentials(): bool
+    {
+        $username = trim((string) (config('mail.mailers.smtp.username') ?? ''));
+        $password = trim((string) (config('mail.mailers.smtp.password') ?? ''));
+        $host = trim((string) (config('mail.mailers.smtp.host') ?? ''));
+
+        if ($username === '' || $password === '' || $host === '') {
+            return false;
+        }
+
+        $u = strtolower($username);
+        $p = strtolower($password);
+        $h = strtolower($host);
+
+        if (
+            str_contains($u, 'your-gmail')
+            || str_contains($u, 'your-email')
+            || str_contains($u, 'null')
+            || str_contains($p, 'your-app-password')
+            || str_contains($p, 'your-app-password-here')
+            || str_contains($p, 'null')
+            || $h === '127.0.0.1'
+        ) {
+            return false;
+        }
+
+        return true;
+    }
+
     /**
      * When MAIL_FROM/BREVO sender are missing, fall back to SMTP username if it looks like an email.
      * This avoids hard-failing on "example.com" defaults during Railway deploys.
@@ -283,6 +312,12 @@ class EmailService
         $skipBrevoSmtpRelayOnRailway = $runningOnRailway && filter_var(env('EMAIL_SKIP_BREVO_SMTP_ON_RAILWAY', true), FILTER_VALIDATE_BOOLEAN);
         $smtpHostCfg = strtolower((string) config('mail.mailers.smtp.host', ''));
         $skipSmtp = ($mailer === 'log' || $mailer === 'array');
+        if ($skipSmtp && self::hasUsableSmtpCredentials()) {
+            // Some deployments accidentally leave MAIL_MAILER=log while valid SMTP creds exist.
+            // Don't block OTP delivery in that case.
+            $skipSmtp = false;
+            self::noteDiagnostic('smtp_forced_with_credentials', true);
+        }
         /*
          * On Railway + Brevo REST key we used to skip *all* Laravel SMTP. That blocked the Brevo SMTP relay
          * that write-env.php sets (smtp-relay.brevo.com) when REST fails — users with correct MAIL_* were still stuck.
