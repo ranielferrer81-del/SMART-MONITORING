@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Loader2, X, RefreshCw } from 'lucide-react';
 import { verifyEmailCode, resendVerificationCode } from '../api/client';
+import type { LoginResult } from '../api/client';
 
 type EmailVerificationProps = {
   email: string;
   /** Result of the last /api/validate-email call (includes fallback verification_code when mail fails). */
   loginDelivery?: { emailSent?: boolean; message?: string; verificationCode?: string | null };
-  onSuccess: () => void;
+  onSuccess: (session: LoginResult) => void;
   onCancel?: () => void;
   onResend?: () => Promise<
     { ok: boolean; message: string; email_sent?: boolean; verification_code?: string | null } | void
@@ -50,7 +51,8 @@ export default function EmailVerification({
 
     // API may include verification_code as backup even when email_sent is true — still show "check inbox" UX.
     if (propCode && /^\d{6}$/.test(propCode) && emailDelivered) {
-      setCode(propCode);
+      // Never auto-fill OTP when email was delivered successfully.
+      setCode('');
       setDevCode(null);
       setEmailSent(true);
       setVerificationFailed(false);
@@ -114,8 +116,8 @@ export default function EmailVerification({
     setVerificationFailed(false);
 
     try {
-      await verifyEmailCode(email.trim().toLowerCase(), code.trim());
-      onSuccess();
+      const session = await verifyEmailCode(email.trim().toLowerCase(), code.trim());
+      onSuccess(session);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Invalid verification code. Please try again.';
       setError(message);

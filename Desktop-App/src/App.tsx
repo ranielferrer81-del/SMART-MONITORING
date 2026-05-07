@@ -140,7 +140,7 @@ function App() {
     setVerificationLoginDelivery({
       emailSent,
       message: sendMessage,
-      verificationCode: devCode ?? null,
+      verificationCode: emailSent === false ? (devCode ?? null) : null,
     });
     setScreen('email-verification');
     // Store dev code only when backend says the email was NOT delivered.
@@ -156,8 +156,15 @@ function App() {
     }
   };
 
-  const handleVerificationSuccess = async () => {
-    // After verification, fetch user and create session
+  const handleVerificationSuccess = async (verifiedSession: LoginResult) => {
+    // Use the verified session returned by /api/verify-verification-code directly.
+    // Avoid an immediate extra /api/me round-trip that can fail transiently and send user back to login.
+    if (verifiedSession?.token && verifiedSession?.user) {
+      setSession(verifiedSession);
+      setScreen('student-credential');
+      return;
+    }
+
     try {
       const user = await fetchCurrentUser();
       const token = localStorage.getItem('token');
@@ -170,12 +177,14 @@ function App() {
         };
         setSession(session);
         setScreen('student-credential');
+        return;
       }
     } catch (error) {
       console.error('Failed to fetch user after verification:', error);
-      setVerificationLoginDelivery({});
-      setScreen('email-login');
     }
+
+    setVerificationLoginDelivery({});
+    setScreen('email-login');
   };
 
   const handleLogout = async () => {
@@ -224,9 +233,9 @@ function App() {
       <EmailVerification
         email={verificationEmail}
         loginDelivery={verificationLoginDelivery}
-        onSuccess={() => {
+        onSuccess={(verifiedSession) => {
           setVerificationLoginDelivery({});
-          void handleVerificationSuccess();
+          void handleVerificationSuccess(verifiedSession);
         }}
         onCancel={() => {
           setVerificationLoginDelivery({});
