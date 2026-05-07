@@ -276,7 +276,6 @@ class AuthController extends Controller
                 $course = $sp->course;
                 $section = $sp->section;
             }
-            $this->autoRecordStudentAttendanceOnLogin((int) $user->id);
         }
 
             return response()->json([
@@ -657,8 +656,6 @@ class AuthController extends Controller
 
         // Issue Sanctum token for desktop app
         $token = $user->createToken('web')->plainTextToken;
-
-        $this->autoRecordStudentAttendanceOnLogin((int) $user->id);
 
         return response()->json([
             'ok' => true,
