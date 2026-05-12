@@ -25,6 +25,83 @@ class StudentProfileController extends Controller
         return $now->lte($lateBoundary) ? 'present' : 'late';
     }
 
+    /**
+     * Auto-mark attendance after successful PIN validation in Desktop App flow.
+     * Idempotent per student/subject/date and preserves manual records.
+     */
+    private function autoRecordStudentAttendanceOnPinValidation(int $studentUserId): void
+    {
+        if (
+            ! DB::getSchemaBuilder()->hasTable('subject_enrollments')
+            || ! DB::getSchemaBuilder()->hasTable('subject_schedules')
+            || ! DB::getSchemaBuilder()->hasTable('attendance_logs')
+        ) {
+            return;
+        }
+
+        $now = now();
+        $dayOfWeek = (int) $now->dayOfWeek;
+        $today = $now->toDateString();
+
+        $rows = DB::table('subject_enrollments as se')
+            ->join('subjects as s', 's.id', '=', 'se.subject_id')
+            ->join('subject_schedules as ss', 'ss.subject_id', '=', 's.id')
+            ->where('se.student_id', $studentUserId)
+            ->where('se.status', 'active')
+            ->where('ss.is_active', 1)
+            ->where('ss.day_of_week', $dayOfWeek)
+            ->select(
+                's.id as subject_id',
+                's.teacher_user_id',
+                'ss.start_time',
+                'ss.end_time',
+                'ss.late_grace_minutes'
+            )
+            ->orderBy('ss.start_time')
+            ->get();
+
+        foreach ($rows as $row) {
+            $status = $this->attendanceStatusFromSchedule($row, $now);
+            if (! $status) {
+                continue;
+            }
+
+            $existing = DB::table('attendance_logs')
+                ->where('subject_id', $row->subject_id)
+                ->where('student_id', $studentUserId)
+                ->where('attendance_date', $today)
+                ->first();
+
+            if ($existing) {
+                DB::table('attendance_logs')
+                    ->where('id', $existing->id)
+                    ->update([
+                        'status' => $existing->source === 'manual' ? $existing->status : $status,
+                        'source' => $existing->source === 'manual' ? 'manual' : 'auto',
+                        'mark_reason' => $existing->source === 'manual'
+                            ? $existing->mark_reason
+                            : 'Auto check-in on PIN validation',
+                        'scanned_at' => $now,
+                        'updated_at' => $now,
+                    ]);
+            } else {
+                DB::table('attendance_logs')->insert([
+                    'subject_id' => $row->subject_id,
+                    'student_id' => $studentUserId,
+                    'teacher_user_id' => $row->teacher_user_id,
+                    'marked_by_user_id' => $studentUserId,
+                    'status' => $status,
+                    'source' => 'auto',
+                    'mark_reason' => 'Auto check-in on PIN validation',
+                    'attendance_date' => $today,
+                    'scanned_at' => $now,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+            }
+        }
+    }
+
     private function isProfilePictureValueTooLongForColumn(QueryException $e): bool
     {
         $m = $e->getMessage();
@@ -212,6 +289,15 @@ class StudentProfileController extends Controller
                 'ok' => false,
                 'message' => 'Incorrect PIN. Please try again.',
             ], 401);
+        }
+
+        try {
+            $this->autoRecordStudentAttendanceOnPinValidation((int) $user->id);
+        } catch (\Throwable $e) {
+            \Log::warning('Auto attendance on PIN validation failed', [
+                'student_user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
         }
 
         return response()->json([
