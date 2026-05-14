@@ -1,8 +1,6 @@
 import axios from 'axios';
 import { getApiBase } from '../config/apiBase';
 
-const API_BASE = getApiBase();
-
 /** Laravel 422 validation: surface first field message instead of generic axios text */
 function formatAxiosValidationError(error) {
   const d = error.response?.data;
@@ -18,13 +16,13 @@ function formatAxiosValidationError(error) {
 }
 
 export const api = axios.create({
-  baseURL: API_BASE,
   headers: { 'Content-Type': 'application/json' },
   timeout: 90000, // Render free instances can cold-start in ~50s; keep enough buffer
 });
 
-// Add token to requests
+// Resolve base URL per request so runtime patches (e.g. patch-api-base.js before serve) apply.
 api.interceptors.request.use((config) => {
+  config.baseURL = getApiBase();
   const token = localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
