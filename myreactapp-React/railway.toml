@@ -1,4 +1,4 @@
 # Ensures the API base is injected before static serving even if the Railway dashboard
 # "Custom Start Command" was set to plain `serve` (which skipped npm start / patch).
 [deploy]
-startCommand = "/bin/sh -c 'node scripts/patch-api-base.js && exec npm start'"
+startCommand = "/bin/sh -c 'node scripts/patch-api-base.js && exec node scripts/serve-production.js'"

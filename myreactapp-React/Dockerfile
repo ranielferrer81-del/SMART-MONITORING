@@ -21,4 +21,4 @@ RUN chmod +x /app/docker-entrypoint.sh \
 
 # Invoke via sh so CRLF in the script cannot break the kernel shebang on Linux.
 ENTRYPOINT ["/bin/sh", "/app/docker-entrypoint.sh"]
-CMD ["npm", "start"]
+CMD ["node", "scripts/serve-production.js"]
