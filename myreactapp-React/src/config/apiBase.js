@@ -1,12 +1,11 @@
 /**
  * Laravel API origin (no trailing slash, no /api suffix).
  *
- * 1) CRA REACT_APP_* API origin vars when set at build (see readReactApiBaseEnv).
- * 2) <meta name="sia-api-origin" content="..."> — patched at deploy (scripts/patch-api-base.js).
- * 3) window.__SIA_API_BASE__ — same patch / local default in public/index.html.
- * 4) On *.railway.app, localhost origins from (1) or (3) are ignored so stale builds still use (2).
- * 5) Local dev default http://127.0.0.1:8000
+ * Resolution order on a public deploy (not localhost):
+ *   meta → window → CRA env → synchronous GET /api-base.json (written at container start).
+ * Local dev: CRA env → meta → window → default http://127.0.0.1:8000
  */
+
 function readReactApiBaseEnv() {
   if (typeof process === 'undefined' || !process.env) return '';
   const keys = [
@@ -38,28 +37,69 @@ function isLocalDevApiUrl(url) {
   );
 }
 
-function isRailwayHosted() {
+/** True when the page is clearly not local dev (Railway, Vercel, custom domain, etc.). */
+function isPublicDeployment() {
   if (typeof window === 'undefined') return false;
-  return /\.railway\.app$/i.test(window.location.hostname);
+  const h = (window.location.hostname || '').toLowerCase();
+  return h !== 'localhost' && h !== '127.0.0.1';
 }
 
 function normalizeOrigin(raw) {
   let s = String(raw || '')
     .trim()
     .replace(/\r/g, '')
+    .replace(/^["']|["']$/g, '')
+    .trim()
     .replace(/\/$/, '')
     .replace(/\/api\/?$/i, '');
   if (!s) return '';
   if (/^https?:\/\//i.test(s)) return s;
-  // Railway / copy-paste without scheme (e.g. "something.up.railway.app")
   if (/^[a-z0-9.-]+\.[a-z]{2,}(:[0-9]+)?$/i.test(s)) {
     return `https://${s}`;
   }
   return s;
 }
 
+/** Same-origin /api-base.json from the static host (populated by scripts/patch-api-base.js). */
+let __siaApiBaseJsonMemo;
+function readApiBaseFromDeployedJson() {
+  if (__siaApiBaseJsonMemo !== undefined) return __siaApiBaseJsonMemo;
+  let out = '';
+  if (typeof window === 'undefined' || typeof XMLHttpRequest === 'undefined') {
+    __siaApiBaseJsonMemo = out;
+    return out;
+  }
+  try {
+    const pub =
+      (typeof process !== 'undefined' && process.env && process.env.PUBLIC_URL) || '';
+    const normalizedPub = pub.endsWith('/') ? pub.slice(0, -1) : pub;
+    const root =
+      window.location.origin +
+      (normalizedPub === '' || normalizedPub.startsWith('/')
+        ? normalizedPub
+        : `/${normalizedPub}`);
+    const baseForUrl = root.endsWith('/') ? root : `${root}/`;
+    const url = new URL('api-base.json', baseForUrl).href;
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', url, false);
+    xhr.send(null);
+    if (xhr.status === 200) {
+      const text = String(xhr.responseText || '').trim();
+      if (text.startsWith('{')) {
+        const j = JSON.parse(text);
+        const b = j && j.apiBase != null ? String(j.apiBase).trim() : '';
+        if (b) out = b;
+      }
+    }
+  } catch {
+    out = '';
+  }
+  __siaApiBaseJsonMemo = out;
+  return out;
+}
+
 export function getApiBase() {
-  const railway = isRailwayHosted();
+  const deployed = isPublicDeployment();
   const fromNorm = normalizeOrigin(readReactApiBaseEnv());
   const metaNorm = normalizeOrigin(readMetaApiOrigin());
   const windowNorm =
@@ -67,23 +107,25 @@ export function getApiBase() {
       ? normalizeOrigin(String(window.__SIA_API_BASE__))
       : '';
 
-  // On Railway, prefer runtime-injected values over CRA build-time env (often stale localhost).
-  const candidates = (
-    railway ? [metaNorm, windowNorm, fromNorm] : [fromNorm, metaNorm, windowNorm]
+  const primary = (
+    deployed ? [metaNorm, windowNorm, fromNorm] : [fromNorm, metaNorm, windowNorm]
   ).filter(Boolean);
-  for (const c of candidates) {
-    if (railway && isLocalDevApiUrl(c)) continue;
-    return c;
+
+  for (const c of primary) {
+    if (deployed && isLocalDevApiUrl(c)) continue;
+    if (c) return c;
   }
-  if (railway) {
+
+  if (deployed) {
+    const j = normalizeOrigin(readApiBaseFromDeployedJson());
+    if (j && !isLocalDevApiUrl(j)) return j;
+
     if (typeof window !== 'undefined' && !window.__SIA_API_BASE_CONFIG_WARNED__) {
       window.__SIA_API_BASE_CONFIG_WARNED__ = true;
       console.error(
-        '[SIA] No backend URL for this app on Railway. Open Variables on the SMART-MONITORING service and add:\n' +
-          '  REACT_APP_API_BASE=https://<your-laravel-service>.up.railway.app\n' +
-          'Use a reference to the backend public URL, e.g.:\n' +
-          '  REACT_APP_API_BASE=https://${{ elegant-sparkle.RAILWAY_PUBLIC_DOMAIN }}\n' +
-          '(Replace elegant-sparkle with your backend service name.) Then redeploy.',
+        '[SIA] No backend API URL found for this deployment. On the frontend service (e.g. SMART-MONITORING), set:\n' +
+          '  REACT_APP_API_BASE=https://YOUR-LARAVEL.up.railway.app\n' +
+          'Then redeploy. Check deploy logs for [patch-api-base] and open /api-base.json in the browser — it must show {"apiBase":"https://..."}.',
       );
     }
     return '';
