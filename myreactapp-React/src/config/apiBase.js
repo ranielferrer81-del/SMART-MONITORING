@@ -1,9 +1,8 @@
 /**
  * Laravel API origin (no trailing slash, no /api suffix).
  *
- * Order:
- * 1) CRA REACT_APP_API_BASE when set at build (local .env or working Docker build args)
- * 2) window.__SIA_API_BASE__ from /api-config.js — rewritten at container boot on Railway
+ * 1) CRA REACT_APP_API_BASE when set at build (local .env or Docker build args).
+ * 2) window.__SIA_API_BASE__ — inline in index.html; Docker entrypoint rewrites on Railway.
  * 3) local dev default
  */
 export function getApiBase() {

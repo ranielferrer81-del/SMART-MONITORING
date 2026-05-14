@@ -1,7 +1,6 @@
 #!/bin/sh
 set -e
-# Runtime API URL for production: CRA often bakes localhost before this runs; we overwrite
-# build/api-config.js so window.__SIA_API_BASE__ is correct before the React bundle executes.
+# Rewrite API base into build/index.html (inline, no extra request — works with serve -s).
 BASE_RAW="${REACT_APP_API_BASE:-}"
 BASE_RAW=$(printf '%s' "$BASE_RAW" | tr -d '\r')
 
@@ -11,18 +10,25 @@ if [ -n "$BASE_RAW" ]; then
 const fs = require('fs');
 const path = require('path');
 const base = (process.env.REACT_APP_API_BASE || '').replace(/\/$/, '');
-const outPath = path.join(process.cwd(), 'build', 'api-config.js');
 if (!base) process.exit(0);
-if (!fs.existsSync(outPath)) {
-  console.error('[docker-entrypoint] ERROR: build/api-config.js missing — build failed?');
+const indexPath = path.join(process.cwd(), 'build', 'index.html');
+if (!fs.existsSync(indexPath)) {
+  console.error('[docker-entrypoint] ERROR: build/index.html missing');
   process.exit(1);
 }
-const body = 'window.__SIA_API_BASE__=' + JSON.stringify(base) + ';\n';
-fs.writeFileSync(outPath, body);
-console.error('[docker-entrypoint] Wrote api-config.js for API base (length ' + base.length + ').');
+let html = fs.readFileSync(indexPath, 'utf8');
+const repl = 'window.__SIA_API_BASE__=' + JSON.stringify(base) + ';';
+const re = /window\.__SIA_API_BASE__\s*=\s*("[^"]*"|'[^']*')\s*;?/;
+if (!re.test(html)) {
+  console.error('[docker-entrypoint] ERROR: __SIA_API_BASE__ marker not found in index.html');
+  process.exit(1);
+}
+html = html.replace(re, repl);
+fs.writeFileSync(indexPath, html);
+console.error('[docker-entrypoint] Patched index.html with API base (len ' + base.length + ').');
 NODE
 else
-  echo "[docker-entrypoint] WARNING: REACT_APP_API_BASE unset — using baked-in api-config.js (localhost)." >&2
+  echo "[docker-entrypoint] WARNING: REACT_APP_API_BASE unset — API calls use default localhost in index.html." >&2
 fi
 
 exec "$@"
