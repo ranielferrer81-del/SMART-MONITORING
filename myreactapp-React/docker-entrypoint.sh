@@ -9,8 +9,11 @@ if [ -n "$BASE_RAW" ]; then
   node <<'NODE'
 const fs = require('fs');
 const path = require('path');
-const base = (process.env.REACT_APP_API_BASE || '').replace(/\/$/, '');
+let base = (process.env.REACT_APP_API_BASE || '').trim().replace(/\/$/, '');
 if (!base) process.exit(0);
+if (!/^https?:\/\//i.test(base) && /^[a-z0-9.-]+\.[a-z]{2,}(:[0-9]+)?$/i.test(base)) {
+  base = 'https://' + base;
+}
 const indexPath = path.join(process.cwd(), 'build', 'index.html');
 if (!fs.existsSync(indexPath)) {
   console.error('[docker-entrypoint] ERROR: build/index.html missing');
