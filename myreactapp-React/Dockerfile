@@ -13,8 +13,8 @@ COPY . .
 
 # Build the React app (ARG used when Railway passes build-args; runtime patch handles the rest)
 ARG REACT_APP_API_BASE
-ENV REACT_APP_API_BASE=$REACT_APP_API_BASE
-RUN CI=false npm run build
+ARG REACT_APP_APT_BASE
+RUN REACT_APP_API_BASE="${REACT_APP_API_BASE:-$REACT_APP_APT_BASE}" CI=false npm run build
 
 RUN chmod +x /app/docker-entrypoint.sh \
   && sed -i 's/\r$//' /app/docker-entrypoint.sh
