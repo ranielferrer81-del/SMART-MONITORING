@@ -19,12 +19,10 @@ function normalizeBase(raw) {
 }
 
 function patchWindowScript(html, base) {
+  if (!base || !String(base).trim()) return html;
   const repl = `window.__SIA_API_BASE__=${JSON.stringify(base)};`;
   const re = /window\.__SIA_API_BASE__\s*=\s*("[^"]*"|'[^']*')\s*;?/;
-  if (!re.test(html)) {
-    console.error('[patch-api-base] ERROR: __SIA_API_BASE__ marker not found in index.html');
-    return null;
-  }
+  if (!re.test(html)) return html;
   return html.replace(re, repl);
 }
 
@@ -48,11 +46,18 @@ function main() {
 
   const root = path.join(__dirname, '..');
   const indexPath = path.join(root, 'build', 'index.html');
+  const jsonPath = path.join(root, 'build', 'api-base.json');
 
   if (!fs.existsSync(indexPath)) {
     console.error('[patch-api-base] ERROR: build/index.html missing — run npm run build first.');
     process.exit(1);
   }
+
+  let html = fs.readFileSync(indexPath, 'utf8');
+  html = patchMetaOrigin(html, base || '');
+  html = patchWindowScript(html, base);
+  fs.writeFileSync(indexPath, html);
+  fs.writeFileSync(jsonPath, JSON.stringify({ apiBase: base || '' }) + '\n');
 
   if (!base) {
     const onRailway = Boolean(
@@ -62,23 +67,19 @@ function main() {
     );
     if (onRailway) {
       console.error(
-        '[patch-api-base] WARNING on Railway: no API origin in env. Set REACT_APP_API_BASE on this service (Laravel origin, no trailing /api). Aliases also checked: REACT_APP_APT_BASE, SIA_API_BASE, BACKEND_URL, LARAVEL_URL, API_URL, APP_URL, PUBLIC_API_URL. Login will use localhost until set.',
+        '[patch-api-base] WARNING on Railway: no API origin in env. Set REACT_APP_API_BASE on this service (Laravel origin, no trailing /api). Aliases: REACT_APP_APT_BASE, SIA_API_BASE, BACKEND_URL, LARAVEL_URL, API_URL, APP_URL, PUBLIC_API_URL. Example reference:\n' +
+          '  REACT_APP_API_BASE=https://${{ elegant-sparkle.RAILWAY_PUBLIC_DOMAIN }}\n' +
+          '(Replace elegant-sparkle with your backend service name.)',
       );
     } else {
       console.error(
-        '[patch-api-base] WARNING: API origin env unset — API calls use default localhost in index.html.',
+        '[patch-api-base] WARNING: API origin env unset — api-base.json empty; local dev uses localhost.',
       );
     }
     process.exit(0);
   }
 
-  let html = fs.readFileSync(indexPath, 'utf8');
-  html = patchMetaOrigin(html, base);
-  const afterWindow = patchWindowScript(html, base);
-  if (afterWindow == null) process.exit(1);
-  html = afterWindow;
-  fs.writeFileSync(indexPath, html);
-  console.error(`[patch-api-base] Patched build/index.html (meta + window), API base len ${base.length}.`);
+  console.error(`[patch-api-base] Patched build (meta + api-base.json), API base len ${base.length}.`);
 }
 
 main();

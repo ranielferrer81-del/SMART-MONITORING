@@ -4,7 +4,25 @@
     <meta charset="utf-8" />
     <!-- Patched at container start (scripts/patch-api-base.js); used if CRA env was missing at build. -->
     <meta name="sia-api-origin" content="" />
-    <script>window.__SIA_API_BASE__="http://127.0.0.1:8000";</script>
+    <!-- Sync load so axios sees the right origin before the bundle runs (Railway / stale CRA). -->
+    <script>
+      (function () {
+        var fallback = 'http://127.0.0.1:8000';
+        var out = fallback;
+        try {
+          var xhr = new XMLHttpRequest();
+          xhr.open('GET', '%PUBLIC_URL%/api-base.json', false);
+          xhr.send(null);
+          if (xhr.status === 200) {
+            var j = JSON.parse(xhr.responseText || '{}');
+            if (j && j.apiBase && String(j.apiBase).trim()) {
+              out = String(j.apiBase).trim();
+            }
+          }
+        } catch (e) {}
+        window.__SIA_API_BASE__ = out;
+      })();
+    </script>
     <link rel="icon" href="%PUBLIC_URL%/favicon.svg" type="image/svg+xml" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#000000" />

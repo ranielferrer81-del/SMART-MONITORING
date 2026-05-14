@@ -72,5 +72,18 @@ export function getApiBase() {
     if (railway && isLocalDevApiUrl(c)) continue;
     return c;
   }
+  if (railway) {
+    if (typeof window !== 'undefined' && !window.__SIA_API_BASE_CONFIG_WARNED__) {
+      window.__SIA_API_BASE_CONFIG_WARNED__ = true;
+      console.error(
+        '[SIA] No backend URL for this app on Railway. Open Variables on the SMART-MONITORING service and add:\n' +
+          '  REACT_APP_API_BASE=https://<your-laravel-service>.up.railway.app\n' +
+          'Use a reference to the backend public URL, e.g.:\n' +
+          '  REACT_APP_API_BASE=https://${{ elegant-sparkle.RAILWAY_PUBLIC_DOMAIN }}\n' +
+          '(Replace elegant-sparkle with your backend service name.) Then redeploy.',
+      );
+    }
+    return '';
+  }
   return 'http://127.0.0.1:8000';
 }
