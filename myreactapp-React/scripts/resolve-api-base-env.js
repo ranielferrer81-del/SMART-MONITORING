@@ -10,6 +10,10 @@ function stripTrailingApiPath(s) {
     .replace(/\/$/, '');
 }
 
+function hasUnexpandedRailwayReference(s) {
+  return /\$\{\{/.test(String(s || ''));
+}
+
 /** @param {Record<string, string | undefined>} [env] */
 function resolveApiBaseRawFromEnv(env = process.env) {
   const keys = [
@@ -24,9 +28,14 @@ function resolveApiBaseRawFromEnv(env = process.env) {
   ];
   for (const k of keys) {
     const v = env[k];
-    if (v != null && String(v).trim()) {
-      return stripTrailingApiPath(v);
+    if (v == null || !String(v).trim()) continue;
+    if (hasUnexpandedRailwayReference(v)) {
+      console.error(
+        `[resolve-api-base] ${k} contains \${{ ... }} but Railway did not substitute it — use your backend service's exact name in the reference, or set a plain https URL. Skipping.`,
+      );
+      continue;
     }
+    return stripTrailingApiPath(v);
   }
   return '';
 }

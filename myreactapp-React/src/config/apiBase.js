@@ -2,7 +2,7 @@
  * Laravel API origin (no trailing slash, no /api suffix).
  *
  * Resolution order on a public deploy (not localhost):
- *   meta → window → CRA env → synchronous GET /api-base.json (written at container start).
+ *   meta → window → CRA env → synchronous GET /api-base.json then /railway-fallback.json.
  * Local dev: CRA env → meta → window → default http://127.0.0.1:8000
  */
 
@@ -60,7 +60,7 @@ function normalizeOrigin(raw) {
   return s;
 }
 
-/** Same-origin /api-base.json from the static host (populated by scripts/patch-api-base.js). */
+/** Same-origin JSON: /api-base.json (dynamic on server) then /railway-fallback.json (static). */
 let __siaApiBaseJsonMemo;
 function readApiBaseFromDeployedJson() {
   if (__siaApiBaseJsonMemo !== undefined) return __siaApiBaseJsonMemo;
@@ -79,18 +79,20 @@ function readApiBaseFromDeployedJson() {
         ? normalizedPub
         : `/${normalizedPub}`);
     const baseForUrl = root.endsWith('/') ? root : `${root}/`;
-    const url = new URL('api-base.json', baseForUrl).href;
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', url, false);
-    xhr.send(null);
-    if (xhr.status === 200) {
+
+    const tryPath = (name) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', new URL(name, baseForUrl).href, false);
+      xhr.send(null);
+      if (xhr.status !== 200) return '';
       const text = String(xhr.responseText || '').trim();
-      if (text.startsWith('{')) {
-        const j = JSON.parse(text);
-        const b = j && j.apiBase != null ? String(j.apiBase).trim() : '';
-        if (b) out = b;
-      }
-    }
+      if (!text.startsWith('{')) return '';
+      const j = JSON.parse(text);
+      const b = j && j.apiBase != null ? String(j.apiBase).trim() : '';
+      return b || '';
+    };
+
+    out = tryPath('api-base.json') || tryPath('railway-fallback.json');
   } catch {
     out = '';
   }

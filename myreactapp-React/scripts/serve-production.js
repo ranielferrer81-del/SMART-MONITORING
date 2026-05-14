@@ -12,6 +12,25 @@ const { resolveApiBaseRawFromEnv } = require('./resolve-api-base-env');
 const ROOT = path.resolve(path.join(__dirname, '..', 'build'));
 const PORT = parseInt(process.env.PORT || '3000', 10);
 
+/** Copied from public/railway-fallback.json at build — used when Railway env is empty or broken. */
+let __cachedFallbackApiBase;
+function readFallbackApiBaseFromBuild() {
+  if (__cachedFallbackApiBase !== undefined) return __cachedFallbackApiBase;
+  try {
+    const p = path.join(ROOT, 'railway-fallback.json');
+    if (!fs.existsSync(p)) {
+      __cachedFallbackApiBase = '';
+      return '';
+    }
+    const j = JSON.parse(fs.readFileSync(p, 'utf8'));
+    __cachedFallbackApiBase = normalizeApiBase(j.apiBase || '') || '';
+    return __cachedFallbackApiBase;
+  } catch {
+    __cachedFallbackApiBase = '';
+    return '';
+  }
+}
+
 function normalizeApiBase(raw) {
   let s = String(raw || '')
     .trim()
@@ -84,7 +103,8 @@ function handler(req, res) {
   const p = u.pathname || '/';
 
   if (p === '/api-base.json' && (req.method === 'GET' || req.method === 'HEAD')) {
-    const apiBase = normalizeApiBase(resolveApiBaseRawFromEnv());
+    let apiBase = normalizeApiBase(resolveApiBaseRawFromEnv());
+    if (!apiBase) apiBase = readFallbackApiBaseFromBuild();
     const body = JSON.stringify({ apiBase });
     const len = Buffer.byteLength(body);
     res.writeHead(200, {
@@ -133,8 +153,15 @@ function handler(req, res) {
 }
 
 http.createServer(handler).listen(PORT, () => {
-  const has = Boolean(normalizeApiBase(resolveApiBaseRawFromEnv()));
+  const fromEnv = Boolean(normalizeApiBase(resolveApiBaseRawFromEnv()));
+  const fromFile = Boolean(readFallbackApiBaseFromBuild());
+  const ok = fromEnv || fromFile;
   console.error(
-    `[serve-production] http://0.0.0.0:${PORT}  cwd=${ROOT}  apiBaseFromEnv=${has ? 'yes' : 'NO — set REACT_APP_API_BASE on this service'}`,
+    `[serve-production] http://0.0.0.0:${PORT}  cwd=${ROOT}  apiBaseFromEnv=${fromEnv ? 'yes' : 'no'}  fromRailwayFallbackJson=${fromFile ? 'yes' : 'no'}  loginReady=${ok ? 'yes' : 'NO'}`,
   );
+  if (!ok) {
+    console.error(
+      '[serve-production] Set REACT_APP_API_BASE on this service, or add public/railway-fallback.json with your Laravel origin and redeploy.',
+    );
+  }
 });
