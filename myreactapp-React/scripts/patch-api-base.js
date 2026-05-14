@@ -7,15 +7,17 @@ const path = require('path');
 const { resolveApiBaseRawFromEnv } = require('./resolve-api-base-env');
 
 function normalizeBase(raw) {
-  let base = String(raw || '')
+  let s = String(raw || '')
     .trim()
     .replace(/\r/g, '')
+    .replace(/^["']|["']$/g, '')
+    .trim()
     .replace(/\/$/, '');
-  if (!base) return '';
-  if (!/^https?:\/\//i.test(base) && /^[a-z0-9.-]+\.[a-z]{2,}(:[0-9]+)?$/i.test(base)) {
-    return `https://${base}`;
+  if (!s) return '';
+  if (!/^https?:\/\//i.test(s) && /^[a-z0-9.-]+\.[a-z]{2,}(:[0-9]+)?$/i.test(s)) {
+    return `https://${s}`;
   }
-  return base;
+  return s;
 }
 
 function patchWindowScript(html, base) {
@@ -31,13 +33,43 @@ function escapeHtmlAttr(s) {
 }
 
 function patchMetaOrigin(html, base) {
-  const re =
-    /<meta\s+name=["']sia-api-origin["']\s+content=(["'])([^"']*)\1\s*\/?>/i;
-  if (!re.test(html)) {
+  const patterns = [
+    /<meta\s+name=["']sia-api-origin["']\s+content=(["'])([^"']*)\1\s*\/?>/i,
+    /<meta[^>]*\bname=["']sia-api-origin["'][^>]*\bcontent=(["'])([^"']*)\1[^>]*\/?>/i,
+    /<meta[^>]*\bcontent=(["'])([^"']*)\1[^>]*\bname=["']sia-api-origin["'][^>]*\/?>/i,
+  ];
+  let re = null;
+  for (const p of patterns) {
+    if (p.test(html)) {
+      re = p;
+      break;
+    }
+  }
+  if (!re) {
     console.error('[patch-api-base] WARNING: sia-api-origin meta not found (add to public/index.html)');
     return html;
   }
-  return html.replace(re, `<meta name="sia-api-origin" content="${escapeHtmlAttr(base)}" />`);
+  return html.replace(
+    re,
+    `<meta name="sia-api-origin" content="${escapeHtmlAttr(base)}" />`,
+  );
+}
+
+/** Last script in <head> wins over the bootstrap IIFE (fixes minified meta / json fetch issues). */
+function injectHeadApiScript(html, base) {
+  if (!base || !String(base).trim()) return html;
+  html = html.replace(/<script id="sia-railway-api-base"[^<]*<\/script>\s*/gi, '');
+  const tag =
+    '<script id="sia-railway-api-base">window.__SIA_API_BASE__=' +
+    JSON.stringify(base) +
+    ';</script>';
+  const m = html.match(/<\/head>/i);
+  if (!m || m.index == null) {
+    console.error('[patch-api-base] WARNING: no </head> found, cannot inject API base script');
+    return html;
+  }
+  const i = m.index;
+  return html.slice(0, i) + tag + html.slice(i);
 }
 
 function main() {
@@ -56,6 +88,7 @@ function main() {
   let html = fs.readFileSync(indexPath, 'utf8');
   html = patchMetaOrigin(html, base || '');
   html = patchWindowScript(html, base);
+  html = injectHeadApiScript(html, base);
   fs.writeFileSync(indexPath, html);
   fs.writeFileSync(jsonPath, JSON.stringify({ apiBase: base || '' }) + '\n');
 
@@ -79,7 +112,9 @@ function main() {
     process.exit(0);
   }
 
-  console.error(`[patch-api-base] Patched build (meta + api-base.json), API base len ${base.length}.`);
+  console.error(
+    `[patch-api-base] Patched build (meta + head script + api-base.json), host len ${String(base).length}.`,
+  );
 }
 
 main();
