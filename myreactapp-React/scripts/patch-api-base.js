@@ -4,6 +4,7 @@
  */
 const fs = require('fs');
 const path = require('path');
+const { resolveApiBaseRawFromEnv } = require('./resolve-api-base-env');
 
 function normalizeBase(raw) {
   let base = String(raw || '')
@@ -42,9 +43,7 @@ function patchMetaOrigin(html, base) {
 }
 
 function main() {
-  const raw = (process.env.REACT_APP_API_BASE || process.env.REACT_APP_APT_BASE || '')
-    .trim()
-    .replace(/\r/g, '');
+  const raw = resolveApiBaseRawFromEnv();
   const base = normalizeBase(raw);
 
   const root = path.join(__dirname, '..');
@@ -63,13 +62,13 @@ function main() {
     );
     if (onRailway) {
       console.error(
-        '[patch-api-base] FATAL on Railway: REACT_APP_API_BASE (or REACT_APP_APT_BASE) is not set on this service. Set it to your Laravel API origin (no trailing /api).',
+        '[patch-api-base] WARNING on Railway: no API origin in env. Set REACT_APP_API_BASE on this service (Laravel origin, no trailing /api). Aliases also checked: REACT_APP_APT_BASE, SIA_API_BASE, BACKEND_URL, LARAVEL_URL, API_URL, APP_URL, PUBLIC_API_URL. Login will use localhost until set.',
       );
-      process.exit(1);
+    } else {
+      console.error(
+        '[patch-api-base] WARNING: API origin env unset — API calls use default localhost in index.html.',
+      );
     }
-    console.error(
-      '[patch-api-base] WARNING: REACT_APP_API_BASE and REACT_APP_APT_BASE unset — API calls use default localhost in index.html.',
-    );
     process.exit(0);
   }
 
