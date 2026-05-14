@@ -67,7 +67,10 @@ export function getApiBase() {
       ? normalizeOrigin(String(window.__SIA_API_BASE__))
       : '';
 
-  const candidates = [fromNorm, metaNorm, windowNorm].filter(Boolean);
+  // On Railway, prefer runtime-injected values over CRA build-time env (often stale localhost).
+  const candidates = (
+    railway ? [metaNorm, windowNorm, fromNorm] : [fromNorm, metaNorm, windowNorm]
+  ).filter(Boolean);
   for (const c of candidates) {
     if (railway && isLocalDevApiUrl(c)) continue;
     return c;

@@ -10,13 +10,26 @@
         var fallback = 'http://127.0.0.1:8000';
         var out = fallback;
         try {
+          var rel = '%PUBLIC_URL%/api-base.json';
+          var url;
+          if (rel.indexOf('http') === 0) {
+            url = rel;
+          } else {
+            var path = rel.charAt(0) === '/' ? rel : '/' + rel.replace(/^\.+\/?/, '');
+            url =
+              (typeof location !== 'undefined' && location.origin ? location.origin : '') +
+              path;
+          }
           var xhr = new XMLHttpRequest();
-          xhr.open('GET', '%PUBLIC_URL%/api-base.json', false);
+          xhr.open('GET', url, false);
           xhr.send(null);
           if (xhr.status === 200) {
-            var j = JSON.parse(xhr.responseText || '{}');
-            if (j && j.apiBase && String(j.apiBase).trim()) {
-              out = String(j.apiBase).trim();
+            var text = String(xhr.responseText || '').trim();
+            if (text.charAt(0) === '{') {
+              var j = JSON.parse(text);
+              if (j && j.apiBase && String(j.apiBase).trim()) {
+                out = String(j.apiBase).trim();
+              }
             }
           }
         } catch (e) {}
