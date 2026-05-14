@@ -8,9 +8,10 @@ import {
     forceCloseStudentBrowser,
     forceCloseStudentTab
 } from '../api/browserMonitoring';
+import { getApiBase } from '../config/apiBase';
 
 const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
-    const API_BASE = process.env.REACT_APP_API_BASE || 'http://127.0.0.1:8000';
+    const API_BASE = getApiBase();
     const [selectedCourse, setSelectedCourse] = useState(null);
     const [selectedSection, setSelectedSection] = useState(null);
     const [students, setStudents] = useState([]);

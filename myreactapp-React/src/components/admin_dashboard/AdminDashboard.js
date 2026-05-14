@@ -14,6 +14,7 @@ import EditAccountModal from './modals/EditAccountModal';
 import StaffDashboardSettings from '../StaffDashboardSettings';
 import { EnrolledStudentsModal, AddStudentsModal } from './modals/SubjectManagementModals';
 import { getAdminDefaultAccountsTab, setAdminDefaultAccountsTab, getAdminConfirmBeforeDelete } from '../../utils/dashboardPrefs';
+import { getApiBase } from '../../config/apiBase';
 
 export default function AdminDashboard() {
   const [user, setUser] = useState(null);
@@ -502,7 +503,7 @@ export default function AdminDashboard() {
     }
 
     // Otherwise, construct the full URL
-    const apiBase = process.env.REACT_APP_API_BASE || 'http://127.0.0.1:8000';
+    const apiBase = getApiBase();
     if (profilePicture.startsWith('/storage/')) {
       return `${apiBase}${profilePicture}`;
     } else if (profilePicture.startsWith('storage/')) {

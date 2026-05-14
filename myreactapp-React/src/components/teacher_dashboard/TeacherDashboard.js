@@ -16,6 +16,7 @@ import BrowserActivityModal from './modals/BrowserActivityModal';
 import AddStudentsModal from './modals/AddStudentsModal';
 import StaffDashboardSettings from '../StaffDashboardSettings';
 import { getMonitoringPollSeconds, getNotifyIncognitoDesktop } from '../../utils/dashboardPrefs';
+import { getApiBase } from '../../config/apiBase';
 
 export default function TeacherDashboard() {
   const [user, setUser] = useState(null);
@@ -62,7 +63,7 @@ export default function TeacherDashboard() {
     if (typeof profilePicture !== 'string') return null;
     if (profilePicture.startsWith('data:')) return profilePicture;
     if (profilePicture.startsWith('http')) return profilePicture;
-    const apiBase = process.env.REACT_APP_API_BASE || 'http://127.0.0.1:8000';
+    const apiBase = getApiBase();
     if (profilePicture.startsWith('/storage/')) return `${apiBase}${profilePicture}`;
     if (profilePicture.startsWith('storage/')) return `${apiBase}/${profilePicture}`;
     return `${apiBase}/storage/${profilePicture}`;
@@ -252,7 +253,7 @@ export default function TeacherDashboard() {
       let pictureUrl = teacherInfo.profilePicture;
       if (pictureUrl.startsWith('data:')) { setProfilePictureUrl(pictureUrl); }
       else if (!pictureUrl.startsWith('http')) {
-        const base = process.env.REACT_APP_API_BASE || 'http://127.0.0.1:8000';
+        const base = getApiBase();
         if (pictureUrl.startsWith('/storage/')) pictureUrl = `${base}${pictureUrl}`;
         else if (pictureUrl.startsWith('storage/')) pictureUrl = `${base}/${pictureUrl}`;
         else pictureUrl = `${base}/storage/${pictureUrl}`;

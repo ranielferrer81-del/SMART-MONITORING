@@ -1,6 +1,7 @@
 import axios from 'axios';
+import { getApiBase } from '../config/apiBase';
 
-const API_BASE = process.env.REACT_APP_API_BASE || 'http://127.0.0.1:8000';
+const API_BASE = getApiBase();
 
 /** Laravel 422 validation: surface first field message instead of generic axios text */
 function formatAxiosValidationError(error) {
@@ -66,7 +67,7 @@ export async function loginRequest(email, password) {
       return {
         ok: false,
         error:
-          'Login endpoint returned invalid response. Check REACT_APP_API_BASE and backend /api/login route.',
+          'Login endpoint returned invalid response. Check REACT_APP_API_BASE, api-config.js, and backend /api/login route.',
       };
     }
 

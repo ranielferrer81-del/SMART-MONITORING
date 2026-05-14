@@ -7,10 +7,10 @@ import ThemeToggle from '../../components/ThemeToggle';
 import ProfileSection from './sections/ProfileSection';
 import SubjectsSection from './sections/SubjectsSection';
 import SettingsSection from './sections/SettingsSection';
-
-const API_BASE = process.env.REACT_APP_API_BASE || 'http://127.0.0.1:8000';
+import { getApiBase } from '../../config/apiBase';
 
 const buildPictureUrl = (picture) => {
+  const API_BASE = getApiBase();
   if (!picture) return null;
   if (picture.startsWith('data:')) return picture;
   if (picture.startsWith('http://') || picture.startsWith('https://')) return picture;
