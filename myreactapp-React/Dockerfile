@@ -16,7 +16,9 @@ ARG REACT_APP_API_BASE
 ENV REACT_APP_API_BASE=$REACT_APP_API_BASE
 RUN CI=false npm run build
 
-RUN chmod +x /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh \
+  && sed -i 's/\r$//' /app/docker-entrypoint.sh
 
-ENTRYPOINT ["/app/docker-entrypoint.sh"]
+# Invoke via sh so CRLF in the script cannot break the kernel shebang on Linux.
+ENTRYPOINT ["/bin/sh", "/app/docker-entrypoint.sh"]
 CMD ["npm", "start"]
