@@ -15,6 +15,33 @@ function formatAxiosValidationError(error) {
   return 'Request failed';
 }
 
+/** Laravel login: read API message (Laravel uses 404 + "Email not found" for unknown users). */
+function extractLoginErrorMessage(error) {
+  const status = error.response?.status;
+  const d = error.response?.data;
+  let apiMsg = '';
+  if (d && typeof d === 'object' && !Array.isArray(d)) {
+    apiMsg = String(d.message ?? d.error ?? '').trim();
+  } else if (typeof d === 'string') {
+    const t = d.trim();
+    if (t.startsWith('{')) {
+      try {
+        const p = JSON.parse(t);
+        apiMsg = String(p.message ?? '').trim();
+      } catch {
+        /* not JSON */
+      }
+    }
+  }
+  if (apiMsg) return apiMsg;
+  if (status === 404) {
+    return 'Cannot reach the login API (404). Confirm the Laravel app exposes POST /api/login (no extra /api in REACT_APP_API_BASE).';
+  }
+  if (status === 401) return 'Incorrect password';
+  if (status === 422) return formatAxiosValidationError(error);
+  return String(error.message || 'Login failed');
+}
+
 export const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
   timeout: 90000, // Render free instances can cold-start in ~50s; keep enough buffer
@@ -72,15 +99,20 @@ export async function loginRequest(email, password) {
     console.log('Login success:', responseData);
     return { ok: true, data: responseData };
   } catch (error) {
-    // Detailed debug output
+    const status = error.response?.status;
+    const d = error.response?.data;
+    const apiMessage = extractLoginErrorMessage(error);
+    const baseURL = error.config?.baseURL || '';
+    const path = error.config?.url || '';
+    const fullUrl = baseURL && path ? `${String(baseURL).replace(/\/$/, '')}${path.startsWith('/') ? path : `/${path}`}` : path;
     console.log('Login error:', {
-      status: error.response?.status,
-      data: error.response?.data,
-      message: error.message,
-      url: error.config?.url,
+      status,
+      apiMessage,
+      axiosMessage: error.message,
+      fullUrl,
+      data: d,
     });
-    const message = error.response?.data?.message || 'Login failed';
-    return { ok: false, error: message, raw: error.response?.data };
+    return { ok: false, error: apiMessage, raw: d, status };
   }
 }
 

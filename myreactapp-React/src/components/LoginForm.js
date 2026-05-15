@@ -80,11 +80,15 @@ const LoginForm = () => {
       if (!result.ok) {
         const msg = (result.error || '').toLowerCase();
         if (msg.includes('email not found')) {
-          setServerErrors({ email: 'No account found with this email', password: '' });
+          setServerErrors({
+            email:
+              'No account for this email in the database this server uses. On Railway, create the user (e.g. set BOOTSTRAP_ADMIN_EMAIL and BOOTSTRAP_ADMIN_PASSWORD on the Laravel service and redeploy), run migrations, or import your local database.',
+            password: '',
+          });
         } else if (msg.includes('incorrect password')) {
           setServerErrors({ email: '', password: 'Incorrect password. Try again.' });
         } else {
-          alert(result.error || 'Login failed');
+          setServerErrors({ email: result.error || 'Login failed', password: '' });
         }
         setIsLoading(false);
         return;
