@@ -157,10 +157,14 @@ http.createServer(handler).listen(PORT, () => {
   const fromFile = Boolean(readFallbackApiBaseFromBuild());
   const ok = fromEnv || fromFile;
   const source = fromEnv ? 'env' : fromFile ? 'railway-fallback.json' : 'none';
-  console.error(
-    `[serve-production] listening on 0.0.0.0:${PORT}  staticRoot=${ROOT}  apiBaseSource=${source}  loginReady=${ok ? 'yes' : 'NO'}`,
-  );
-  if (!ok) {
+  if (ok) {
+    console.log(
+      `[serve-production] listening on 0.0.0.0:${PORT}  staticRoot=${ROOT}  apiBaseSource=${source}  loginReady=yes`,
+    );
+  } else {
+    console.error(
+      `[serve-production] listening on 0.0.0.0:${PORT}  staticRoot=${ROOT}  apiBaseSource=${source}  loginReady=NO`,
+    );
     console.error(
       '[serve-production] Set REACT_APP_API_BASE on this service, or add public/railway-fallback.json with your Laravel origin and redeploy.',
     );

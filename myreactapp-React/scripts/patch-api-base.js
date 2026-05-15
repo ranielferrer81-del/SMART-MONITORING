@@ -111,7 +111,7 @@ function main() {
     );
     if (onRailway) {
       if (fallbackBase) {
-        console.error(
+        console.log(
           `[patch-api-base] No REACT_APP_* in env; using build/railway-fallback.json for API origin (${fallbackBase.length} chars). Optional: set REACT_APP_API_BASE to override.`,
         );
       } else {
@@ -127,7 +127,7 @@ function main() {
     process.exit(0);
   }
 
-  console.error(
+  console.log(
     `[patch-api-base] Patched build (meta + head script + api-base.json), host len ${String(base).length}.`,
   );
 }
