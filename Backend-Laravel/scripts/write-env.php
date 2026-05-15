@@ -122,9 +122,22 @@ if ($brevoKey !== '' && (!$hasExplicitSmtpCreds || $useBrevoSmtpRelay)) {
     $mailPass = $smtpKey !== '' ? $smtpKey : $brevoKey;
 }
 
-// Final sender safety: if MAIL_FROM is still placeholder, prefer any valid SMTP login email.
-if (($mailFrom === '' || str_contains(strtolower($mailFrom), 'example.com')) && filter_var($mailUser, FILTER_VALIDATE_EMAIL)) {
+// Final sender safety: if MAIL_FROM is still placeholder, prefer any valid SMTP login email (not example.com).
+if (($mailFrom === '' || str_contains(strtolower($mailFrom), 'example.com'))
+    && filter_var($mailUser, FILTER_VALIDATE_EMAIL)
+    && ! str_contains(strtolower($mailUser), 'example.com')) {
     $mailFrom = $mailUser;
+}
+
+// Brevo REST rejects noreply@example.com — try explicit Brevo sender vars if still placeholder.
+if ($brevoKey !== '' && str_contains(strtolower($mailFrom), 'example.com')) {
+    foreach ([g('BREVO_SENDER_EMAIL'), g('BREVO_SMTP_LOGIN'), g('MAIL_FROM_ADDRESS')] as $cand) {
+        $c = trim((string) $cand);
+        if ($c !== '' && filter_var($c, FILTER_VALIDATE_EMAIL) && ! str_contains(strtolower($c), 'example.com')) {
+            $mailFrom = $c;
+            break;
+        }
+    }
 }
 
 $lines = [

@@ -309,7 +309,7 @@ class EmailService
         $mailer = config('mail.default');
         $runningOnRailway = (getenv('RAILWAY_ENVIRONMENT') !== false || getenv('RAILWAY_PROJECT_ID') !== false);
         // Brevo SMTP relay uses port 587; many PaaS networks block or time out — skip to avoid ~30s waits when REST already failed.
-        $skipBrevoSmtpRelayOnRailway = $runningOnRailway && filter_var(env('EMAIL_SKIP_BREVO_SMTP_ON_RAILWAY', true), FILTER_VALIDATE_BOOLEAN);
+        $skipBrevoSmtpRelayOnRailway = $runningOnRailway && filter_var(env('EMAIL_SKIP_BREVO_SMTP_ON_RAILWAY', false), FILTER_VALIDATE_BOOLEAN);
         $smtpHostCfg = strtolower((string) config('mail.mailers.smtp.host', ''));
         $skipSmtp = ($mailer === 'log' || $mailer === 'array');
         if ($skipSmtp && self::hasUsableSmtpCredentials()) {
@@ -506,10 +506,11 @@ class EmailService
             || ($mailgunKey !== '' && $mailgunDomain !== '');
 
         $allowSmtpOnRailway = ! $runningOnRailway
-            || ! (bool) config('app.email_railway_skip_laravel_smtp', true)
+            || ! (bool) config('app.email_railway_skip_laravel_smtp', false)
             || (bool) config('app.email_otp_try_smtp_first', false)
             || str_contains($smtpHostCfg, 'brevo')
-            || $apiPathWasTried;
+            || $apiPathWasTried
+            || (! $isPlaceholder && ! $skipSmtp);
 
         if ($runningOnRailway && ! $allowSmtpOnRailway) {
             self::noteDiagnostic('smtp_skipped_reason', 'railway_EMAIL_RAILWAY_SKIP_LARAVEL_SMTP');

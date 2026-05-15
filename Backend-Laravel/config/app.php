@@ -148,7 +148,7 @@ return [
     'email_otp_try_smtp_first' => filter_var(env('EMAIL_OTP_TRY_SMTP_FIRST', false), FILTER_VALIDATE_BOOLEAN),
 
     /** On Railway, skip Laravel's SMTP mailer for OTP unless EMAIL_OTP_TRY_SMTP_FIRST=true (587 often blocked/hangs). */
-    'email_railway_skip_laravel_smtp' => filter_var(env('EMAIL_RAILWAY_SKIP_LARAVEL_SMTP', true), FILTER_VALIDATE_BOOLEAN),
+    'email_railway_skip_laravel_smtp' => filter_var(env('EMAIL_RAILWAY_SKIP_LARAVEL_SMTP', false), FILTER_VALIDATE_BOOLEAN),
 
     /** On Railway, attempt Brevo REST (HTTPS) before Resend when BREVO_API_KEY is set (no SMTP required). */
     'email_try_brevo_before_resend_on_railway' => filter_var(env('EMAIL_TRY_BREVO_BEFORE_RESEND_ON_RAILWAY', true), FILTER_VALIDATE_BOOLEAN),
