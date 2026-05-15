@@ -140,12 +140,12 @@ function App() {
     setVerificationLoginDelivery({
       emailSent,
       message: sendMessage,
-      verificationCode: emailSent === false ? (devCode ?? null) : null,
+      verificationCode: devCode ?? null,
     });
     setScreen('email-verification');
     // Store dev code only when backend says the email was NOT delivered.
     // This prevents the "use this verification code" UI from showing when email works.
-    if (devCode && emailSent === false) {
+    if (devCode && /^\d{6}$/.test(String(devCode).trim())) {
       localStorage.setItem('dev_verification_code', devCode);
     } else {
       localStorage.removeItem('dev_verification_code');

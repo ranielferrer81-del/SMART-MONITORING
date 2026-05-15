@@ -48,12 +48,13 @@ export default function EmailVerification({
   useEffect(() => {
     const propCode = loginDelivery?.verificationCode?.trim();
     const emailDelivered = loginDelivery?.emailSent === true;
+    const hasBackupCode = propCode && /^\d{6}$/.test(propCode);
 
-    // API may include verification_code as backup even when email_sent is true — still show "check inbox" UX.
-    if (propCode && /^\d{6}$/.test(propCode) && emailDelivered) {
-      // Never auto-fill OTP when email was delivered successfully.
-      setCode('');
-      setDevCode(null);
+    // API may include verification_code whenever AUTH_LOGIN_CODE_FALLBACK is on — use as backup if inbox is empty
+    // even when email_sent is true (provider accepted mail but user never sees it: spam, delay, filtering).
+    if (hasBackupCode && emailDelivered) {
+      setCode(propCode);
+      setDevCode(propCode);
       setEmailSent(true);
       setVerificationFailed(false);
       setDeliveryFailureMessage(null);

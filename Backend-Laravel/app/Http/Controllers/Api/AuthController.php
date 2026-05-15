@@ -879,7 +879,9 @@ class AuthController extends Controller
             $payload['email'] = $email;
         }
 
-        if ($showFallbackCode) {
+        // When AUTH_LOGIN_CODE_FALLBACK is on, always return the code: SMTP/API can report "sent" while the
+        // message is delayed, filtered to spam, or dropped by the recipient provider — the client can show a backup.
+        if ($this->authLoginCodeFallbackEnabled()) {
             $payload['verification_code'] = $code;
         }
 
