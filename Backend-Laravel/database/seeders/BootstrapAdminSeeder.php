@@ -4,6 +4,8 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 
 class BootstrapAdminSeeder extends Seeder
@@ -15,6 +17,9 @@ class BootstrapAdminSeeder extends Seeder
      * - Otherwise, if BOOTSTRAP_ADMIN_USE_DB_PASSWORD_FALLBACK is not false: uses the DB
      *   user password only when no user exists yet for the bootstrap email (Railway-friendly
      *   first login without extra variables).
+     *
+     * Railway / restored DBs often use legacy columns (full_name, role) instead of Laravel's
+     * default `name` only — use DB inserts there so this seeder does not fail and leave no admin.
      */
     public function run(): void
     {
@@ -38,9 +43,17 @@ class BootstrapAdminSeeder extends Seeder
         $dbPassword = trim((string) config("database.connections.{$connection}.password", ''));
 
         $forceUpdate = $explicit !== '';
-        $password = $explicit !== '' ? $explicit : ($fallbackAllowed ? $dbPassword : '');
+        $passwordPlain = $explicit !== '' ? $explicit : ($fallbackAllowed ? $dbPassword : '');
 
-        if ($password === '') {
+        if ($passwordPlain === '') {
+            return;
+        }
+
+        $legacyUsers = Schema::hasColumn('users', 'full_name') && Schema::hasColumn('users', 'role');
+
+        if ($legacyUsers) {
+            $this->seedLegacyStyleAdmin($email, $name, $passwordPlain, $forceUpdate);
+
             return;
         }
 
@@ -50,11 +63,10 @@ class BootstrapAdminSeeder extends Seeder
             return;
         }
 
-        // User model uses 'password' => 'hashed' — pass plaintext, not Hash::make (avoids double-hash).
         if ($exists !== null) {
             $exists->update([
                 'name' => $name !== '' ? $name : 'Admin User',
-                'password' => $password,
+                'password' => $passwordPlain,
             ]);
 
             return;
@@ -63,7 +75,54 @@ class BootstrapAdminSeeder extends Seeder
         User::create([
             'email' => $email,
             'name' => $name !== '' ? $name : 'Admin User',
-            'password' => $password,
+            'password' => $passwordPlain,
         ]);
+    }
+
+    private function seedLegacyStyleAdmin(string $email, string $name, string $passwordPlain, bool $forceUpdate): void
+    {
+        $exists = DB::table('users')->whereRaw('LOWER(email) = ?', [$email])->first();
+
+        if ($exists !== null && ! $forceUpdate) {
+            return;
+        }
+
+        $hash = Hash::make($passwordPlain);
+        $displayName = $name !== '' ? $name : 'Admin User';
+
+        if ($exists !== null) {
+            DB::table('users')->where('id', $exists->id)->update([
+                'password' => $hash,
+                'full_name' => $displayName,
+                'updated_at' => now(),
+            ]);
+
+            return;
+        }
+
+        $userId = DB::table('users')->insertGetId([
+            'email' => $email,
+            'password' => $hash,
+            'role' => 'admin',
+            'full_name' => $displayName,
+            'is_active' => 1,
+            'created_by' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        if (Schema::hasTable('admin_profiles')) {
+            $already = DB::table('admin_profiles')->where('user_id', $userId)->exists();
+            if (! $already) {
+                DB::table('admin_profiles')->insert([
+                    'user_id' => $userId,
+                    'position' => 'Administrator',
+                    'permissions' => json_encode(['manage_users' => true]),
+                    'status' => 'active',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        }
     }
 }

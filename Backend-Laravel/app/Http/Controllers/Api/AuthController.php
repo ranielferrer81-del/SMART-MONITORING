@@ -225,7 +225,14 @@ class AuthController extends Controller
             return response()->json([
                 'ok' => false,
                 'message' => 'Email not found',
-            ], 404);
+            ], 422);
+        }
+
+        if (isset($user->is_active) && ! (bool) $user->is_active) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Your account is inactive. Please contact the administrator.',
+            ], 403);
         }
 
         if (!Hash::check($validated['password'], $user->password)) {
@@ -411,7 +418,7 @@ class AuthController extends Controller
             return response()->json([
                 'ok' => false,
                 'message' => 'Email not found. Please check your email and try again.',
-            ], 404);
+            ], 422);
         }
 
         // Validate password
@@ -431,8 +438,8 @@ class AuthController extends Controller
             ], 403);
         }
 
-        // Check if user is active
-        if (!$user->is_active) {
+        // Check if user is active (column omitted on minimal Laravel installs)
+        if (isset($user->is_active) && ! (bool) $user->is_active) {
             return response()->json([
                 'ok' => false,
                 'message' => 'Your account is inactive. Please contact the administrator.',
@@ -701,7 +708,7 @@ class AuthController extends Controller
             return response()->json([
                 'ok' => false,
                 'message' => 'Email not found.',
-            ], 404);
+            ], 422);
         }
 
         // Check if user is a student

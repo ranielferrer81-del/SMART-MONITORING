@@ -15,7 +15,7 @@ function formatAxiosValidationError(error) {
   return 'Request failed';
 }
 
-/** Laravel login: read API message (Laravel uses 404 + "Email not found" for unknown users). */
+/** Laravel login: read API message (unknown email uses 422 + message; 404 usually means wrong URL). */
 function extractLoginErrorMessage(error) {
   const status = error.response?.status;
   const d = error.response?.data;

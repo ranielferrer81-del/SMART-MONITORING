@@ -218,7 +218,7 @@ const extractErrorMessage = (error: unknown, context: EmailAuthErrorContext = 'd
       typeof (data as { message?: unknown }).message === 'string'
         ? String((data as { message: string }).message)
         : null;
-    // Laravel returns 404 JSON for "email not found" / missing profile — do not blame VITE_API_BASE_URL.
+    // Laravel returns 4xx JSON with message for "email not found" / missing profile — do not blame VITE_API_BASE_URL.
     if (json404Message) {
       return json404Message;
     }
