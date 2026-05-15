@@ -16,7 +16,9 @@ return new class extends Migration
             return;
         }
 
-        DB::statement('ALTER TABLE teacher_profiles MODIFY profile_picture LONGTEXT NULL');
+        if (Schema::hasTable('teacher_profiles') && Schema::hasColumn('teacher_profiles', 'profile_picture')) {
+            DB::statement('ALTER TABLE teacher_profiles MODIFY profile_picture LONGTEXT NULL');
+        }
 
         if (Schema::hasColumn('student_profiles', 'profile_picture')) {
             DB::statement('ALTER TABLE student_profiles MODIFY profile_picture LONGTEXT NULL');
@@ -30,7 +32,9 @@ return new class extends Migration
             return;
         }
 
-        DB::statement('ALTER TABLE teacher_profiles MODIFY profile_picture VARCHAR(255) NULL');
+        if (Schema::hasTable('teacher_profiles') && Schema::hasColumn('teacher_profiles', 'profile_picture')) {
+            DB::statement('ALTER TABLE teacher_profiles MODIFY profile_picture VARCHAR(255) NULL');
+        }
 
         if (Schema::hasColumn('student_profiles', 'profile_picture')) {
             DB::statement('ALTER TABLE student_profiles MODIFY profile_picture VARCHAR(255) NULL');
