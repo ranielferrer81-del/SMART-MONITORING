@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 
 class BootstrapAdminSeeder extends Seeder
@@ -18,19 +17,23 @@ class BootstrapAdminSeeder extends Seeder
             return;
         }
 
-        $email = strtolower(trim((string) env('BOOTSTRAP_ADMIN_EMAIL', '')));
         $password = (string) env('BOOTSTRAP_ADMIN_PASSWORD', '');
-        $name = trim((string) env('BOOTSTRAP_ADMIN_NAME', 'Admin User'));
-
-        if ($email === '' || $password === '') {
+        if ($password === '') {
             return;
         }
 
+        $emailRaw = env('BOOTSTRAP_ADMIN_EMAIL');
+        $email = strtolower(
+            trim($emailRaw !== null && (string) $emailRaw !== '' ? (string) $emailRaw : 'admin@example.com'),
+        );
+        $name = trim((string) env('BOOTSTRAP_ADMIN_NAME', 'Admin User'));
+
+        // User model uses 'password' => 'hashed' — pass plaintext, not Hash::make (avoids double-hash).
         User::updateOrCreate(
             ['email' => $email],
             [
                 'name' => $name !== '' ? $name : 'Admin User',
-                'password' => Hash::make($password),
+                'password' => $password,
             ]
         );
     }

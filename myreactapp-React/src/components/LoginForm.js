@@ -87,7 +87,7 @@ const LoginForm = () => {
           setServerErrors({
             email: 'No account found for this email.',
             emailHint:
-              'This server’s database has no user with that email. On Railway, set BOOTSTRAP_ADMIN_EMAIL and BOOTSTRAP_ADMIN_PASSWORD on the Laravel service and redeploy, or import your users.',
+              'On the Laravel (backend) service in Railway: set BOOTSTRAP_ADMIN_PASSWORD only — admin@example.com is created on deploy. Or import your users into that database.',
             password: '',
           });
         } else if (msg.includes('incorrect password')) {

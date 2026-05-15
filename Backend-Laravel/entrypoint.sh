@@ -134,15 +134,16 @@ else
     echo "Skipping automatic migrations on boot (RUN_MIGRATIONS_ON_BOOT=false)."
 fi
 
-# Optional one-time bootstrap admin creation for fresh production databases.
-# Set BOOTSTRAP_ADMIN_EMAIL + BOOTSTRAP_ADMIN_PASSWORD in Render env vars.
-if [ -n "${BOOTSTRAP_ADMIN_EMAIL:-}" ] && [ -n "${BOOTSTRAP_ADMIN_PASSWORD:-}" ]; then
-    echo "Ensuring bootstrap admin account exists..."
+# Optional bootstrap admin for fresh production DBs.
+# Set BOOTSTRAP_ADMIN_PASSWORD on Railway (required). Email defaults to admin@example.com unless BOOTSTRAP_ADMIN_EMAIL is set.
+if [ -n "${BOOTSTRAP_ADMIN_PASSWORD:-}" ]; then
+    export BOOTSTRAP_ADMIN_EMAIL="${BOOTSTRAP_ADMIN_EMAIL:-admin@example.com}"
+    echo "Ensuring bootstrap admin exists (${BOOTSTRAP_ADMIN_EMAIL})..."
     if ! php artisan db:seed --class=Database\\Seeders\\BootstrapAdminSeeder --force --no-interaction; then
         echo "WARNING: BootstrapAdminSeeder failed. Check DB connectivity and users table schema."
     fi
 else
-    echo "Skipping bootstrap admin seeding (BOOTSTRAP_ADMIN_EMAIL/PASSWORD not set)."
+    echo "Skipping bootstrap admin (set BOOTSTRAP_ADMIN_PASSWORD on Railway to create/update admin@example.com)."
 fi
 
 echo "Optimizing for production..."
