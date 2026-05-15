@@ -93,17 +93,32 @@ function main() {
   fs.writeFileSync(jsonPath, JSON.stringify({ apiBase: base || '' }) + '\n');
 
   if (!base) {
+    let fallbackBase = '';
+    try {
+      const fp = path.join(root, 'build', 'railway-fallback.json');
+      if (fs.existsSync(fp)) {
+        const j = JSON.parse(fs.readFileSync(fp, 'utf8'));
+        fallbackBase = normalizeBase(j.apiBase || '');
+      }
+    } catch {
+      /* ignore */
+    }
+
     const onRailway = Boolean(
       process.env.RAILWAY_ENVIRONMENT ||
         process.env.RAILWAY_PROJECT_ID ||
         process.env.RAILWAY_SERVICE_ID,
     );
     if (onRailway) {
-      console.error(
-        '[patch-api-base] WARNING on Railway: no API origin in env. Set REACT_APP_API_BASE on this service (Laravel origin, no trailing /api). Aliases: REACT_APP_APT_BASE, SIA_API_BASE, BACKEND_URL, LARAVEL_URL, API_URL, APP_URL, PUBLIC_API_URL. Example reference:\n' +
-          '  REACT_APP_API_BASE=https://${{ elegant-sparkle.RAILWAY_PUBLIC_DOMAIN }}\n' +
-          '(Replace elegant-sparkle with your backend service name.)',
-      );
+      if (fallbackBase) {
+        console.error(
+          `[patch-api-base] No REACT_APP_* in env; using build/railway-fallback.json for API origin (${fallbackBase.length} chars). Optional: set REACT_APP_API_BASE to override.`,
+        );
+      } else {
+        console.error(
+          '[patch-api-base] WARNING on Railway: no API origin in env and no railway-fallback.json. Set REACT_APP_API_BASE on this service (Laravel origin, no trailing /api).',
+        );
+      }
     } else {
       console.error(
         '[patch-api-base] WARNING: API origin env unset — api-base.json empty; local dev uses localhost.',

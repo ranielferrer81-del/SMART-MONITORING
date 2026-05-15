@@ -27,7 +27,11 @@ const LoginForm = () => {
     password: ''
   });
   const [errors, setErrors] = useState({});
-  const [serverErrors, setServerErrors] = useState({ email: '', password: '' });
+  const [serverErrors, setServerErrors] = useState({
+    email: '',
+    password: '',
+    emailHint: '',
+  });
   const [isLoading, setIsLoading] = useState(false);
 
 
@@ -73,7 +77,7 @@ const LoginForm = () => {
     }
 
     setIsLoading(true);
-    setServerErrors({ email: '', password: '' });
+    setServerErrors({ email: '', password: '', emailHint: '' });
     try {
       const result = await loginRequest(formData.email, formData.password);
 
@@ -81,14 +85,19 @@ const LoginForm = () => {
         const msg = (result.error || '').toLowerCase();
         if (msg.includes('email not found')) {
           setServerErrors({
-            email:
-              'No account for this email in the database this server uses. On Railway, create the user (e.g. set BOOTSTRAP_ADMIN_EMAIL and BOOTSTRAP_ADMIN_PASSWORD on the Laravel service and redeploy), run migrations, or import your local database.',
+            email: 'No account found for this email.',
+            emailHint:
+              'This server’s database has no user with that email. On Railway, set BOOTSTRAP_ADMIN_EMAIL and BOOTSTRAP_ADMIN_PASSWORD on the Laravel service and redeploy, or import your users.',
             password: '',
           });
         } else if (msg.includes('incorrect password')) {
-          setServerErrors({ email: '', password: 'Incorrect password. Try again.' });
+          setServerErrors({ email: '', emailHint: '', password: 'Incorrect password. Try again.' });
         } else {
-          setServerErrors({ email: result.error || 'Login failed', password: '' });
+          setServerErrors({
+            email: result.error || 'Login failed',
+            emailHint: '',
+            password: '',
+          });
         }
         setIsLoading(false);
         return;
@@ -164,7 +173,14 @@ const LoginForm = () => {
                 <p className="mt-2 text-sm text-red-600 font-medium">{errors.email}</p>
               )}
               {!errors.email && serverErrors.email && (
-                <p className="mt-2 text-sm text-red-600 font-medium">{serverErrors.email}</p>
+                <>
+                  <p className="mt-2 text-sm text-red-600 font-medium">{serverErrors.email}</p>
+                  {serverErrors.emailHint ? (
+                    <p className="mt-1.5 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
+                      {serverErrors.emailHint}
+                    </p>
+                  ) : null}
+                </>
               )}
             </div>
 

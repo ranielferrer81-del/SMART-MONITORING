@@ -156,8 +156,9 @@ http.createServer(handler).listen(PORT, () => {
   const fromEnv = Boolean(normalizeApiBase(resolveApiBaseRawFromEnv()));
   const fromFile = Boolean(readFallbackApiBaseFromBuild());
   const ok = fromEnv || fromFile;
+  const source = fromEnv ? 'env' : fromFile ? 'railway-fallback.json' : 'none';
   console.error(
-    `[serve-production] http://0.0.0.0:${PORT}  cwd=${ROOT}  apiBaseFromEnv=${fromEnv ? 'yes' : 'no'}  fromRailwayFallbackJson=${fromFile ? 'yes' : 'no'}  loginReady=${ok ? 'yes' : 'NO'}`,
+    `[serve-production] listening on 0.0.0.0:${PORT}  staticRoot=${ROOT}  apiBaseSource=${source}  loginReady=${ok ? 'yes' : 'NO'}`,
   );
   if (!ok) {
     console.error(
