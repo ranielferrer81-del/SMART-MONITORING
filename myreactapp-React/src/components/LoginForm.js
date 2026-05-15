@@ -87,7 +87,7 @@ const LoginForm = () => {
           setServerErrors({
             email: 'No account found for this email.',
             emailHint:
-              'If the server loaded database/legacy_seed.sql (IMPORT_LEGACY_SEED_ON_BOOT), use each account\'s real password from that database, not the Railway MySQL password. On a fresh DB without that import, use admin@example.com with BOOTSTRAP_ADMIN_PASSWORD or the MySQL user password.',
+              'This runs on the Laravel API service (not the React static site). By default the API imports database/legacy_seed.sql when the users table is empty. If you still see this, set IMPORT_LEGACY_SEED_ON_BOOT=true once on the API service, redeploy, then set it back to auto. Use each account\'s password from that SQL dump, not the Railway MySQL password.',
             password: '',
           });
         } else if (msg.includes('incorrect password')) {

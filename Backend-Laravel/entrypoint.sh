@@ -35,6 +35,9 @@ elif [ -n "${MYSQL_URL:-}" ]; then
     export DB_PASSWORD=$(php -r '$u=parse_url(getenv("MYSQL_URL")); echo isset($u["pass"]) ? rawurldecode($u["pass"]) : "";')
 fi
 
+# Default auto: load database/legacy_seed.sql on first boot when `users` is empty (no Railway var required).
+export IMPORT_LEGACY_SEED_ON_BOOT="${IMPORT_LEGACY_SEED_ON_BOOT:-auto}"
+
 # ---------------------------------------------------------------
 # 2. Safe defaults for drivers that might crash without tables
 # ---------------------------------------------------------------
@@ -82,7 +85,7 @@ echo "CACHE_STORE = $CACHE_STORE"
 echo "SESSION_DRIVER = $SESSION_DRIVER"
 echo "APP_KEY     = ${APP_KEY:0:10}..."
 echo "PORT        = ${PORT:-8080}"
-echo "IMPORT_LEGACY_SEED_ON_BOOT = ${IMPORT_LEGACY_SEED_ON_BOOT:-false}"
+echo "IMPORT_LEGACY_SEED_ON_BOOT = ${IMPORT_LEGACY_SEED_ON_BOOT:-auto}"
 echo "BREVO_API_KEY = (${#BREVO_API_KEY} chars)  # must be set in Railway if using Brevo"
 echo "MAIL_FROM_ADDRESS = ${MAIL_FROM_ADDRESS:-<unset, will use default>}"
 echo "MAIL_MAILER (effective for PHP) = ${MAIL_MAILER:-<unset>}"
@@ -112,22 +115,14 @@ esac
 echo "-------------------------------"
 
 # ---------------------------------------------------------------
-# 5b. Optional: load repo snapshot DB (database/legacy_seed.sql)
-#     Set IMPORT_LEGACY_SEED_ON_BOOT=true in Railway ONCE (or when you want to reset the
-#     DB to match the file), redeploy, then turn it OFF — every boot with true wipes the DB.
-#     After import, log in with the passwords from that database (not the MySQL user password).
+# 5b. Legacy snapshot DB (database/legacy_seed.sql) — Laravel API service only (not the React static service).
+#     IMPORT_LEGACY_SEED_ON_BOOT: auto (default) = import when `users` is missing or empty;
+#     true = always wipe+re-import each deploy; false = never import.
+#     Uses `php artisan app:import-legacy-database --fresh` (same cleaning as import.sh).
 # ---------------------------------------------------------------
-IMPORT_LEGACY_SEED_ON_BOOT="${IMPORT_LEGACY_SEED_ON_BOOT:-false}"
-if [ "$IMPORT_LEGACY_SEED_ON_BOOT" = "true" ]; then
-  echo "IMPORT_LEGACY_SEED_ON_BOOT=true — dropping all tables, then importing legacy_seed.sql..."
-  if ! php artisan db:wipe --force --no-interaction; then
-    echo "WARNING: db:wipe failed (empty DB?). Continuing to import attempt."
-  fi
-  if ! bash database/import.sh; then
-    echo "WARNING: legacy_seed.sql import failed — check MySQL logs / DEFINER / SSL. API will still start."
-  else
-    echo "Legacy seed import finished. Set IMPORT_LEGACY_SEED_ON_BOOT=false on the next deploy to keep data."
-  fi
+echo "Running legacy:import-if-empty (see IMPORT_LEGACY_SEED_ON_BOOT above)..."
+if ! php artisan legacy:import-if-empty --no-interaction; then
+  echo "WARNING: legacy:import-if-empty failed — DB may be empty or wrong. Check deploy logs."
 fi
 
 # ---------------------------------------------------------------

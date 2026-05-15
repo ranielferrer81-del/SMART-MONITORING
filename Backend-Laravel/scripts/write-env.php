@@ -143,6 +143,7 @@ $lines = [
     line('DB_DATABASE', $dbDatabase),
     line('DB_USERNAME', $dbUsername),
     line('DB_PASSWORD', $dbPassword),
+    line('IMPORT_LEGACY_SEED_ON_BOOT', g('IMPORT_LEGACY_SEED_ON_BOOT', 'auto')),
     '',
     line('SESSION_DRIVER', g('SESSION_DRIVER', 'file')),
     'SESSION_LIFETIME=120',
