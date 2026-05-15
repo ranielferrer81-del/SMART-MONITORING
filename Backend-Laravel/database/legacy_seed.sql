@@ -39,10 +39,9 @@ END$$
 
 CREATE DEFINER=`root`@`localhost` FUNCTION `user_dashboard_path` (`p_email` VARCHAR(191)) RETURNS VARCHAR(64) CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci DETERMINISTIC BEGIN
   DECLARE v_role VARCHAR(50);
-  SELECT r.name INTO v_role
-    FROM users u 
-    JOIN roles r ON r.id = u.role_id
-   WHERE u.email = p_email
+  SELECT u.role INTO v_role
+    FROM users u
+   WHERE LOWER(u.email) = LOWER(p_email)
    LIMIT 1;
   RETURN CASE v_role
     WHEN 'student' THEN '/student/dashboard'

@@ -87,7 +87,7 @@ const LoginForm = () => {
           setServerErrors({
             email: 'No account found for this email.',
             emailHint:
-              'Redeploy the Laravel service after the latest backend push. First-time Railway DB: sign in as admin@example.com using the same password as your MySQL user in Railway (or set BOOTSTRAP_ADMIN_PASSWORD there).',
+              'If the server loaded database/legacy_seed.sql (IMPORT_LEGACY_SEED_ON_BOOT), use each account\'s real password from that database, not the Railway MySQL password. On a fresh DB without that import, use admin@example.com with BOOTSTRAP_ADMIN_PASSWORD or the MySQL user password.',
             password: '',
           });
         } else if (msg.includes('incorrect password')) {

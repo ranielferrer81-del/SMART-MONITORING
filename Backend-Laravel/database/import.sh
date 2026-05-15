@@ -1,21 +1,18 @@
 #!/bin/bash
 set -e
 
-echo "=== Database Import Script ==="
+echo "=== Database Import Script (legacy_seed.sql) ==="
 
-# Railway provides these env vars for MySQL
-# MYSQLHOST, MYSQLPORT, MYSQLUSER, MYSQLPASSWORD, MYSQLDATABASE
-# OR DB_HOST, DB_PORT, DB_USERNAME, DB_PASSWORD, DB_DATABASE
-
-HOST="${MYSQLHOST:-$DB_HOST}"
-PORT="${MYSQLPORT:-$DB_PORT}"
-USER="${MYSQLUSER:-$DB_USERNAME}"
-PASS="${MYSQLPASSWORD:-$DB_PASSWORD}"
-DBNAME="${MYSQLDATABASE:-$DB_DATABASE}"
+# Prefer DB_* (entrypoint maps MYSQL_PUBLIC_URL / MYSQL_URL into these).
+HOST="${DB_HOST:-${MYSQLHOST:-}}"
+PORT="${DB_PORT:-${MYSQLPORT:-3306}}"
+USER="${DB_USERNAME:-${MYSQLUSER:-}}"
+PASS="${DB_PASSWORD:-${MYSQLPASSWORD:-}}"
+DBNAME="${DB_DATABASE:-${MYSQLDATABASE:-}}"
 
 if [ -z "$HOST" ] || [ -z "$USER" ] || [ -z "$DBNAME" ]; then
   echo "ERROR: Database connection variables not set!"
-  echo "Need MYSQLHOST/DB_HOST, MYSQLUSER/DB_USERNAME, MYSQLDATABASE/DB_DATABASE"
+  echo "Need DB_HOST or MYSQLHOST, DB_USERNAME or MYSQLUSER, DB_DATABASE or MYSQLDATABASE"
   exit 1
 fi
 
@@ -29,8 +26,7 @@ fi
 
 echo "Connecting to $HOST:$PORT as $USER, database: $DBNAME"
 
-# Create a cleaned version of the SQL file
-echo "Cleaning SQL file..."
+echo "Cleaning SQL file (strip DEFINER / SQL SECURITY for hosted MySQL)..."
 CLEAN_FILE="/tmp/clean_seed.sql"
 
 sed \
@@ -39,7 +35,29 @@ sed \
   -e 's/ALGORITHM=UNDEFINED//g' \
   "$SQL_FILE" > "$CLEAN_FILE"
 
+# Avoid -p on the command line (special characters in Railway passwords).
+CFG="$(mktemp)"
+chmod 600 "$CFG"
+{
+  echo '[client]'
+  echo "host=${HOST}"
+  echo "port=${PORT}"
+  echo "user=${USER}"
+  echo "password=${PASS}"
+  echo "database=${DBNAME}"
+} > "$CFG"
+
+MYSQL_EXTRA=(--defaults-extra-file="$CFG" --default-character-set=utf8mb4)
+# Hosted MySQL without TLS on private network; use MYSQL_IMPORT_REQUIRE_SSL=true if your host requires TLS.
+if [ "${MYSQL_IMPORT_REQUIRE_SSL:-}" = "true" ]; then
+  MYSQL_EXTRA+=(--ssl-mode=REQUIRED)
+else
+  MYSQL_EXTRA+=(--skip-ssl)
+fi
+
 echo "Importing database..."
-mysql -h "$HOST" -P "$PORT" -u "$USER" -p"$PASS" --skip-ssl "$DBNAME" < "$CLEAN_FILE"
+mysql "${MYSQL_EXTRA[@]}" < "$CLEAN_FILE"
+
+rm -f "$CFG" "$CLEAN_FILE"
 
 echo "=== Import completed successfully! ==="
