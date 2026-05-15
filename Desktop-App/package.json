@@ -1,7 +1,7 @@
 {
   "name": "vite-react-typescript-starter",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -10,7 +10,7 @@
     "dev:electron": "wait-on http://localhost:5173 && cross-env NODE_ENV=development electron dist-electron/main.js",
     "build": "npm run build:web && npm run build:electron",
     "build:web": "vite build",
-    "build:electron": "tsc -p tsconfig.electron.json && node -e \"require('fs').copyFileSync('electron/monitoring-server.cjs','dist-electron/monitoring-server.cjs')\"",
+    "build:electron": "tsc -p tsconfig.electron.json && node scripts/write-electron-build-config.cjs && node -e \"require('fs').copyFileSync('electron/monitoring-server.cjs','dist-electron/monitoring-server.cjs')\"",
     "build:app": "npm run build && electron-builder",
     "electron": "electron .",
     "lint": "eslint .",
@@ -69,16 +69,13 @@
       "node_modules/**/*"
     ],
     "win": {
-      "target": "nsis",
-      "icon": "assets/icon.ico"
+      "target": "nsis"
     },
     "mac": {
-      "target": "dmg",
-      "icon": "assets/icon.icns"
+      "target": "dmg"
     },
     "linux": {
-      "target": "AppImage",
-      "icon": "assets/icon.png"
+      "target": "AppImage"
     }
   }
 }

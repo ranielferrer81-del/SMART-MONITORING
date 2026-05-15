@@ -12,28 +12,56 @@ const defaultGateway = require('default-gateway');
 // Get the Windows Computer Name (Hostname) for lab tracking
 const COMPUTER_NAME = os.hostname();
 console.log(`🖥️ Computer Name (Hostname): ${COMPUTER_NAME}`);
-// Read API base URL from .env file (single source of truth)
-let API_BASE_URL = 'http://127.0.0.1:8000';
-try {
-    const envPath = path.join(__dirname, '../.env');
-    if (fs.existsSync(envPath)) {
+function normalizeApiBaseUrl(url) {
+    let u = url.trim().replace(/^["']|["']$/g, '');
+    if (u.endsWith('/'))
+        u = u.slice(0, -1);
+    if (u.toLowerCase().endsWith('/api')) {
+        u = u.slice(0, -4);
+        if (u.endsWith('/'))
+            u = u.slice(0, -1);
+    }
+    return u;
+}
+function readApiBaseFromDotEnv() {
+    try {
+        const envPath = path.join(__dirname, '../.env');
+        if (!fs.existsSync(envPath))
+            return null;
         const envContent = fs.readFileSync(envPath, 'utf-8');
         const match = envContent.match(/^VITE_API_BASE_URL\s*=\s*(.+)/m);
-        if (match) {
-            API_BASE_URL = match[1].trim().replace(/["']/g, '');
-            if (API_BASE_URL.endsWith('/'))
-                API_BASE_URL = API_BASE_URL.slice(0, -1);
-            if (API_BASE_URL.toLowerCase().endsWith('/api')) {
-                API_BASE_URL = API_BASE_URL.slice(0, -4);
-                if (API_BASE_URL.endsWith('/'))
-                    API_BASE_URL = API_BASE_URL.slice(0, -1);
-            }
-        }
+        if (!match)
+            return null;
+        return normalizeApiBaseUrl(match[1].trim().replace(/["']/g, ''));
+    }
+    catch {
+        return null;
     }
 }
-catch (e) {
-    console.log('⚠️ Could not read .env file, using default API URL');
+function readApiBaseFromBuildConfig() {
+    try {
+        const cfgPath = path.join(__dirname, 'build-config.json');
+        if (!fs.existsSync(cfgPath))
+            return null;
+        const parsed = JSON.parse(fs.readFileSync(cfgPath, 'utf-8'));
+        const raw = parsed.viteApiBaseUrl ?? parsed.apiBaseUrl;
+        return typeof raw === 'string' && raw.trim() ? normalizeApiBaseUrl(raw) : null;
+    }
+    catch {
+        return null;
+    }
 }
+const DEFAULT_API_BASE_URL = 'http://127.0.0.1:8000';
+/** Packaged builds rely on build-config.json from scripts/write-electron-build-config.cjs; dev prefers .env */
+function resolveApiBaseUrl() {
+    const fromBuildConfig = readApiBaseFromBuildConfig();
+    const fromEnvFile = readApiBaseFromDotEnv();
+    if (app.isPackaged) {
+        return fromBuildConfig ?? DEFAULT_API_BASE_URL;
+    }
+    return fromEnvFile ?? fromBuildConfig ?? DEFAULT_API_BASE_URL;
+}
+const API_BASE_URL = resolveApiBaseUrl();
 console.log(`🌐 API Base URL: ${API_BASE_URL}`);
 // Import monitoring server (using require for CommonJS module)
 const { startMonitoringServer, setStudentCredentials, clearStudentCredentials, mergeDesktopHeartbeatFields, setComputerName, setGatewayIp, setApiBaseUrl, } = require('./monitoring-server.cjs');

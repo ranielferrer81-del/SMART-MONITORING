@@ -15,25 +15,55 @@ const defaultGateway = require('default-gateway');
 const COMPUTER_NAME = os.hostname();
 console.log(`🖥️ Computer Name (Hostname): ${COMPUTER_NAME}`);
 
-// Read API base URL from .env file (single source of truth)
-let API_BASE_URL = 'http://127.0.0.1:8000';
-try {
-  const envPath = path.join(__dirname, '../.env');
-  if (fs.existsSync(envPath)) {
-    const envContent = fs.readFileSync(envPath, 'utf-8');
-    const match = envContent.match(/^VITE_API_BASE_URL\s*=\s*(.+)/m);
-    if (match) {
-      API_BASE_URL = match[1].trim().replace(/["']/g, '');
-      if (API_BASE_URL.endsWith('/')) API_BASE_URL = API_BASE_URL.slice(0, -1);
-      if (API_BASE_URL.toLowerCase().endsWith('/api')) {
-        API_BASE_URL = API_BASE_URL.slice(0, -4);
-        if (API_BASE_URL.endsWith('/')) API_BASE_URL = API_BASE_URL.slice(0, -1);
-      }
-    }
+function normalizeApiBaseUrl(url: string): string {
+  let u = url.trim().replace(/^["']|["']$/g, '');
+  if (u.endsWith('/')) u = u.slice(0, -1);
+  if (u.toLowerCase().endsWith('/api')) {
+    u = u.slice(0, -4);
+    if (u.endsWith('/')) u = u.slice(0, -1);
   }
-} catch (e) {
-  console.log('⚠️ Could not read .env file, using default API URL');
+  return u;
 }
+
+function readApiBaseFromDotEnv(): string | null {
+  try {
+    const envPath = path.join(__dirname, '../.env');
+    if (!fs.existsSync(envPath)) return null;
+    const match = fs.readFileSync(envPath, 'utf-8').match(/^VITE_API_BASE_URL\s*=\s*(.+)/m);
+    if (!match) return null;
+    return normalizeApiBaseUrl(match[1].trim().replace(/["']/g, ''));
+  } catch {
+    return null;
+  }
+}
+
+function readApiBaseFromBuildConfig(): string | null {
+  try {
+    const cfgPath = path.join(__dirname, 'build-config.json');
+    if (!fs.existsSync(cfgPath)) return null;
+    const parsed = JSON.parse(fs.readFileSync(cfgPath, 'utf-8')) as {
+      viteApiBaseUrl?: unknown;
+    };
+    const raw = parsed.viteApiBaseUrl;
+    return typeof raw === 'string' && raw.trim() ? normalizeApiBaseUrl(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+const DEFAULT_API_BASE_URL = 'http://127.0.0.1:8000';
+
+/** Packaged builds use build-config.json from CI; dev prefers .env */
+function resolveApiBaseUrl(): string {
+  const fromBuildConfig = readApiBaseFromBuildConfig();
+  const fromEnvFile = readApiBaseFromDotEnv();
+  if (app.isPackaged) {
+    return fromBuildConfig ?? DEFAULT_API_BASE_URL;
+  }
+  return fromEnvFile ?? fromBuildConfig ?? DEFAULT_API_BASE_URL;
+}
+
+const API_BASE_URL = resolveApiBaseUrl();
 console.log(`🌐 API Base URL: ${API_BASE_URL}`);
 
 // Import monitoring server (using require for CommonJS module)
