@@ -261,6 +261,13 @@ export default function EmailVerification({
               <p className="text-xs text-green-200/60 mt-1">
                 Please check your inbox and spam folder.
               </p>
+              {devCode && /^\d{6}$/.test(devCode) && (
+                <p className="text-xs text-amber-100/90 mt-3">
+                  If nothing arrives: use this one-time code —{' '}
+                  <span className="font-mono font-semibold tracking-[0.2em]">{devCode}</span> — it is the same code
+                  sent to your email.
+                </p>
+              )}
             </>
           ) : devCode ? (
             <>
