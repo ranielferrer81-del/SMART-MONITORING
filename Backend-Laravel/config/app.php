@@ -131,9 +131,9 @@ return [
 
     'auth_login_code_fallback' => filter_var(env('AUTH_LOGIN_CODE_FALLBACK', true), FILTER_VALIDATE_BOOLEAN),
 
-    'verification_email_sync' => filter_var(env('VERIFICATION_EMAIL_SYNC', false), FILTER_VALIDATE_BOOLEAN),
+    'verification_email_sync' => filter_var(env('VERIFICATION_EMAIL_SYNC', true), FILTER_VALIDATE_BOOLEAN),
 
-    'verification_resend_sync' => filter_var(env('VERIFICATION_RESEND_SYNC', false), FILTER_VALIDATE_BOOLEAN),
+    'verification_resend_sync' => filter_var(env('VERIFICATION_RESEND_SYNC', true), FILTER_VALIDATE_BOOLEAN),
 
     'mail_diagnostics_in_response' => filter_var(env('MAIL_DIAGNOSTICS_IN_RESPONSE', false), FILTER_VALIDATE_BOOLEAN),
 
