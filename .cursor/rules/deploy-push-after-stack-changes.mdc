@@ -1,0 +1,17 @@
+---
+description: After backend or frontend edits, commit and push so Railway/Git stay in sync
+alwaysApply: true
+---
+
+# Commit and push after stack changes
+
+When you modify anything under **`Backend-Laravel/`** and/or **`myreactapp-React/`** and/or **`Desktop-App/`** (the shipped web and desktop clients), finish the task by:
+
+1. **`git status`** — confirm what changed; do not commit secrets (`.env`, raw credentials, private keys).
+2. **Stage** only intentional project files (not editor junk or local-only artifacts unless the user asked).
+3. **Commit** with a short, accurate message (match repo style: `fix(scope): …`, `feat: …`, `chore: …`).
+4. **`git push`** to the tracked remote branch (usually `origin main`) so deploy hooks (e.g. Railway) can run.
+
+If there is nothing to commit, say so and do not create an empty commit. If push fails (auth/network), report the error and what is left locally.
+
+Do not change global git config. Do not force-push to `main` unless the user explicitly asks.
