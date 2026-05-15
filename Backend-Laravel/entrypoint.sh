@@ -134,16 +134,15 @@ else
     echo "Skipping automatic migrations on boot (RUN_MIGRATIONS_ON_BOOT=false)."
 fi
 
-# Optional bootstrap admin for fresh production DBs.
-# Set BOOTSTRAP_ADMIN_PASSWORD on Railway (required). Email defaults to admin@example.com unless BOOTSTRAP_ADMIN_EMAIL is set.
-if [ -n "${BOOTSTRAP_ADMIN_PASSWORD:-}" ]; then
-    export BOOTSTRAP_ADMIN_EMAIL="${BOOTSTRAP_ADMIN_EMAIL:-admin@example.com}"
-    echo "Ensuring bootstrap admin exists (${BOOTSTRAP_ADMIN_EMAIL})..."
-    if ! php artisan db:seed --class=Database\\Seeders\\BootstrapAdminSeeder --force --no-interaction; then
-        echo "WARNING: BootstrapAdminSeeder failed. Check DB connectivity and users table schema."
-    fi
+# Bootstrap admin: runs every boot. Seeder uses BOOTSTRAP_ADMIN_PASSWORD when set, else on first
+# deploy creates admin@example.com using the DB password (Railway MySQL always has one) unless
+# BOOTSTRAP_ADMIN_USE_DB_PASSWORD_FALLBACK=false.
+export BOOTSTRAP_ADMIN_EMAIL="${BOOTSTRAP_ADMIN_EMAIL:-admin@example.com}"
+echo "Ensuring bootstrap admin if needed (${BOOTSTRAP_ADMIN_EMAIL})..."
+if ! php artisan db:seed --class=Database\\Seeders\\BootstrapAdminSeeder --force --no-interaction; then
+    echo "WARNING: BootstrapAdminSeeder failed. Check DB connectivity and users table schema."
 else
-    echo "Skipping bootstrap admin (set BOOTSTRAP_ADMIN_PASSWORD on Railway to create/update admin@example.com)."
+    echo "Bootstrap admin step finished (set BOOTSTRAP_ADMIN_PASSWORD to force password sync each deploy)."
 fi
 
 echo "Optimizing for production..."
