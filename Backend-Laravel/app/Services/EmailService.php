@@ -43,18 +43,21 @@ class EmailService
     }
 
     /**
-     * When MAIL_FROM/BREVO sender are missing, fall back to SMTP username if it looks like an email.
-     * This avoids hard-failing on "example.com" defaults during Railway deploys.
+     * When MAIL_FROM/BREVO sender are missing, fall back to Brevo SMTP login or SMTP username if it is a real (non-example.com) email.
      */
     private static function resolveFallbackSenderFromMailUser(): string
     {
         $candidates = [
+            trim((string) (getenv('BREVO_SMTP_LOGIN') ?: '')),
+            trim((string) (getenv('BREVO_SENDER_EMAIL') ?: '')),
             trim((string) (getenv('MAIL_USERNAME') ?: '')),
             trim((string) (config('mail.mailers.smtp.username') ?: '')),
         ];
 
         foreach ($candidates as $candidate) {
-            if ($candidate !== '' && filter_var($candidate, FILTER_VALIDATE_EMAIL)) {
+            if ($candidate !== ''
+                && filter_var($candidate, FILTER_VALIDATE_EMAIL)
+                && ! str_contains(strtolower($candidate), 'example.com')) {
                 return $candidate;
             }
         }
