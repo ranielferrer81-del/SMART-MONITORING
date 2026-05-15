@@ -50,11 +50,10 @@ export default function EmailVerification({
     const emailDelivered = loginDelivery?.emailSent === true;
     const hasBackupCode = propCode && /^\d{6}$/.test(propCode);
 
-    // API may include verification_code whenever AUTH_LOGIN_CODE_FALLBACK is on — use as backup if inbox is empty
-    // even when email_sent is true (provider accepted mail but user never sees it: spam, delay, filtering).
+    // When email was delivered, never pre-fill the code field — user should enter it from their inbox.
     if (hasBackupCode && emailDelivered) {
-      setCode(propCode);
-      setDevCode(propCode);
+      setCode('');
+      setDevCode(null);
       setEmailSent(true);
       setVerificationFailed(false);
       setDeliveryFailureMessage(null);
