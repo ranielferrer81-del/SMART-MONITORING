@@ -45,6 +45,7 @@ Route::get('/mail-readiness', function () {
         'mail_from_ok' => $from !== '' && ! str_contains(strtolower($from), 'example.com'),
         'on_railway' => \App\Services\EmailService::isHostedOnRailway(),
         'gmail_env_configured' => \App\Services\EmailService::hasUsableGmailProcessEnv(),
+        'otp_will_skip_brevo_rest' => \App\Services\EmailService::willSkipBrevoRestForOtp(),
     ]);
 });
 

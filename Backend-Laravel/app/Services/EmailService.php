@@ -30,9 +30,9 @@ class EmailService
      */
     public static function hasUsableGmailProcessEnv(): bool
     {
-        $host = strtolower(trim((string) (getenv('MAIL_HOST') ?: '')));
-        $user = trim((string) (getenv('MAIL_USERNAME') ?: ''));
-        $pass = trim((string) (getenv('MAIL_PASSWORD') ?: ''));
+        $host = strtolower(trim((string) (self::envValue('MAIL_HOST') ?: '')));
+        $user = trim((string) (self::envValue('MAIL_USERNAME') ?: ''));
+        $pass = trim((string) (self::envValue('MAIL_PASSWORD') ?: ''));
 
         if ($host === '' || $user === '' || $pass === '') {
             return false;
@@ -57,8 +57,55 @@ class EmailService
         return true;
     }
 
+    /** Read env from process, $_ENV, or Laravel config (after write-env.php on Railway). */
+    private static function envValue(string $key): string
+    {
+        $v = getenv($key);
+        if ($v !== false && trim((string) $v) !== '') {
+            return trim((string) $v);
+        }
+        if (isset($_ENV[$key]) && is_string($_ENV[$key]) && trim($_ENV[$key]) !== '') {
+            return trim($_ENV[$key]);
+        }
+
+        return match ($key) {
+            'MAIL_HOST' => trim((string) config('mail.mailers.smtp.host', '')),
+            'MAIL_PORT' => (string) config('mail.mailers.smtp.port', '587'),
+            'MAIL_USERNAME' => trim((string) config('mail.mailers.smtp.username', '')),
+            'MAIL_PASSWORD' => trim((string) config('mail.mailers.smtp.password', '')),
+            'MAIL_ENCRYPTION' => trim((string) config('mail.mailers.smtp.encryption', 'tls')),
+            'MAIL_FROM_ADDRESS' => trim((string) config('mail.from.address', '')),
+            'MAIL_FROM_NAME' => trim((string) config('mail.from.name', 'SIA')),
+            default => '',
+        };
+    }
+
+    public static function willSkipBrevoRestForOtp(): bool
+    {
+        return self::shouldSkipBrevoRestForOtp();
+    }
+
     /**
-     * Send OTP using MAIL_* from the process environment (Railway Variables), bypassing cached Brevo relay config.
+     * Brevo REST rejects unverified freemail From addresses — skip when Gmail SMTP is available.
+     */
+    private static function shouldSkipBrevoRestForOtp(): bool
+    {
+        $dedicated = trim((string) (self::envValue('BREVO_SENDER_EMAIL') ?: config('services.brevo.sender_email', '')));
+        if ($dedicated !== '' && ! str_contains(strtolower($dedicated), 'example.com')) {
+            return false;
+        }
+
+        if (! self::hasUsableGmailProcessEnv() && ! self::hasUsableSmtpCredentials()) {
+            return false;
+        }
+
+        $from = strtolower(self::resolveBrevoSender()['email'] ?? '');
+
+        return (bool) preg_match('/@(gmail|googlemail|yahoo|hotmail|outlook|live)\./', $from);
+    }
+
+    /**
+     * Send OTP using Gmail MAIL_* (Railway Variables or Backend-Laravel/env via write-env.php).
      */
     private static function sendViaGmailProcessEnv(string $toEmail, string $code): bool
     {
@@ -66,13 +113,13 @@ class EmailService
             return false;
         }
 
-        $host = trim((string) getenv('MAIL_HOST'));
-        $port = (int) (getenv('MAIL_PORT') ?: 587);
-        $user = trim((string) getenv('MAIL_USERNAME'));
-        $pass = trim((string) getenv('MAIL_PASSWORD'));
-        $enc = trim((string) (getenv('MAIL_ENCRYPTION') ?: 'tls'));
-        $from = trim((string) (getenv('MAIL_FROM_ADDRESS') ?: $user));
-        $fromName = trim((string) (getenv('MAIL_FROM_NAME') ?: config('mail.from.name', 'SIA')));
+        $host = trim((string) self::envValue('MAIL_HOST'));
+        $port = (int) self::envValue('MAIL_PORT');
+        $user = trim((string) self::envValue('MAIL_USERNAME'));
+        $pass = trim((string) self::envValue('MAIL_PASSWORD'));
+        $enc = trim((string) (self::envValue('MAIL_ENCRYPTION') ?: 'tls'));
+        $from = trim((string) (self::envValue('MAIL_FROM_ADDRESS') ?: $user));
+        $fromName = trim((string) (self::envValue('MAIL_FROM_NAME') ?: config('mail.from.name', 'SIA')));
 
         if ($from === '' || str_contains(strtolower($from), 'example.com')) {
             $from = $user;
@@ -390,7 +437,7 @@ class EmailService
     public static function sendVerificationCode($toEmail, $code): bool
     {
         $smtpTimeoutPrevious = config('mail.mailers.smtp.timeout');
-        $otpSmtpTimeout = (int) env('VERIFICATION_SMTP_TIMEOUT', 14);
+        $otpSmtpTimeout = (int) env('VERIFICATION_SMTP_TIMEOUT', 25);
         if ($otpSmtpTimeout > 0) {
             Config::set('mail.mailers.smtp.timeout', max(5, $otpSmtpTimeout));
         }
@@ -516,8 +563,13 @@ class EmailService
          * verified BREVO_SENDER_EMAIL can reach student inboxes without Resend domain setup.
          */
         $brevoRestAttempted = false;
+        $skipBrevoRest = self::shouldSkipBrevoRestForOtp();
+        if ($skipBrevoRest) {
+            self::noteDiagnostic('brevo_rest_skipped', 'unverified_freemail_from_use_gmail_smtp_instead');
+        }
         if ($runningOnRailway
             && $brevoKey !== ''
+            && ! $skipBrevoRest
             && (bool) config('app.email_try_brevo_before_resend_on_railway', true)) {
             $brevoRestAttempted = true;
             self::noteDiagnostic('brevo_rest_railway_first', true);
@@ -568,7 +620,7 @@ class EmailService
          * MAIL_TIMEOUT or fail from IP/auth while Brevo REST succeeds immediately — the old order made
          * Railway + Brevo setups look "broken" if MAIL_* still pointed at Gmail locally.
          */
-        if ($brevoKey !== '') {
+        if ($brevoKey !== '' && ! $skipBrevoRest) {
             if (! $brevoRestAttempted) {
                 if (! self::shouldSkipByOtpBudget($otpBudgetDeadline, 'brevo_rest')) {
                     try {

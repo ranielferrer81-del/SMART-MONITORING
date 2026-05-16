@@ -33,6 +33,46 @@ function line(string $key, string $value): string
     return $key . '="' . str_replace(['\\', '"'], ['\\\\', '\\"'], $value) . '"';
 }
 
+/**
+ * Fill missing process env from Backend-Laravel/env (shipped in Docker image).
+ * Railway Variables always win when already set.
+ */
+function applyEnvFileDefaults(): void
+{
+    $path = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'env';
+    if (! is_readable($path)) {
+        return;
+    }
+
+    $lines = @file($path, FILE_IGNORE_NEW_LINES);
+    if ($lines === false) {
+        return;
+    }
+
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if ($line === '' || str_starts_with($line, '#') || ! str_contains($line, '=')) {
+            continue;
+        }
+        [$key, $value] = explode('=', $line, 2);
+        $key = trim($key);
+        $value = trim($value);
+        $value = trim($value, " \t\"'");
+        if ($key === '') {
+            continue;
+        }
+        $existing = getenv($key);
+        if ($existing !== false && trim((string) $existing) !== '') {
+            continue;
+        }
+        putenv("{$key}={$value}");
+        $_ENV[$key] = $value;
+        $_SERVER[$key] = $value;
+    }
+}
+
+applyEnvFileDefaults();
+
 $dbHost = g('DB_HOST', g('MYSQLHOST', '127.0.0.1'));
 $dbPort = g('DB_PORT', g('MYSQLPORT', '3306'));
 $dbDatabase = g('DB_DATABASE', g('MYSQLDATABASE', 'railway'));
@@ -228,6 +268,16 @@ if ($mailDiagResp !== '') {
     $lines[] = line('MAIL_DIAGNOSTICS_IN_RESPONSE', $mailDiagResp);
 }
 
+// Gmail SMTP in .env: send OTP via SMTP first; do not waste ~45s on Brevo REST with an unverified freemail From.
+$hasGmailSmtp = str_contains(strtolower($mailHost), 'gmail')
+    && $mailUser !== ''
+    && $mailPass !== ''
+    && ! str_contains(strtolower($mailUser), 'your-gmail');
+if ($hasGmailSmtp) {
+    $lines[] = 'EMAIL_OTP_TRY_SMTP_FIRST=true';
+    $lines[] = 'EMAIL_TRY_BREVO_BEFORE_RESEND_ON_RAILWAY=false';
+}
+
 file_put_contents(
     dirname(__DIR__) . DIRECTORY_SEPARATOR . '.env',
     implode("\n", $lines) . "\n"
@@ -242,3 +292,5 @@ echo "=== .env written via scripts/write-env.php ===\n";
 echo 'BREVO_API_KEY length: ' . strlen($brevoKey) . "\n";
 echo 'MAIL_FROM_ADDRESS: ' . $mailFrom . "\n";
 echo 'MAIL_HOST: ' . $mailHost . "\n";
+echo 'MAIL_USERNAME set: ' . ($mailUser !== '' ? 'yes' : 'no') . "\n";
+echo 'MAIL_PASSWORD set: ' . ($mailPass !== '' ? 'yes (' . strlen($mailPass) . ' chars)' : 'no') . "\n";
