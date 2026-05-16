@@ -1,5 +1,5 @@
-# Build Windows .exe installer when you push a version tag (e.g. v1.0.0).
-# Requires GitHub secret: VITE_API_BASE_URL = your Railway Laravel URL (no /api suffix).
+# Build Windows .exe installer when you push a version tag (e.g. v1.0.3).
+# API URL is read from Desktop-App/public/api-base.json (same Laravel as the React web app).
 
 name: Desktop App Release
 
@@ -29,12 +29,20 @@ jobs:
           cache: npm
           cache-dependency-path: Desktop-App/package-lock.json
 
+      - name: Resolve API base URL
+        id: api_base
+        shell: pwsh
+        run: |
+          $json = Get-Content public/api-base.json -Raw | ConvertFrom-Json
+          if (-not $json.apiBase) { throw 'public/api-base.json must contain apiBase' }
+          "url=$($json.apiBase.TrimEnd('/'))" >> $env:GITHUB_OUTPUT
+
       - name: Install dependencies
         run: npm ci
 
       - name: Build Windows installer
         env:
-          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+          VITE_API_BASE_URL: ${{ steps.api_base.outputs.url }}
         run: npm run build:app
 
       - name: Upload to GitHub Release

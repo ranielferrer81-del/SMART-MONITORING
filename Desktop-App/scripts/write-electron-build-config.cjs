@@ -35,7 +35,19 @@ function main() {
     process.exit(1);
   }
 
-  const raw = process.env.VITE_API_BASE_URL?.trim() || readFromDotEnv();
+  function readFromApiBaseJson() {
+    const jsonPath = path.join(root, 'public', 'api-base.json');
+    if (!fs.existsSync(jsonPath)) return null;
+    try {
+      const data = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+      return typeof data.apiBase === 'string' ? data.apiBase.trim() : null;
+    } catch {
+      return null;
+    }
+  }
+
+  const raw =
+    process.env.VITE_API_BASE_URL?.trim() || readFromApiBaseJson() || readFromDotEnv();
   const viteApiBaseUrl = normalizeApiBaseUrl(raw);
 
   if (viteApiBaseUrl) {

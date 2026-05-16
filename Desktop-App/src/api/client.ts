@@ -1,8 +1,8 @@
 import axios, { AxiosError, type AxiosRequestConfig } from 'axios';
-import { getViteApiBaseUrl } from '../config/apiBase';
+import { getApiBaseUrl, initApiBaseUrl } from '../config/apiBase';
 import { startOtpTrace, type OtpEndpoint, type OtpTraceHandle } from '../utils/otpTelemetry';
 
-const API_BASE_URL = getViteApiBaseUrl();
+export { initApiBaseUrl };
 
 /** Default for most API calls */
 const DEFAULT_TIMEOUT_MS = 15000;
@@ -32,7 +32,7 @@ const EMAIL_AUTH_MAX_ATTEMPTS = 2;
 const EMAIL_AUTH_RETRY_DELAY_MS = 1_500;
 
 export const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: getApiBaseUrl(),
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',
