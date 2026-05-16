@@ -1,10 +1,8 @@
 /**
- * API origin for the desktop app. Packaged builds must match the React app's Laravel service.
+ * API origin for the desktop app.
  *
- * Priority:
- * 1. public/api-base.json (shipped in dist/, same URL as myreactapp-React/railway-fallback.json)
- * 2. VITE_API_BASE_URL from .env / GitHub Actions build
- * 3. http://127.0.0.1:8000
+ * Development: VITE_API_BASE_URL in .env only (never overridden by api-base.json).
+ * Production (.exe): public/api-base.json then Vite-baked env.
  */
 export const normalizeBaseUrl = (url: string) => {
   if (!url) return 'http://127.0.0.1:8000';
@@ -26,21 +24,24 @@ export function getApiBaseUrl(): string {
   return resolvedApiBaseUrl ?? getViteApiBaseUrl();
 }
 
-/** Load api-base.json before first API call so .exe uses the same Railway URL as dev. */
 export async function initApiBaseUrl(): Promise<string> {
   if (resolvedApiBaseUrl) return resolvedApiBaseUrl;
 
   let url = getViteApiBaseUrl();
-  try {
-    const res = await fetch(`${import.meta.env.BASE_URL}api-base.json`, { cache: 'no-store' });
-    if (res.ok) {
-      const data = (await res.json()) as { apiBase?: string };
-      if (typeof data.apiBase === 'string' && data.apiBase.trim()) {
-        url = normalizeBaseUrl(data.apiBase);
+
+  // Packaged app only — do not override .env during npm run dev (localhost Laravel).
+  if (import.meta.env.PROD) {
+    try {
+      const res = await fetch(`${import.meta.env.BASE_URL}api-base.json`, { cache: 'no-store' });
+      if (res.ok) {
+        const data = (await res.json()) as { apiBase?: string };
+        if (typeof data.apiBase === 'string' && data.apiBase.trim()) {
+          url = normalizeBaseUrl(data.apiBase);
+        }
       }
+    } catch {
+      // keep Vite-baked URL
     }
-  } catch {
-    // Offline or missing file — keep Vite-baked URL
   }
 
   resolvedApiBaseUrl = url;

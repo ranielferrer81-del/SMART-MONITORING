@@ -27,6 +27,26 @@ use App\Http\Controllers\Api\AdminProfileController;
 use App\Http\Controllers\Api\MonitoringTimeClockController;
 use App\Http\Controllers\Api\PresentationController;
 
+Route::get('/mail-readiness', function () {
+    $smtpUser = trim((string) config('mail.mailers.smtp.username', ''));
+    $smtpPass = trim((string) config('mail.mailers.smtp.password', ''));
+    $smtpHost = trim((string) config('mail.mailers.smtp.host', ''));
+    $brevo = trim((string) config('services.brevo.key', ''));
+    $resend = trim((string) config('services.resend.key', ''));
+    $from = trim((string) config('mail.from.address', ''));
+
+    return response()->json([
+        'smtp_configured' => $smtpUser !== ''
+            && $smtpPass !== ''
+            && $smtpHost !== ''
+            && ! str_contains(strtolower($smtpUser), 'your-gmail'),
+        'brevo_key_configured' => strlen($brevo) > 8,
+        'resend_key_configured' => strlen($resend) > 8,
+        'mail_from_ok' => $from !== '' && ! str_contains(strtolower($from), 'example.com'),
+        'on_railway' => getenv('RAILWAY_ENVIRONMENT') !== false || getenv('RAILWAY_PROJECT_ID') !== false,
+    ]);
+});
+
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/validate-email', [AuthController::class, 'validateEmail']);
 Route::post('/verify-verification-code', [AuthController::class, 'verifyVerificationCode']);

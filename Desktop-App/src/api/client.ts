@@ -280,7 +280,7 @@ export async function emailLogin(
       throw new Error('Password is required.');
     }
 
-    await prepareBackendForAuth();
+    void warmupBackend();
 
     const { data } = await emailAuthRequest<{
       ok?: boolean;
@@ -329,15 +329,6 @@ export async function warmupBackend(): Promise<void> {
 }
 
 export type BackendCheckResult = { ok: true } | { ok: false; message: string };
-
-/** Wake Railway then confirm Laravel is reachable before OTP send/resend. */
-export async function prepareBackendForAuth(): Promise<void> {
-  await warmupBackend();
-  const check = await verifyLaravelBackend();
-  if (!check.ok) {
-    throw new Error(check.message);
-  }
-}
 
 /** Background health probe on login screen — fail fast so UI is not blocked for a minute. */
 const BACKEND_HEALTH_CHECK_TIMEOUT_MS = 20_000;
@@ -419,7 +410,7 @@ export async function resendVerificationCode(
   email: string
 ): Promise<{ ok: boolean; message: string; email_sent: boolean; verification_code?: string | null }> {
   try {
-    await prepareBackendForAuth();
+    void warmupBackend();
 
     const { data } = await emailAuthRequest<{
       ok?: boolean;

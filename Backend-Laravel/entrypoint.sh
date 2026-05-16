@@ -67,9 +67,12 @@ echo "=== .env written ==="
 # Railway Variables often include MAIL_MAILER=sendmail from Laravel defaults or old docs.
 # Our container has no /usr/sbin/sendmail — that yields "sendmail: not found" and ~90s hangs.
 # When Brevo is configured, force SMTP so Laravel + EmailService use smtp-relay, not sendmail.
-if [ -n "${BREVO_API_KEY:-}" ]; then
+if [ -n "${BREVO_API_KEY:-}" ] || [ -n "${RESEND_API_KEY:-}" ] || [ -n "${RESEND_KEY:-}" ]; then
   export MAIL_MAILER=smtp
-  echo "MAIL_MAILER forced to smtp (BREVO_API_KEY is set; sendmail is not available in this image)."
+  echo "MAIL_MAILER forced to smtp (Brevo/Resend configured; sendmail is not available in this image)."
+elif [ -n "${MAIL_USERNAME:-}" ] && [ -n "${MAIL_PASSWORD:-}" ]; then
+  export MAIL_MAILER=smtp
+  echo "MAIL_MAILER forced to smtp (MAIL_USERNAME/MAIL_PASSWORD set)."
 fi
 
 # ---------------------------------------------------------------
@@ -87,6 +90,7 @@ echo "APP_KEY     = ${APP_KEY:0:10}..."
 echo "PORT        = ${PORT:-8080}"
 echo "IMPORT_LEGACY_SEED_ON_BOOT = ${IMPORT_LEGACY_SEED_ON_BOOT:-auto}"
 echo "BREVO_API_KEY = (${#BREVO_API_KEY} chars)  # must be set in Railway if using Brevo"
+echo "RESEND_API_KEY = (${#RESEND_API_KEY} chars)  # alternative OTP transport (HTTPS)"
 echo "MAIL_FROM_ADDRESS = ${MAIL_FROM_ADDRESS:-<unset, will use default>}"
 echo "MAIL_MAILER (effective for PHP) = ${MAIL_MAILER:-<unset>}"
 echo "MAIL_USERNAME (shell/Railway only; Laravel also reads .env) = (${#MAIL_USERNAME} chars)"
