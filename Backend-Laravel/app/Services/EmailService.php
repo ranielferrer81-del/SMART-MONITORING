@@ -475,7 +475,46 @@ class EmailService
         $runningOnRailway = self::isHostedOnRailway();
         self::noteDiagnostic('on_railway', $runningOnRailway);
 
-        if (! self::verificationOtpBudgetExceeded($otpBudgetDeadline)) {
+        $skipBrevoRest = self::shouldSkipBrevoRestForOtp();
+        if ($skipBrevoRest) {
+            self::noteDiagnostic('brevo_rest_skipped', 'unverified_freemail_from_use_gmail_smtp_instead');
+        }
+
+        $brevoSender = self::resolveBrevoSender();
+        $brevoSenderEmail = trim((string) ($brevoSender['email'] ?? ''));
+        $brevoSenderReady = $brevoSenderEmail !== ''
+            && ! str_contains(strtolower($brevoSenderEmail), 'example.com');
+        $preferBrevoRestOnRailway = $runningOnRailway
+            && $brevoKey !== ''
+            && ! $skipBrevoRest
+            && $brevoSenderReady
+            && (bool) config('app.email_try_brevo_before_resend_on_railway', true);
+
+        $brevoRestAttempted = false;
+
+        // Railway + Brevo: try HTTPS REST before Gmail/SMTP (587 often blocked; Gmail MAIL_* burns the OTP budget).
+        if ($preferBrevoRestOnRailway && ! self::shouldSkipByOtpBudget($otpBudgetDeadline, 'brevo_rest_railway_first')) {
+            $brevoRestAttempted = true;
+            self::noteDiagnostic('brevo_rest_railway_first', true);
+            try {
+                if (self::sendViaBrevo($toEmail, $code, $brevoKey)) {
+                    Log::info('✅ Email sent via Brevo REST API (Railway — before Gmail/SMTP)', ['to' => $toEmail]);
+
+                    return true;
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Brevo REST (Railway first) failed', ['error' => $e->getMessage()]);
+            }
+        }
+
+        $tryGmailProcessEnv = ! ($runningOnRailway && $brevoKey !== '' && $brevoSenderReady);
+        if ($tryGmailProcessEnv) {
+            self::noteDiagnostic('gmail_process_env_skipped', false);
+        } else {
+            self::noteDiagnostic('gmail_process_env_skipped', 'railway_brevo_configured');
+        }
+
+        if ($tryGmailProcessEnv && ! self::verificationOtpBudgetExceeded($otpBudgetDeadline)) {
             if (self::sendViaGmailProcessEnv($toEmail, $code)) {
                 return true;
             }
@@ -536,7 +575,17 @@ class EmailService
         }
 
         $smtpTriedInOtpFlow = false;
-        if (self::otpShouldTryConfiguredSmtpFirst() && ! $skipSmtp && ! $isPlaceholder && ! self::verificationOtpBudgetExceeded($otpBudgetDeadline)) {
+        $skipSmtpFirstOnRailwayBrevo = $runningOnRailway && $brevoKey !== '' && $brevoSenderReady;
+        if ($skipSmtpFirstOnRailwayBrevo) {
+            self::noteDiagnostic('smtp_otp_first_skipped', 'railway_brevo_https_preferred');
+        }
+        if (
+            ! $skipSmtpFirstOnRailwayBrevo
+            && self::otpShouldTryConfiguredSmtpFirst()
+            && ! $skipSmtp
+            && ! $isPlaceholder
+            && ! self::verificationOtpBudgetExceeded($otpBudgetDeadline)
+        ) {
             $smtpTriedInOtpFlow = true;
             $mailHost = config('mail.mailers.smtp.host');
             $mailUsername = config('mail.mailers.smtp.username');
@@ -559,20 +608,14 @@ class EmailService
         }
 
         /*
-         * Railway: Brevo transactional API is HTTPS (no SMTP 587). Try it before Resend when configured so
-         * verified BREVO_SENDER_EMAIL can reach student inboxes without Resend domain setup.
+         * Railway: Brevo REST may already have run above (before Gmail). Retry here only if not attempted yet.
          */
-        $brevoRestAttempted = false;
-        $skipBrevoRest = self::shouldSkipBrevoRestForOtp();
-        if ($skipBrevoRest) {
-            self::noteDiagnostic('brevo_rest_skipped', 'unverified_freemail_from_use_gmail_smtp_instead');
-        }
-        if ($runningOnRailway
+        if (! $brevoRestAttempted
+            && $runningOnRailway
             && $brevoKey !== ''
             && ! $skipBrevoRest
             && (bool) config('app.email_try_brevo_before_resend_on_railway', true)) {
             $brevoRestAttempted = true;
-            self::noteDiagnostic('brevo_rest_railway_first', true);
             if (! self::shouldSkipByOtpBudget($otpBudgetDeadline, 'brevo_rest_railway_first')) {
                 try {
                     if (self::sendViaBrevo($toEmail, $code, $brevoKey)) {
