@@ -59,6 +59,11 @@ fi
 # ---------------------------------------------------------------
 # 4. Write .env via PHP (bash heredocs break secrets with $, quotes, etc.)
 # ---------------------------------------------------------------
+if [ -f /var/www/html/env ]; then
+  echo "Found Backend-Laravel/env — write-env.php will merge Gmail SMTP if Railway MAIL_* are unset."
+else
+  echo "NOTE: Backend-Laravel/env not in image — set MAIL_USERNAME, MAIL_PASSWORD, MAIL_HOST on Railway for OTP email."
+fi
 echo "Writing .env via scripts/write-env.php..."
 php scripts/write-env.php
 

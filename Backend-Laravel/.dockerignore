@@ -1,7 +1,7 @@
 .env
 .env.backup
 .env.production
-env
+# Keep Backend-Laravel/env in the image — write-env.php merges Gmail SMTP when Railway vars are missing.
 node_modules
 vendor
 .git
