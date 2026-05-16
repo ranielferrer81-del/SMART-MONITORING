@@ -43,7 +43,8 @@ Route::get('/mail-readiness', function () {
         'brevo_key_configured' => strlen($brevo) > 8,
         'resend_key_configured' => strlen($resend) > 8,
         'mail_from_ok' => $from !== '' && ! str_contains(strtolower($from), 'example.com'),
-        'on_railway' => getenv('RAILWAY_ENVIRONMENT') !== false || getenv('RAILWAY_PROJECT_ID') !== false,
+        'on_railway' => \App\Services\EmailService::isHostedOnRailway(),
+        'gmail_env_configured' => \App\Services\EmailService::hasUsableGmailProcessEnv(),
     ]);
 });
 

@@ -1,11 +1,11 @@
 /**
- * API origin for the desktop app.
- *
- * Development: VITE_API_BASE_URL in .env only (never overridden by api-base.json).
- * Production (.exe): public/api-base.json then Vite-baked env.
+ * API origin — dev and packaged app both use Railway Laravel (public/api-base.json).
+ * VITE_API_BASE_URL in .env can override when api-base.json is missing.
  */
+const RAILWAY_API_DEFAULT = 'https://elegant-sparkle-production-97fc.up.railway.app';
+
 export const normalizeBaseUrl = (url: string) => {
-  if (!url) return 'http://127.0.0.1:8000';
+  if (!url) return RAILWAY_API_DEFAULT;
   let u = url.trim();
   u = u.endsWith('/') ? u.slice(0, -1) : u;
   if (u.toLowerCase().endsWith('/api')) {
@@ -16,7 +16,7 @@ export const normalizeBaseUrl = (url: string) => {
 };
 
 export const getViteApiBaseUrl = () =>
-  normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000');
+  normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL ?? RAILWAY_API_DEFAULT);
 
 let resolvedApiBaseUrl: string | null = null;
 
@@ -29,19 +29,16 @@ export async function initApiBaseUrl(): Promise<string> {
 
   let url = getViteApiBaseUrl();
 
-  // Packaged app only — do not override .env during npm run dev (localhost Laravel).
-  if (import.meta.env.PROD) {
-    try {
-      const res = await fetch(`${import.meta.env.BASE_URL}api-base.json`, { cache: 'no-store' });
-      if (res.ok) {
-        const data = (await res.json()) as { apiBase?: string };
-        if (typeof data.apiBase === 'string' && data.apiBase.trim()) {
-          url = normalizeBaseUrl(data.apiBase);
-        }
+  try {
+    const res = await fetch(`${import.meta.env.BASE_URL}api-base.json`, { cache: 'no-store' });
+    if (res.ok) {
+      const data = (await res.json()) as { apiBase?: string };
+      if (typeof data.apiBase === 'string' && data.apiBase.trim()) {
+        url = normalizeBaseUrl(data.apiBase);
       }
-    } catch {
-      // keep Vite-baked URL
     }
+  } catch {
+    // keep .env / default Railway URL
   }
 
   resolvedApiBaseUrl = url;

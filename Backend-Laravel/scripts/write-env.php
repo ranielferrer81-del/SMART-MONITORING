@@ -119,7 +119,8 @@ if ($brevoKey !== '' && (!$hasExplicitSmtpCreds || $useBrevoSmtpRelay)) {
     if ($smtpKey === '') {
         $smtpKey = g('BREVO_SMTP_PASSWORD');
     }
-    $mailPass = $smtpKey !== '' ? $smtpKey : $brevoKey;
+    // Never use the REST API key as the SMTP password — it will fail and block Gmail fallback.
+    $mailPass = $smtpKey;
 }
 
 // Final sender safety: if MAIL_FROM is still placeholder, prefer any valid SMTP login email (not example.com).

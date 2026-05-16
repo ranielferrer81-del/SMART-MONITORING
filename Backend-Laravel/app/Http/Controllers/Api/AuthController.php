@@ -888,6 +888,7 @@ class AuthController extends Controller
         $showMailDiagnostics = ! $sent && (
             config('app.debug')
             || (bool) config('app.mail_diagnostics_in_response', false)
+            || \App\Services\EmailService::isHostedOnRailway()
         );
         if ($showMailDiagnostics) {
             $payload['mail_diagnostics'] = \App\Services\EmailService::getLastSendDiagnostics();

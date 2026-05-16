@@ -145,7 +145,9 @@ return [
      * Try Laravel SMTP before API mailers. Default false: Railway often cannot reach SMTP:587; use HTTPS APIs instead.
      * Set true only if MAIL_* SMTP reliably works from your host (e.g. some non-Railway VPS).
      */
-    'email_otp_try_smtp_first' => filter_var(env('EMAIL_OTP_TRY_SMTP_FIRST', false), FILTER_VALIDATE_BOOLEAN),
+    'email_otp_try_smtp_first' => env('EMAIL_OTP_TRY_SMTP_FIRST') !== null
+        ? filter_var(env('EMAIL_OTP_TRY_SMTP_FIRST'), FILTER_VALIDATE_BOOLEAN)
+        : str_contains(strtolower((string) env('MAIL_HOST', '')), 'gmail'),
 
     /** On Railway, skip Laravel's SMTP mailer for OTP unless EMAIL_OTP_TRY_SMTP_FIRST=true (587 often blocked/hangs). */
     'email_railway_skip_laravel_smtp' => filter_var(env('EMAIL_RAILWAY_SKIP_LARAVEL_SMTP', false), FILTER_VALIDATE_BOOLEAN),

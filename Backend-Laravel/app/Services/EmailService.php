@@ -13,6 +13,121 @@ use App\Mail\VerificationCodeMail;
 
 class EmailService
 {
+    /** True on Railway even when getenv is empty after config:cache (uses APP_URL). */
+    public static function isHostedOnRailway(): bool
+    {
+        if (getenv('RAILWAY_ENVIRONMENT') !== false || getenv('RAILWAY_PROJECT_ID') !== false) {
+            return true;
+        }
+
+        $url = strtolower((string) config('app.url', ''));
+
+        return str_contains($url, 'railway.app');
+    }
+
+    /**
+     * Gmail SMTP from Railway/dashboard env (not the .env file write-env may have rewritten to Brevo relay).
+     */
+    public static function hasUsableGmailProcessEnv(): bool
+    {
+        $host = strtolower(trim((string) (getenv('MAIL_HOST') ?: '')));
+        $user = trim((string) (getenv('MAIL_USERNAME') ?: ''));
+        $pass = trim((string) (getenv('MAIL_PASSWORD') ?: ''));
+
+        if ($host === '' || $user === '' || $pass === '') {
+            return false;
+        }
+
+        if (! str_contains($host, 'gmail')) {
+            return false;
+        }
+
+        $u = strtolower($user);
+        $p = strtolower($pass);
+
+        if (
+            str_contains($u, 'your-gmail')
+            || str_contains($u, 'your-email')
+            || str_contains($p, 'your-app-password')
+            || str_contains($p, 'null')
+        ) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Send OTP using MAIL_* from the process environment (Railway Variables), bypassing cached Brevo relay config.
+     */
+    private static function sendViaGmailProcessEnv(string $toEmail, string $code): bool
+    {
+        if (! self::hasUsableGmailProcessEnv()) {
+            return false;
+        }
+
+        $host = trim((string) getenv('MAIL_HOST'));
+        $port = (int) (getenv('MAIL_PORT') ?: 587);
+        $user = trim((string) getenv('MAIL_USERNAME'));
+        $pass = trim((string) getenv('MAIL_PASSWORD'));
+        $enc = trim((string) (getenv('MAIL_ENCRYPTION') ?: 'tls'));
+        $from = trim((string) (getenv('MAIL_FROM_ADDRESS') ?: $user));
+        $fromName = trim((string) (getenv('MAIL_FROM_NAME') ?: config('mail.from.name', 'SIA')));
+
+        if ($from === '' || str_contains(strtolower($from), 'example.com')) {
+            $from = $user;
+        }
+
+        self::noteDiagnostic('gmail_process_env', true);
+        self::noteDiagnostic('smtp_host', $host);
+
+        Config::set('mail.mailers.smtp', array_merge(config('mail.mailers.smtp', []), [
+            'transport' => 'smtp',
+            'host' => $host,
+            'port' => $port > 0 ? $port : 587,
+            'encryption' => $enc !== '' ? $enc : 'tls',
+            'username' => $user,
+            'password' => $pass,
+            'timeout' => max(5, (int) env('VERIFICATION_SMTP_TIMEOUT', 20)),
+        ]));
+        Config::set('mail.from.address', $from);
+        Config::set('mail.from.name', $fromName !== '' ? $fromName : 'SIA');
+
+        try {
+            Mail::mailer('smtp')->to($toEmail)->send(
+                new VerificationCodeMail($code, $toEmail, $from, $fromName !== '' ? $fromName : 'SIA')
+            );
+            self::noteDiagnostic('smtp_result', 'success_gmail_process_env');
+            Log::info('✅ Email sent via Gmail SMTP (Railway MAIL_* process env)', [
+                'to' => $toEmail,
+                'host' => $host,
+                'username' => $user,
+            ]);
+
+            return true;
+        } catch (\Throwable $e) {
+            self::noteDiagnostic('gmail_process_env_error', Str::limit($e->getMessage(), 400));
+            Log::warning('Gmail process-env SMTP failed', ['error' => $e->getMessage(), 'to' => $toEmail]);
+
+            return false;
+        }
+    }
+
+    private static function otpShouldTryConfiguredSmtpFirst(): bool
+    {
+        if (env('EMAIL_OTP_TRY_SMTP_FIRST') !== null) {
+            return filter_var(env('EMAIL_OTP_TRY_SMTP_FIRST'), FILTER_VALIDATE_BOOLEAN);
+        }
+
+        if ((bool) config('app.email_otp_try_smtp_first', false)) {
+            return true;
+        }
+
+        $host = strtolower((string) config('mail.mailers.smtp.host', ''));
+
+        return str_contains($host, 'gmail') && self::hasUsableSmtpCredentials();
+    }
+
     private static function hasUsableSmtpCredentials(): bool
     {
         $username = trim((string) (config('mail.mailers.smtp.username') ?? ''));
@@ -310,7 +425,14 @@ class EmailService
 
         // Check mailer config - if set to 'log' or 'array', skip SMTP but still try API methods (Brevo, SendGrid, etc.)
         $mailer = config('mail.default');
-        $runningOnRailway = (getenv('RAILWAY_ENVIRONMENT') !== false || getenv('RAILWAY_PROJECT_ID') !== false);
+        $runningOnRailway = self::isHostedOnRailway();
+        self::noteDiagnostic('on_railway', $runningOnRailway);
+
+        if (! self::verificationOtpBudgetExceeded($otpBudgetDeadline)) {
+            if (self::sendViaGmailProcessEnv($toEmail, $code)) {
+                return true;
+            }
+        }
         // Brevo SMTP relay uses port 587; many PaaS networks block or time out — skip to avoid ~30s waits when REST already failed.
         $skipBrevoSmtpRelayOnRailway = $runningOnRailway && filter_var(env('EMAIL_SKIP_BREVO_SMTP_ON_RAILWAY', false), FILTER_VALIDATE_BOOLEAN);
         $smtpHostCfg = strtolower((string) config('mail.mailers.smtp.host', ''));
@@ -326,7 +448,7 @@ class EmailService
          * that write-env.php sets (smtp-relay.brevo.com) when REST fails — users with correct MAIL_* were still stuck.
          * Only skip slow/unconfigured SMTP (Gmail default, etc.), not smtp-relay.brevo.com.
          */
-        if ($runningOnRailway && $brevoKey !== '' && ! (bool) config('app.email_otp_try_smtp_first', false)) {
+        if ($runningOnRailway && $brevoKey !== '' && ! self::otpShouldTryConfiguredSmtpFirst() && ! self::hasUsableGmailProcessEnv()) {
             $isBrevoRelay = str_contains($smtpHostCfg, 'brevo');
             $looksLikeGmailOrUnset = $smtpHostCfg === '' || str_contains($smtpHostCfg, 'gmail') || $smtpHostCfg === 'smtp.gmail.com';
             $mailUser = (string) (config('mail.mailers.smtp.username') ?? '');
@@ -367,7 +489,7 @@ class EmailService
         }
 
         $smtpTriedInOtpFlow = false;
-        if ((bool) config('app.email_otp_try_smtp_first', false) && ! $skipSmtp && ! $isPlaceholder && ! self::verificationOtpBudgetExceeded($otpBudgetDeadline)) {
+        if (self::otpShouldTryConfiguredSmtpFirst() && ! $skipSmtp && ! $isPlaceholder && ! self::verificationOtpBudgetExceeded($otpBudgetDeadline)) {
             $smtpTriedInOtpFlow = true;
             $mailHost = config('mail.mailers.smtp.host');
             $mailUsername = config('mail.mailers.smtp.username');
@@ -586,7 +708,7 @@ class EmailService
         }
 
         // Method 4: PHP mail() — invokes sendmail; not present in Railway/Docker images (causes "sendmail: not found").
-        if (getenv('RAILWAY_ENVIRONMENT') !== false || getenv('RAILWAY_PROJECT_ID') !== false) {
+        if (self::isHostedOnRailway()) {
             Log::info('Skipping PHP mail() on Railway (no sendmail in container).');
         } elseif (! self::shouldSkipByOtpBudget($otpBudgetDeadline, 'php_mail')) {
         try {
