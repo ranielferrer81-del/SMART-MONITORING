@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { FaUserGraduate } from 'react-icons/fa';
 import { AuthenticatedUser, fetchCurrentUser } from '../api/client';
 import { resolveProfilePictureUrl } from '../utils/profilePictureUrl';
+import LockScreenShell from './LockScreenShell';
 
 type StudentCredentialProps = {
   onContinue: () => void;
@@ -90,17 +91,7 @@ export default function StudentCredential({ onContinue, user }: StudentCredentia
   }, [user]);
 
   return (
-    <div
-      className="min-h-screen flex flex-col items-center justify-center text-center text-white relative overflow-hidden"
-      style={{
-        backgroundImage: 'url(/Image1.jpg)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-      }}
-    >
-      <div className="absolute inset-0 bg-slate-900/80" />
-
+    <LockScreenShell>
       <motion.div
         className="relative bg-white/10 border border-white/20 backdrop-blur-xl rounded-3xl p-12 shadow-2xl max-w-2xl w-full flex flex-col items-center gap-6"
         initial={{ opacity: 0, y: 20 }}
@@ -149,7 +140,7 @@ export default function StudentCredential({ onContinue, user }: StudentCredentia
           Continue
         </button>
       </motion.div>
-    </div>
+    </LockScreenShell>
   );
 }
 

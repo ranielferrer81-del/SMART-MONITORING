@@ -10,5 +10,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   logout: () => ipcRenderer.invoke('logout'),
   studentLoggedIn: (data: Record<string, unknown>) => ipcRenderer.invoke('student-logged-in', data),
   reportDesktopScreen: (screenName: string) => ipcRenderer.invoke('desktop-screen-changed', screenName),
+  quitApp: () => ipcRenderer.invoke('quit-app'),
 });
 

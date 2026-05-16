@@ -11,5 +11,6 @@ interface Window {
     logout: () => Promise<void>;
     studentLoggedIn: (data: Record<string, unknown>) => Promise<void>;
     reportDesktopScreen?: (screenName: string) => Promise<void>;
+    quitApp?: () => Promise<void>;
   };
 }

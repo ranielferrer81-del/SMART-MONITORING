@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Lock, Loader2, X } from 'lucide-react';
 import { emailLogin, verifyLaravelBackend, warmupBackend } from '../api/client';
+import LockScreenShell from './LockScreenShell';
 
 type LoginFormProps = {
   onVerificationSent: (
@@ -20,12 +21,21 @@ export default function LoginForm({ onVerificationSent, onCancel }: LoginFormPro
   const [error, setError] = useState<string | null>(null);
   const [emailStatus, setEmailStatus] = useState<{ sent: boolean; message: string } | null>(null);
   const [backendWarning, setBackendWarning] = useState<string | null>(null);
+  const [isWarmingUp, setIsWarmingUp] = useState(true);
 
   useEffect(() => {
-    void warmupBackend();
-    void verifyLaravelBackend().then((r) => {
-      if (!r.ok) setBackendWarning(r.message);
-    });
+    let cancelled = false;
+    (async () => {
+      await warmupBackend();
+      const r = await verifyLaravelBackend();
+      if (!cancelled) {
+        if (!r.ok) setBackendWarning(r.message);
+        setIsWarmingUp(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -58,15 +68,7 @@ export default function LoginForm({ onVerificationSent, onCancel }: LoginFormPro
           });
         }
         
-        // Wait a moment to show the message, then proceed
-        setTimeout(() => {
-          onVerificationSent(
-            result.email,
-            verificationCode,
-            emailSent,
-            result.message
-          );
-        }, 1500);
+        onVerificationSent(result.email, verificationCode, emailSent, result.message);
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Invalid email or password. Please try again.';
@@ -77,17 +79,7 @@ export default function LoginForm({ onVerificationSent, onCancel }: LoginFormPro
   };
 
   return (
-    <div
-      className="min-h-screen flex flex-col items-center justify-center text-center text-white relative overflow-hidden"
-      style={{
-        backgroundImage: 'url(/Image1.jpg)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-      }}
-    >
-      <div className="absolute inset-0 bg-slate-900/80" />
-
+    <LockScreenShell>
       <motion.div
         className="relative bg-white/10 border border-white/20 backdrop-blur-xl rounded-3xl p-12 shadow-2xl max-w-md w-full flex flex-col items-center gap-6"
         initial={{ opacity: 0, y: 20 }}
@@ -189,13 +181,18 @@ export default function LoginForm({ onVerificationSent, onCancel }: LoginFormPro
 
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || isWarmingUp}
             className="w-full px-10 py-4 bg-red-600 text-white font-semibold rounded-full border border-white/30 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
           >
             {isLoading ? (
               <span className="flex items-center justify-center gap-2">
                 <Loader2 className="h-5 w-5 animate-spin" />
-                Verifying...
+                Sending code...
+              </span>
+            ) : isWarmingUp ? (
+              <span className="flex items-center justify-center gap-2">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Connecting...
               </span>
             ) : (
               'Sign In'
@@ -214,6 +211,6 @@ export default function LoginForm({ onVerificationSent, onCancel }: LoginFormPro
           )}
         </form>
       </motion.div>
-    </div>
+    </LockScreenShell>
   );
 }

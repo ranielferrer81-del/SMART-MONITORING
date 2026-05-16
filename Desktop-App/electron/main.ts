@@ -158,6 +158,8 @@ try {
 
 let mainWindow: BrowserWindow | null = null;
 let profileWindow: BrowserWindow | null = null;
+/** Set by IPC when staff uses Exit app — allows bypassing lock-screen close guard. */
+let allowAppQuit = false;
 
 const createWindow = () => {
   const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
@@ -195,10 +197,8 @@ const createWindow = () => {
   // Remove menu bar
   mainWindow.setMenuBarVisibility(false);
 
-  // Prevent window from being closed accidentally
   mainWindow.on('close', (event) => {
-    // In production, prevent closing
-    if (!isDev) {
+    if (!isDev && !allowAppQuit) {
       event.preventDefault();
     }
   });
@@ -348,6 +348,15 @@ ipcMain.handle('desktop-screen-changed', (_event, screen: unknown) => {
 ipcMain.handle('student-logged-out', () => {
   monitoringReadyStickyIso = null;
   clearStudentCredentials();
+});
+
+ipcMain.handle('quit-app', () => {
+  allowAppQuit = true;
+  if (profileWindow) {
+    profileWindow.destroy();
+    profileWindow = null;
+  }
+  app.quit();
 });
 
 // This method will be called when Electron has finished initialization

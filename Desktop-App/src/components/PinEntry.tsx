@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { FaUserShield } from 'react-icons/fa';
 import { Loader2 } from 'lucide-react';
 import { validatePin } from '../api/client';
+import LockScreenShell from './LockScreenShell';
 
 type PinEntryProps = {
   onSuccess?: () => void;
@@ -58,17 +59,7 @@ export default function PinEntry({ onSuccess, onError }: PinEntryProps) {
   };
 
   return (
-    <div
-      className="min-h-screen flex flex-col items-center justify-center text-center text-white relative overflow-hidden"
-      style={{
-        backgroundImage: 'url(/Image1.jpg)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-      }}
-    >
-      <div className="absolute inset-0 bg-slate-900/80" />
-
+    <LockScreenShell>
       <motion.div
         className="relative bg-white/10 border border-white/20 backdrop-blur-xl rounded-3xl p-10 shadow-2xl max-w-md w-full flex flex-col items-center gap-6"
         initial={{ opacity: 0, y: 20 }}
@@ -124,7 +115,7 @@ export default function PinEntry({ onSuccess, onError }: PinEntryProps) {
           </p>
         )}
       </motion.div>
-    </div>
+    </LockScreenShell>
   );
 }
 

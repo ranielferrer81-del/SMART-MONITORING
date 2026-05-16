@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Loader2, X, RefreshCw } from 'lucide-react';
-import { verifyEmailCode, resendVerificationCode } from '../api/client';
+import { verifyEmailCode, resendVerificationCode, warmupBackend } from '../api/client';
+import LockScreenShell from './LockScreenShell';
 import type { LoginResult } from '../api/client';
 
 type EmailVerificationProps = {
@@ -35,6 +36,10 @@ export default function EmailVerification({
   const [devCode, setDevCode] = useState<string | null>(null);
   const [emailSent, setEmailSent] = useState<boolean | null>(null);
   const [resendStatus, setResendStatus] = useState<{ sent: boolean; message: string } | null>(null);
+
+  useEffect(() => {
+    void warmupBackend();
+  }, []);
 
   // Countdown timer for resend
   useEffect(() => {
@@ -217,17 +222,7 @@ export default function EmailVerification({
   };
 
   return (
-    <div
-      className="min-h-screen flex flex-col items-center justify-center text-center text-white relative overflow-hidden"
-      style={{
-        backgroundImage: 'url(/Image1.jpg)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-      }}
-    >
-      <div className="absolute inset-0 bg-slate-900/80" />
-
+    <LockScreenShell>
       <motion.div
         className="relative bg-white/10 border border-white/20 backdrop-blur-xl rounded-3xl p-12 shadow-2xl max-w-md w-full flex flex-col items-center gap-6"
         initial={{ opacity: 0, y: 20 }}
@@ -416,7 +411,7 @@ export default function EmailVerification({
           )}
         </form>
       </motion.div>
-    </div>
+    </LockScreenShell>
   );
 }
 

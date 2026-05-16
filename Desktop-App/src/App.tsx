@@ -4,7 +4,8 @@ import PinEntry from './components/PinEntry';
 import LoginForm from './components/LoginForm';
 import EmailVerification from './components/EmailVerification';
 import ProfileWidget from './components/ProfileWidget';
-import { api, fetchCurrentUser, resendVerificationCode } from './api/client';
+import { api, fetchCurrentUser, resendVerificationCode, warmupBackend } from './api/client';
+import LockScreenShell from './components/LockScreenShell';
 import type { LoginResult, AuthenticatedUser } from './api/client';
 
 type Screen =
@@ -84,6 +85,12 @@ function App() {
 
   useEffect(() => {
     window.electronAPI?.reportDesktopScreen?.(screen).catch(() => undefined);
+  }, [screen]);
+
+  useEffect(() => {
+    if (screen === 'home') {
+      void warmupBackend();
+    }
   }, [screen]);
 
   // Extend browser token to monitoring (no PIN yet — monitoring_ready_at set only after PIN)
@@ -354,17 +361,9 @@ function App() {
   }
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center"
-      style={{
-        backgroundImage: 'url(/Image1.jpg)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat'
-      }}
-    >
-      <div className="flex flex-col items-center mt-30">
-        <h1 className="text-6xl font-bold text-red-800 drop-shadow-lg mb-8">
+    <LockScreenShell>
+      <div className="flex flex-col items-center">
+        <h1 className="text-6xl font-bold text-red-400 drop-shadow-lg mb-8">
           Welcome Fatimanians!
         </h1>
         <button
@@ -374,7 +373,7 @@ function App() {
           Login
         </button>
       </div>
-    </div>
+    </LockScreenShell>
   );
 }
 

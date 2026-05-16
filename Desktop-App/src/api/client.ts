@@ -271,7 +271,6 @@ export async function emailLogin(
   password: string
 ): Promise<{ ok: boolean; message: string; email: string; verification_code?: string | null; email_sent: boolean }> {
   try {
-    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
       throw new Error('Invalid email format. Please enter a valid email address.');
@@ -280,6 +279,8 @@ export async function emailLogin(
     if (!password || password.trim().length === 0) {
       throw new Error('Password is required.');
     }
+
+    await prepareBackendForAuth();
 
     const { data } = await emailAuthRequest<{
       ok?: boolean;
@@ -301,13 +302,18 @@ export async function emailLogin(
       throw new Error(data?.message || 'Failed to send verification code.');
     }
 
+    const emailSent = parseEmailSent(data.email_sent);
 
     return {
       ok: true,
-      message: data.message || 'Verification code sent to your email.',
+      message:
+        data.message ||
+        (emailSent
+          ? 'Verification code sent to your email.'
+          : 'Use the code on the next screen to finish signing in.'),
       email: data.email || email.trim().toLowerCase(),
       verification_code: data.verification_code || null,
-      email_sent: data.email_sent === true,
+      email_sent: emailSent,
     };
   } catch (error) {
     throw new Error(extractErrorMessage(error, 'email_login'));
@@ -316,17 +322,28 @@ export async function emailLogin(
 
 export async function warmupBackend(): Promise<void> {
   try {
-    // Intentionally hit a lightweight public endpoint to wake Railway from cold start.
     await api.get('/health', { timeout: COLD_START_WARMUP_TIMEOUT_MS });
   } catch {
-    // Any response/error is acceptable; this call exists only to warm the backend container.
+    // Wake attempt only — ignore outcome.
   }
 }
 
 export type BackendCheckResult = { ok: true } | { ok: false; message: string };
 
-/** Cold Railway / TLS wakeups often exceed 15s; keep login UX honest without false "cannot reach API". */
-const BACKEND_HEALTH_CHECK_TIMEOUT_MS = 60_000;
+/** Wake Railway then confirm Laravel is reachable before OTP send/resend. */
+export async function prepareBackendForAuth(): Promise<void> {
+  await warmupBackend();
+  const check = await verifyLaravelBackend();
+  if (!check.ok) {
+    throw new Error(check.message);
+  }
+}
+
+/** Background health probe on login screen — fail fast so UI is not blocked for a minute. */
+const BACKEND_HEALTH_CHECK_TIMEOUT_MS = 20_000;
+
+const parseEmailSent = (value: unknown): boolean =>
+  value === true || value === 1 || value === '1' || value === 'true';
 
 export async function verifyLaravelBackend(): Promise<BackendCheckResult> {
   try {
@@ -402,6 +419,8 @@ export async function resendVerificationCode(
   email: string
 ): Promise<{ ok: boolean; message: string; email_sent: boolean; verification_code?: string | null }> {
   try {
+    await prepareBackendForAuth();
+
     const { data } = await emailAuthRequest<{
       ok?: boolean;
       message?: string;
@@ -420,10 +439,16 @@ export async function resendVerificationCode(
       throw new Error(data?.message || 'Failed to resend verification code.');
     }
 
+    const emailSent = parseEmailSent(data.email_sent);
+
     return {
       ok: true,
-      message: data.message || 'Verification code has been resent.',
-      email_sent: data.email_sent === true,
+      message:
+        data.message ||
+        (emailSent
+          ? 'Verification code has been resent to your email.'
+          : 'Use the code shown on screen to continue.'),
+      email_sent: emailSent,
       verification_code: data.verification_code || null,
     };
   } catch (error) {
