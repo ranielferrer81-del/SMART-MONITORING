@@ -13,7 +13,7 @@ export default function LockScreenShell({ children, showExit = true }: LockScree
   return (
     <div className="min-h-screen flex flex-col items-center justify-center text-center text-white relative overflow-hidden">
       <div className="absolute inset-0" style={lockScreenBackgroundStyle} aria-hidden />
-      <div className="absolute inset-0 bg-slate-900/75" aria-hidden />
+      <div className="absolute inset-0 bg-slate-900/80" aria-hidden />
 
       {showExit && canQuit && (
         <button
