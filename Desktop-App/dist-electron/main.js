@@ -13,7 +13,8 @@ const defaultGateway = require('default-gateway');
 const COMPUTER_NAME = os.hostname();
 console.log(`🖥️ Computer Name (Hostname): ${COMPUTER_NAME}`);
 function normalizeApiBaseUrl(url) {
-    let u = url.trim().replace(/^["']|["']$/g, '');
+    // Dotenv does not treat "||" as OR — strip accidental "url || fallback" paste mistakes.
+    let u = url.trim().replace(/^["']|["']$/g, '').split(/\s+\|\|/)[0]?.trim() ?? '';
     if (u.endsWith('/'))
         u = u.slice(0, -1);
     if (u.toLowerCase().endsWith('/api')) {
@@ -28,8 +29,7 @@ function readApiBaseFromDotEnv() {
         const envPath = path.join(__dirname, '../.env');
         if (!fs.existsSync(envPath))
             return null;
-        const envContent = fs.readFileSync(envPath, 'utf-8');
-        const match = envContent.match(/^VITE_API_BASE_URL\s*=\s*(.+)/m);
+        const match = fs.readFileSync(envPath, 'utf-8').match(/^VITE_API_BASE_URL\s*=\s*(.+)/m);
         if (!match)
             return null;
         return normalizeApiBaseUrl(match[1].trim().replace(/["']/g, ''));
@@ -44,7 +44,7 @@ function readApiBaseFromBuildConfig() {
         if (!fs.existsSync(cfgPath))
             return null;
         const parsed = JSON.parse(fs.readFileSync(cfgPath, 'utf-8'));
-        const raw = parsed.viteApiBaseUrl ?? parsed.apiBaseUrl;
+        const raw = parsed.viteApiBaseUrl;
         return typeof raw === 'string' && raw.trim() ? normalizeApiBaseUrl(raw) : null;
     }
     catch {
@@ -52,7 +52,7 @@ function readApiBaseFromBuildConfig() {
     }
 }
 const DEFAULT_API_BASE_URL = 'http://127.0.0.1:8000';
-/** Packaged builds rely on build-config.json from scripts/write-electron-build-config.cjs; dev prefers .env */
+/** Packaged builds use build-config.json from CI; dev prefers .env */
 function resolveApiBaseUrl() {
     const fromBuildConfig = readApiBaseFromBuildConfig();
     const fromEnvFile = readApiBaseFromDotEnv();
@@ -142,10 +142,73 @@ catch (e) {
 }
 let mainWindow = null;
 let profileWindow = null;
+/** Set by IPC when staff uses Exit app — allows bypassing lock-screen close guard. */
+let allowAppQuit = false;
+/** True while the login lock screen is active (blocks F11 / leave-fullscreen shortcuts). */
+let lockScreenEnforced = false;
+/** Packaged .exe and production builds enforce kiosk-style lock on the login screen. */
+const shouldEnforceLockScreen = app.isPackaged || process.env.SIA_LOCK_SCREEN === 'true';
+function applyLockScreenMode(win) {
+    if (!shouldEnforceLockScreen) {
+        lockScreenEnforced = false;
+        win.setAlwaysOnTop(true);
+        win.setFullScreen(true);
+        return;
+    }
+    lockScreenEnforced = true;
+    win.setMenuBarVisibility(false);
+    win.setResizable(false);
+    win.setMinimizable(false);
+    win.setMaximizable(false);
+    win.setFullScreenable(false);
+    win.setAlwaysOnTop(true, 'screen-saver');
+    win.setKiosk(true);
+    win.setFullScreen(true);
+    win.focus();
+}
+function releaseLockScreenMode(win) {
+    lockScreenEnforced = false;
+    if (!shouldEnforceLockScreen) {
+        win.setAlwaysOnTop(false);
+        return;
+    }
+    win.setKiosk(false);
+    win.setFullScreenable(true);
+    win.setMinimizable(true);
+    win.setMaximizable(true);
+    win.setResizable(true);
+    win.setAlwaysOnTop(false);
+}
+function attachLockScreenInputGuards(win) {
+    win.webContents.on('before-input-event', (event, input) => {
+        if (!lockScreenEnforced)
+            return;
+        const key = input.key?.toLowerCase() ?? '';
+        const block = key === 'f11' ||
+            key === 'f12' ||
+            key === 'escape' ||
+            (input.alt && key === 'tab') ||
+            (input.alt && key === 'f4') ||
+            ((input.control || input.meta) && key === 'w') ||
+            ((input.control || input.meta) && key === 'r') ||
+            (input.alt && key === 'enter');
+        if (block) {
+            event.preventDefault();
+        }
+    });
+    win.on('leave-full-screen', () => {
+        if (lockScreenEnforced && !win.isDestroyed()) {
+            win.setFullScreen(true);
+            if (shouldEnforceLockScreen) {
+                win.setKiosk(true);
+            }
+        }
+    });
+}
 const createWindow = () => {
-    const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+    const isDevBuild = process.env.NODE_ENV === 'development' || !app.isPackaged;
     // Determine preload path - always use compiled JS
-    const preloadPath = isDev
+    const preloadPath = isDevBuild
         ? path.join(__dirname, '../dist-electron/preload.js')
         : path.join(__dirname, 'preload.js');
     // Create the browser window - frameless, fullscreen for lock screen
@@ -154,6 +217,7 @@ const createWindow = () => {
         height: 1080,
         fullscreen: true,
         frame: false, // Remove window controls (minimize, maximize, close)
+        kiosk: shouldEnforceLockScreen,
         webPreferences: {
             preload: preloadPath,
             nodeIntegration: false,
@@ -162,9 +226,15 @@ const createWindow = () => {
         },
         backgroundColor: '#1e293b', // Dark background
         alwaysOnTop: true, // Keep on top until unlocked
+        resizable: !shouldEnforceLockScreen,
+        minimizable: !shouldEnforceLockScreen,
+        maximizable: !shouldEnforceLockScreen,
+        fullscreenable: !shouldEnforceLockScreen,
     });
+    attachLockScreenInputGuards(mainWindow);
+    applyLockScreenMode(mainWindow);
     // Load the app
-    if (isDev) {
+    if (isDevBuild) {
         mainWindow.loadURL('http://localhost:5173');
         // Open DevTools in development (comment out for production)
         // mainWindow.webContents.openDevTools();
@@ -174,17 +244,15 @@ const createWindow = () => {
     }
     // Remove menu bar
     mainWindow.setMenuBarVisibility(false);
-    // Prevent window from being closed accidentally
     mainWindow.on('close', (event) => {
-        // In production, prevent closing
-        if (!isDev) {
+        if (!isDevBuild && !allowAppQuit) {
             event.preventDefault();
         }
     });
 };
 const createProfileWindow = () => {
-    const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
-    const preloadPath = isDev
+    const isDevBuild = process.env.NODE_ENV === 'development' || !app.isPackaged;
+    const preloadPath = isDevBuild
         ? path.join(__dirname, '../dist-electron/preload.js')
         : path.join(__dirname, 'preload.js');
     // Get primary display dimensions
@@ -215,7 +283,7 @@ const createProfileWindow = () => {
     // Make window click-through by default (allows clicking desktop behind it)
     profileWindow.setIgnoreMouseEvents(true, { forward: true });
     // Load profile overlay page with overlay parameter
-    if (isDev) {
+    if (isDevBuild) {
         profileWindow.loadURL('http://localhost:5173/?overlay=profile');
     }
     else {
@@ -228,10 +296,7 @@ const createProfileWindow = () => {
 // IPC handlers for window control
 ipcMain.handle('minimize-main-window', () => {
     if (mainWindow) {
-        // Remove alwaysOnTop so user can access desktop
-        mainWindow.setAlwaysOnTop(false);
-        mainWindow.minimize();
-        // Hide window completely
+        releaseLockScreenMode(mainWindow);
         mainWindow.hide();
     }
 });
@@ -256,20 +321,17 @@ ipcMain.handle('hide-profile-overlay', () => {
 });
 ipcMain.handle('logout', () => {
     monitoringReadyStickyIso = null;
-    // Close profile window
+    clearStudentCredentials();
     if (profileWindow) {
         profileWindow.close();
         profileWindow = null;
     }
-    // Show main window again and restore alwaysOnTop
     if (mainWindow) {
-        mainWindow.setAlwaysOnTop(true);
+        applyLockScreenMode(mainWindow);
         mainWindow.show();
-        mainWindow.restore();
         mainWindow.focus();
+        mainWindow.webContents.send('lock-screen-reset');
     }
-    // Clear monitoring credentials
-    clearStudentCredentials();
 });
 // IPC handler for student login (for browser monitoring)
 ipcMain.handle('student-logged-in', async (_event, studentData) => {
@@ -311,6 +373,14 @@ ipcMain.handle('desktop-screen-changed', (_event, screen) => {
 ipcMain.handle('student-logged-out', () => {
     monitoringReadyStickyIso = null;
     clearStudentCredentials();
+});
+ipcMain.handle('quit-app', () => {
+    allowAppQuit = true;
+    if (profileWindow) {
+        profileWindow.destroy();
+        profileWindow = null;
+    }
+    app.quit();
 });
 // This method will be called when Electron has finished initialization
 app.on('ready', async () => {

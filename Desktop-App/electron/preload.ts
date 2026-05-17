@@ -6,10 +6,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
   minimizeMainWindow: () => ipcRenderer.invoke('minimize-main-window'),
   showProfileOverlay: () => ipcRenderer.invoke('show-profile-overlay'),
   hideProfileOverlay: () => ipcRenderer.invoke('hide-profile-overlay'),
-  setIgnoreMouseEvents: (ignore: boolean, options?: { forward: boolean }) => ipcRenderer.invoke('set-ignore-mouse-events', ignore, options),
+  setIgnoreMouseEvents: (ignore: boolean, options?: { forward: boolean }) =>
+    ipcRenderer.invoke('set-ignore-mouse-events', ignore, options),
   logout: () => ipcRenderer.invoke('logout'),
   studentLoggedIn: (data: Record<string, unknown>) => ipcRenderer.invoke('student-logged-in', data),
+  studentLoggedOut: () => ipcRenderer.invoke('student-logged-out'),
   reportDesktopScreen: (screenName: string) => ipcRenderer.invoke('desktop-screen-changed', screenName),
   quitApp: () => ipcRenderer.invoke('quit-app'),
+  onLockScreenReset: (callback: () => void) => {
+    const listener = () => callback();
+    ipcRenderer.on('lock-screen-reset', listener);
+    return () => {
+      ipcRenderer.removeListener('lock-screen-reset', listener);
+    };
+  },
 });
 

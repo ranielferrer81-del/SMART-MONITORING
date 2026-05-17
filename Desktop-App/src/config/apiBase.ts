@@ -6,7 +6,9 @@ const RAILWAY_API_DEFAULT = 'https://elegant-sparkle-production-97fc.up.railway.
 
 export const normalizeBaseUrl = (url: string) => {
   if (!url) return RAILWAY_API_DEFAULT;
-  let u = url.trim();
+  // .env mistakes like "https://api.railway.app || http://127.0.0.1:8000" are not comments in dotenv.
+  let u = url.trim().split(/\s+\|\|/)[0]?.trim() ?? '';
+  if (!u) return RAILWAY_API_DEFAULT;
   u = u.endsWith('/') ? u.slice(0, -1) : u;
   if (u.toLowerCase().endsWith('/api')) {
     u = u.slice(0, -4);

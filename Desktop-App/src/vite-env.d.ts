@@ -10,7 +10,9 @@ interface Window {
     setIgnoreMouseEvents: (ignore: boolean, options?: { forward: boolean }) => Promise<void>;
     logout: () => Promise<void>;
     studentLoggedIn: (data: Record<string, unknown>) => Promise<void>;
+    studentLoggedOut?: () => Promise<void>;
     reportDesktopScreen?: (screenName: string) => Promise<void>;
     quitApp?: () => Promise<void>;
+    onLockScreenReset?: (callback: () => void) => () => void;
   };
 }

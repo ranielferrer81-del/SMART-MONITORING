@@ -93,6 +93,22 @@ function App() {
     }
   }, [screen]);
 
+  // Main window only: overlay logout tells Electron to reset this renderer (separate React instance).
+  useEffect(() => {
+    if (isOverlay) return;
+    const unsubscribe = window.electronAPI?.onLockScreenReset?.(() => {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user_role');
+      localStorage.removeItem('dev_verification_code');
+      localStorage.removeItem('email_sent_status');
+      setSession(null);
+      setVerificationEmail('');
+      setVerificationLoginDelivery({});
+      setScreen('home');
+    });
+    return () => unsubscribe?.();
+  }, [isOverlay]);
+
   // Extend browser token to monitoring (no PIN yet — monitoring_ready_at set only after PIN)
   const notifyElectronLogin = (session: LoginResult) => {
     const electronAPI = window.electronAPI;
@@ -195,7 +211,6 @@ function App() {
   };
 
   const handleLogout = async () => {
-    // End monitoring session on backend
     try {
       const token = localStorage.getItem('token');
       if (token) {
@@ -205,19 +220,26 @@ function App() {
       console.error('Failed to end monitoring session:', error);
     }
 
-    // Clear session and return to login
     localStorage.removeItem('token');
     localStorage.removeItem('user_role');
+    localStorage.removeItem('dev_verification_code');
+    localStorage.removeItem('email_sent_status');
     setSession(null);
+    setVerificationLoginDelivery({});
 
-    // Use Electron API to restore main window and hide overlay
-    try {
-      const electronAPI = (window as any).electronAPI;
-      if (electronAPI) {
+    const electronAPI = window.electronAPI;
+    if (electronAPI) {
+      try {
+        await electronAPI.studentLoggedOut?.();
         await electronAPI.logout();
+      } catch (error) {
+        console.error('Failed to restore lock screen:', error);
       }
-    } catch (error) {
-      console.error('Failed to restore window:', error);
+      // Overlay window closes on logout IPC; main window receives lock-screen-reset.
+      if (!isOverlay) {
+        setScreen('home');
+      }
+      return;
     }
 
     setScreen('home');

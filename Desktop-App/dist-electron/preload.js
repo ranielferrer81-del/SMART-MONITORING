@@ -8,5 +8,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     setIgnoreMouseEvents: (ignore, options) => ipcRenderer.invoke('set-ignore-mouse-events', ignore, options),
     logout: () => ipcRenderer.invoke('logout'),
     studentLoggedIn: (data) => ipcRenderer.invoke('student-logged-in', data),
+    studentLoggedOut: () => ipcRenderer.invoke('student-logged-out'),
     reportDesktopScreen: (screenName) => ipcRenderer.invoke('desktop-screen-changed', screenName),
+    quitApp: () => ipcRenderer.invoke('quit-app'),
+    onLockScreenReset: (callback) => {
+        const listener = () => callback();
+        ipcRenderer.on('lock-screen-reset', listener);
+        return () => {
+            ipcRenderer.removeListener('lock-screen-reset', listener);
+        };
+    },
 });
