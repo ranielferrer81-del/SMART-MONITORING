@@ -9,10 +9,34 @@ export default function AttendanceSection({
   onSelectSubject,
   onMarkAttendance,
   onOpenHistory,
+  isStudentOnline,
+  getOnlineStudentInfo,
 }) {
   const [reasonByStudent, setReasonByStudent] = useState({});
   const [savingStudentId, setSavingStudentId] = useState(null);
   const [statusMessage, setStatusMessage] = useState('');
+
+  const checkOnline = (studentId) =>
+    typeof isStudentOnline === 'function' ? isStudentOnline(studentId) : false;
+
+  const onlineInfoFor = (studentId) =>
+    typeof getOnlineStudentInfo === 'function' ? getOnlineStudentInfo(studentId) : null;
+
+  const sortedStudents = useMemo(() => {
+    const list = [...(enrolledStudents || [])];
+    list.sort((a, b) => {
+      const aOn = checkOnline(a.id) ? 1 : 0;
+      const bOn = checkOnline(b.id) ? 1 : 0;
+      if (bOn !== aOn) return bOn - aOn;
+      return String(a.full_name || '').localeCompare(String(b.full_name || ''));
+    });
+    return list;
+  }, [enrolledStudents, isStudentOnline]);
+
+  const onlineInClassCount = useMemo(
+    () => (enrolledStudents || []).filter((s) => checkOnline(s.id)).length,
+    [enrolledStudents, isStudentOnline]
+  );
 
   const attendanceCounts = useMemo(() => {
     const base = { present: 0, late: 0, absent: 0 };
@@ -43,7 +67,11 @@ export default function AttendanceSection({
     <div className="space-y-6">
       <div className="rounded-2xl border border-rose-200/60 bg-white/75 p-4 shadow-sm dark:border-rose-800/40 dark:bg-slate-900/50">
         <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Attendance Workspace</h3>
-        <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">Choose a subject, then mark present/late/absent with optional note.</p>
+        <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
+          Choose a subject, then mark present/late/absent. Students logged in on a lab PC show as{' '}
+          <span className="font-semibold text-emerald-600 dark:text-emerald-400">Active in lab</span> (updates every
+          few seconds).
+        </p>
         <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
           <select
             value={selectedSubject?.id || ''}
@@ -65,6 +93,24 @@ export default function AttendanceSection({
           )}
         </div>
       </div>
+
+      {selectedSubject && !loadingStudents && (
+        <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/80 px-4 py-3 dark:border-emerald-800/50 dark:bg-emerald-950/30">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
+            </span>
+            <p className="text-sm font-semibold text-emerald-900 dark:text-emerald-100">
+              {onlineInClassCount} of {(enrolledStudents || []).length} enrolled{' '}
+              {onlineInClassCount === 1 ? 'student is' : 'students are'} active in the lab right now
+            </p>
+            <span className="text-xs text-emerald-800/80 dark:text-emerald-300/80">
+              (Desktop app + monitoring session)
+            </span>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3 dark:border-emerald-800/40 dark:bg-emerald-900/20">
@@ -91,43 +137,126 @@ export default function AttendanceSection({
         <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
           <thead className="bg-slate-100/60 dark:bg-slate-800/50">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300">Student</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300">Email</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300">Quick Note</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300">Actions</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300">
+                Student
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300">
+                Lab status
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300">
+                Email
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300">
+                Quick Note
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200/70 dark:divide-slate-700/60">
             {!selectedSubject ? (
-              <tr><td className="px-4 py-10 text-center text-sm text-slate-500 dark:text-slate-400" colSpan={4}>Select a subject to begin.</td></tr>
+              <tr>
+                <td className="px-4 py-10 text-center text-sm text-slate-500 dark:text-slate-400" colSpan={5}>
+                  Select a subject to begin.
+                </td>
+              </tr>
             ) : loadingStudents ? (
-              <tr><td className="px-4 py-10 text-center text-sm text-slate-500 dark:text-slate-400" colSpan={4}>Loading students...</td></tr>
+              <tr>
+                <td className="px-4 py-10 text-center text-sm text-slate-500 dark:text-slate-400" colSpan={5}>
+                  Loading students...
+                </td>
+              </tr>
             ) : (enrolledStudents || []).length === 0 ? (
-              <tr><td className="px-4 py-10 text-center text-sm text-slate-500 dark:text-slate-400" colSpan={4}>No enrolled students found for this subject.</td></tr>
+              <tr>
+                <td className="px-4 py-10 text-center text-sm text-slate-500 dark:text-slate-400" colSpan={5}>
+                  No enrolled students found for this subject.
+                </td>
+              </tr>
             ) : (
-              enrolledStudents.map((student) => (
-                <tr key={student.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30">
-                  <td className="px-4 py-3 text-sm font-medium text-slate-800 dark:text-slate-100">{student.full_name || '-'}</td>
-                  <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-200">{student.email || '-'}</td>
-                  <td className="px-4 py-3">
-                    <input
-                      type="text"
-                      value={reasonByStudent[student.id] || ''}
-                      onChange={(e) => setReasonByStudent((prev) => ({ ...prev, [student.id]: e.target.value }))}
-                      placeholder="Optional note"
-                      className="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-100"
-                    />
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-2">
-                      <button onClick={() => handleMark(student.id, 'present')} disabled={savingStudentId === student.id} className="rounded-md bg-emerald-600 px-2.5 py-1.5 text-xs font-semibold text-white disabled:opacity-50">Present</button>
-                      <button onClick={() => handleMark(student.id, 'late')} disabled={savingStudentId === student.id} className="rounded-md bg-amber-500 px-2.5 py-1.5 text-xs font-semibold text-white disabled:opacity-50">Late</button>
-                      <button onClick={() => handleMark(student.id, 'absent')} disabled={savingStudentId === student.id} className="rounded-md bg-rose-600 px-2.5 py-1.5 text-xs font-semibold text-white disabled:opacity-50">Absent</button>
-                      <button onClick={() => onOpenHistory(student)} className="rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200">History</button>
-                    </div>
-                  </td>
-                </tr>
-              ))
+              sortedStudents.map((student) => {
+                const online = checkOnline(student.id);
+                const onlineMeta = onlineInfoFor(student.id);
+                return (
+                  <tr
+                    key={student.id}
+                    className={
+                      online
+                        ? 'bg-emerald-50/50 hover:bg-emerald-50/80 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/30'
+                        : 'hover:bg-slate-50/60 dark:hover:bg-slate-800/30'
+                    }
+                  >
+                    <td className="px-4 py-3 text-sm font-medium text-slate-800 dark:text-slate-100">
+                      {student.full_name || '-'}
+                    </td>
+                    <td className="px-4 py-3">
+                      {online ? (
+                        <div className="flex flex-col gap-0.5">
+                          <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                            Active in lab
+                          </span>
+                          {onlineMeta?.laboratory_room && (
+                            <span className="text-[11px] text-slate-600 dark:text-slate-400">
+                              {onlineMeta.laboratory_room}
+                              {onlineMeta.computer_name ? ` · ${onlineMeta.computer_name}` : ''}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-xs font-medium text-slate-400 dark:text-slate-500">Not in lab</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-200">{student.email || '-'}</td>
+                    <td className="px-4 py-3">
+                      <input
+                        type="text"
+                        value={reasonByStudent[student.id] || ''}
+                        onChange={(e) =>
+                          setReasonByStudent((prev) => ({ ...prev, [student.id]: e.target.value }))
+                        }
+                        placeholder="Optional note"
+                        className="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-100"
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleMark(student.id, 'present')}
+                          disabled={savingStudentId === student.id}
+                          className="rounded-md bg-emerald-600 px-2.5 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+                        >
+                          Present
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleMark(student.id, 'late')}
+                          disabled={savingStudentId === student.id}
+                          className="rounded-md bg-amber-500 px-2.5 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+                        >
+                          Late
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleMark(student.id, 'absent')}
+                          disabled={savingStudentId === student.id}
+                          className="rounded-md bg-rose-600 px-2.5 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+                        >
+                          Absent
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onOpenHistory(student)}
+                          className="rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200"
+                        >
+                          History
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
@@ -135,4 +264,3 @@ export default function AttendanceSection({
     </div>
   );
 }
-

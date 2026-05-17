@@ -220,7 +220,11 @@ export default function TeacherDashboard() {
     window.location.href = '/';
   };
 
-  const isStudentOnline = (studentId) => onlineStudents.some(s => s.id === studentId);
+  const isStudentOnline = (studentId) =>
+    onlineStudents.some((s) => Number(s.id) === Number(studentId));
+
+  const getOnlineStudentInfo = (studentId) =>
+    onlineStudents.find((s) => Number(s.id) === Number(studentId)) || null;
   const hasIncognitoAlert = (studentId) => {
     if (!Array.isArray(incognitoAlerts)) return false;
     return incognitoAlerts.some(a => a.student_user_id === studentId && !a.is_acknowledged);
@@ -637,6 +641,8 @@ export default function TeacherDashboard() {
                   setSelectedStudent(student);
                   setShowHistoryModal(true);
                 }}
+                isStudentOnline={isStudentOnline}
+                getOnlineStudentInfo={getOnlineStudentInfo}
               />
             )}
 
