@@ -142,12 +142,23 @@ catch (e) {
 }
 let mainWindow = null;
 let profileWindow = null;
-/** Set by IPC when staff uses Exit app — allows bypassing lock-screen close guard. */
+/** Staff "Exit app" only — allows quitting the process. */
 let allowAppQuit = false;
-/** True while the login lock screen is active (blocks F11 / leave-fullscreen shortcuts). */
+/** Login lock screen fullscreen/kiosk is active. */
 let lockScreenEnforced = false;
+/** After PIN: student is in session; app must stay running until Logout. */
+let studentSessionActive = false;
 /** Packaged .exe and production builds enforce kiosk-style lock on the login screen. */
 const shouldEnforceLockScreen = app.isPackaged || process.env.SIA_LOCK_SCREEN === 'true';
+function isStudentExitBlocked() {
+    return shouldEnforceLockScreen && !allowAppQuit;
+}
+/** Block close shortcuts on lock screen and while a student session is active. */
+function shouldBlockSystemShortcuts() {
+    if (!isStudentExitBlocked())
+        return false;
+    return lockScreenEnforced || studentSessionActive;
+}
 function applyLockScreenMode(win) {
     if (!shouldEnforceLockScreen) {
         lockScreenEnforced = false;
@@ -166,22 +177,9 @@ function applyLockScreenMode(win) {
     win.setFullScreen(true);
     win.focus();
 }
-function releaseLockScreenMode(win) {
-    lockScreenEnforced = false;
-    if (!shouldEnforceLockScreen) {
-        win.setAlwaysOnTop(false);
-        return;
-    }
-    win.setKiosk(false);
-    win.setFullScreenable(true);
-    win.setMinimizable(true);
-    win.setMaximizable(true);
-    win.setResizable(true);
-    win.setAlwaysOnTop(false);
-}
 function attachLockScreenInputGuards(win) {
     win.webContents.on('before-input-event', (event, input) => {
-        if (!lockScreenEnforced)
+        if (!shouldBlockSystemShortcuts())
             return;
         const key = input.key?.toLowerCase() ?? '';
         const block = key === 'f11' ||
@@ -191,7 +189,8 @@ function attachLockScreenInputGuards(win) {
             (input.alt && key === 'f4') ||
             ((input.control || input.meta) && key === 'w') ||
             ((input.control || input.meta) && key === 'r') ||
-            (input.alt && key === 'enter');
+            (input.alt && key === 'enter') ||
+            (input.control && input.shift && key === 'escape');
         if (block) {
             event.preventDefault();
         }
@@ -202,6 +201,13 @@ function attachLockScreenInputGuards(win) {
             if (shouldEnforceLockScreen) {
                 win.setKiosk(true);
             }
+        }
+    });
+}
+function attachWindowCloseGuard(win, isDevBuild) {
+    win.on('close', (event) => {
+        if (!isDevBuild && isStudentExitBlocked()) {
+            event.preventDefault();
         }
     });
 }
@@ -244,11 +250,7 @@ const createWindow = () => {
     }
     // Remove menu bar
     mainWindow.setMenuBarVisibility(false);
-    mainWindow.on('close', (event) => {
-        if (!isDevBuild && !allowAppQuit) {
-            event.preventDefault();
-        }
-    });
+    attachWindowCloseGuard(mainWindow, isDevBuild);
 };
 const createProfileWindow = () => {
     const isDevBuild = process.env.NODE_ENV === 'development' || !app.isPackaged;
@@ -292,11 +294,13 @@ const createProfileWindow = () => {
         profileWindow.loadURL(`file://${indexPath}?overlay=profile`);
     }
     profileWindow.setMenuBarVisibility(false);
+    attachLockScreenInputGuards(profileWindow);
+    attachWindowCloseGuard(profileWindow, isDevBuild);
 };
 // IPC handlers for window control
 ipcMain.handle('minimize-main-window', () => {
     if (mainWindow) {
-        releaseLockScreenMode(mainWindow);
+        // Keep kiosk/lock flags; only hide so students cannot "unlock" by PIN.
         mainWindow.hide();
     }
 });
@@ -321,9 +325,10 @@ ipcMain.handle('hide-profile-overlay', () => {
 });
 ipcMain.handle('logout', () => {
     monitoringReadyStickyIso = null;
+    studentSessionActive = false;
     clearStudentCredentials();
     if (profileWindow) {
-        profileWindow.close();
+        profileWindow.destroy();
         profileWindow = null;
     }
     if (mainWindow) {
@@ -340,6 +345,7 @@ ipcMain.handle('student-logged-in', async (_event, studentData) => {
         typeof studentData === 'object' &&
         studentData.monitoringReady === true;
     if (monitoringReady) {
+        studentSessionActive = true;
         if (!monitoringReadyStickyIso) {
             monitoringReadyStickyIso = new Date().toISOString();
         }
@@ -372,6 +378,7 @@ ipcMain.handle('desktop-screen-changed', (_event, screen) => {
 // IPC handler for student logout (for browser monitoring)
 ipcMain.handle('student-logged-out', () => {
     monitoringReadyStickyIso = null;
+    studentSessionActive = false;
     clearStudentCredentials();
 });
 ipcMain.handle('quit-app', () => {
@@ -390,9 +397,16 @@ app.on('ready', async () => {
     setApiBaseUrl(API_BASE_URL); // Set the API URL for heartbeats
     startMonitoringServer(); // Start monitoring server on port 9876
 });
+app.on('before-quit', (event) => {
+    if (isStudentExitBlocked() && (lockScreenEnforced || studentSessionActive)) {
+        event.preventDefault();
+    }
+});
 // Quit when all windows are closed
 app.on('window-all-closed', () => {
-    // On macOS, keep app running even when all windows are closed
+    if (isStudentExitBlocked() && (lockScreenEnforced || studentSessionActive)) {
+        return;
+    }
     if (process.platform !== 'darwin') {
         app.quit();
     }
