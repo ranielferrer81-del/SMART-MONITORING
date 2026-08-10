@@ -1,5 +1,5 @@
 # Build Windows .exe installer when you push a version tag (e.g. v1.0.3).
-# API URL is read from Desktop-App/public/api-base.json (same Laravel as the React web app).
+# API URL: Desktop-App/public/api-base.json (change before tagging for cloud vs localhost builds).
 
 name: Desktop App Release
 
