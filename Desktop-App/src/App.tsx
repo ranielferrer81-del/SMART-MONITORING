@@ -4,6 +4,9 @@ import PinEntry from './components/PinEntry';
 import LoginForm from './components/LoginForm';
 import EmailVerification from './components/EmailVerification';
 import ProfileWidget from './components/ProfileWidget';
+import PcLockOverlay from './components/PcLockOverlay';
+import PresentationOverlay from './components/PresentationOverlay';
+import QuizLockOverlay from './components/QuizLockOverlay';
 import { api, fetchCurrentUser, resendVerificationCode, warmupBackend } from './api/client';
 import LockScreenShell from './components/LockScreenShell';
 import type { LoginResult, AuthenticatedUser } from './api/client';
@@ -27,33 +30,43 @@ function App() {
     verificationCode?: string | null;
   }>({});
 
-  // Restore session from localStorage if token exists
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token && !session) {
-      // Try to fetch current user to restore session
-      fetchCurrentUser()
-        .then((user: AuthenticatedUser) => {
-          const restoredSession: LoginResult = {
-            ok: true,
-            token: token,
-            route: '/',
-            user: user,
-          };
-          setSession(restoredSession);
-          notifyElectronLogin(restoredSession);
-        })
-        .catch(() => {
-          // Token is invalid, clear it
-          localStorage.removeItem('token');
-          localStorage.removeItem('user_role');
-        });
-    }
-  }, [session]);
+  // PC Lock state — overlay sits on top of all screens
+  const [isPcLocked, setIsPcLocked] = useState(false);
+  const [lockMessage, setLockMessage] = useState('This PC has been locked by your instructor.');
+
+  // Live Screen Share Presentation state — overlay sits on top of all screens
+  const [presentationSession, setPresentationSession] = useState<{
+    sessionUuid: string;
+    teacherName: string | null;
+    subjectName: string | null;
+  } | null>(null);
+
+  // Active Quiz state — overlay locks the screen until student submits or dismisses
+  const [activeQuizSession, setActiveQuizSession] = useState<{
+    quizId: number;
+    title: string;
+    subjectName: string | null;
+    timeLimitMinutes: number;
+    totalQuestions: number;
+    serverEnded: boolean;
+  } | null>(null);
 
   // Check if we're in overlay mode (separate window for ProfileButton)
   const isOverlay = window.location.search.includes('overlay=profile') ||
     window.location.hash.includes('overlay=profile');
+
+  // Clear session on startup so students must log in fresh (main window only)
+  useEffect(() => {
+    if (isOverlay) return;
+    
+    // Clear tokens on fresh startup so the student doesn't get auto-logged in
+    localStorage.removeItem('token');
+    localStorage.removeItem('user_role');
+    localStorage.removeItem('dev_verification_code');
+    localStorage.removeItem('email_sent_status');
+    localStorage.removeItem('student_credentials');
+    setSession(null);
+  }, [isOverlay]);
 
   // Initialize overlay window - set screen to logged-in and restore session
   useEffect(() => {
@@ -93,6 +106,73 @@ function App() {
     }
   }, [screen]);
 
+  // Subscribe to PC lock / unlock IPC events from Electron main process
+  useEffect(() => {
+    const unsubLock = window.electronAPI?.onPcLocked?.((msg) => {
+      setLockMessage(msg);
+      setIsPcLocked(true);
+    });
+    const unsubUnlock = window.electronAPI?.onPcUnlocked?.(() => {
+      setIsPcLocked(false);
+    });
+    return () => {
+      unsubLock?.();
+      unsubUnlock?.();
+    };
+  }, []);
+
+  // Subscribe to Live Presentation IPC events from Electron main process
+  useEffect(() => {
+    const unsubStart = window.electronAPI?.onPresentationStart?.((data) => {
+      if (data?.sessionUuid) {
+        // Fix 2: The main window's localStorage token was cleared at startup.
+        // The main process sends the student token along with the event so API
+        // calls from PresentationOverlay (presentationJoin, pollSignals, etc.) succeed.
+        if (data.token) {
+          localStorage.setItem('token', data.token);
+        }
+        setPresentationSession({
+          sessionUuid: data.sessionUuid,
+          teacherName: data.teacherName,
+          subjectName: data.subjectName,
+        });
+      }
+    });
+    const unsubEnd = window.electronAPI?.onPresentationEnd?.(() => {
+      setPresentationSession(null);
+    });
+    return () => {
+      unsubStart?.();
+      unsubEnd?.();
+    };
+  }, []);
+
+  // Subscribe to Quiz IPC events from Electron main process
+  useEffect(() => {
+    const unsubQuizStart = window.electronAPI?.onQuizStart?.((data) => {
+      if (data?.quizId) {
+        if (data.token) {
+          localStorage.setItem('token', data.token);
+        }
+        setActiveQuizSession({
+          quizId: data.quizId,
+          title: data.title,
+          subjectName: data.subjectName,
+          timeLimitMinutes: data.timeLimitMinutes,
+          totalQuestions: data.totalQuestions,
+          serverEnded: false,
+        });
+      }
+    });
+    const unsubQuizEnd = window.electronAPI?.onQuizEnd?.(() => {
+      setActiveQuizSession((prev) => (prev ? { ...prev, serverEnded: true } : null));
+    });
+    return () => {
+      unsubQuizStart?.();
+      unsubQuizEnd?.();
+    };
+  }, []);
+
   // Main window only: overlay logout tells Electron to reset this renderer (separate React instance).
   useEffect(() => {
     if (isOverlay) return;
@@ -104,6 +184,8 @@ function App() {
       setSession(null);
       setVerificationEmail('');
       setVerificationLoginDelivery({});
+      setPresentationSession(null);
+      setActiveQuizSession(null);
       setScreen('home');
     });
     return () => unsubscribe?.();
@@ -226,6 +308,8 @@ function App() {
     localStorage.removeItem('email_sent_status');
     setSession(null);
     setVerificationLoginDelivery({});
+    setPresentationSession(null);
+    setActiveQuizSession(null);
 
     const electronAPI = window.electronAPI;
     if (electronAPI) {
@@ -245,75 +329,114 @@ function App() {
     setScreen('home');
   };
 
+  const renderOverlays = () => (
+    <>
+      {isPcLocked && <PcLockOverlay message={lockMessage} />}
+      {presentationSession && (
+        <PresentationOverlay
+          sessionUuid={presentationSession.sessionUuid}
+          teacherName={presentationSession.teacherName}
+          subjectName={presentationSession.subjectName}
+        />
+      )}
+      {activeQuizSession && (
+        <QuizLockOverlay
+          quizId={activeQuizSession.quizId}
+          title={activeQuizSession.title}
+          subjectName={activeQuizSession.subjectName}
+          serverEnded={activeQuizSession.serverEnded}
+          onDismiss={() => {
+            setActiveQuizSession(null);
+            void window.electronAPI?.quizDismiss?.();
+          }}
+        />
+      )}
+    </>
+  );
+
   if (screen === 'email-login') {
     return (
-      <LoginForm
-        onVerificationSent={handleVerificationSent}
-        onCancel={() => {
-          setVerificationLoginDelivery({});
-          setScreen('home');
-        }}
-      />
+      <>
+        {renderOverlays()}
+        <LoginForm
+          onVerificationSent={handleVerificationSent}
+          onCancel={() => {
+            setVerificationLoginDelivery({});
+            setScreen('home');
+          }}
+        />
+      </>
     );
   }
 
   if (screen === 'email-verification') {
     return (
-      <EmailVerification
-        email={verificationEmail}
-        loginDelivery={verificationLoginDelivery}
-        onSuccess={(verifiedSession) => {
-          setVerificationLoginDelivery({});
-          void handleVerificationSuccess(verifiedSession);
-        }}
-        onCancel={() => {
-          setVerificationLoginDelivery({});
-          setScreen('email-login');
-        }}
-        onResend={async () => {
-          return await resendVerificationCode(verificationEmail);
-        }}
-      />
+      <>
+        {renderOverlays()}
+        <EmailVerification
+          email={verificationEmail}
+          loginDelivery={verificationLoginDelivery}
+          onSuccess={(verifiedSession) => {
+            setVerificationLoginDelivery({});
+            void handleVerificationSuccess(verifiedSession);
+          }}
+          onCancel={() => {
+            setVerificationLoginDelivery({});
+            setScreen('email-login');
+          }}
+          onResend={async () => {
+            return await resendVerificationCode(verificationEmail);
+          }}
+        />
+      </>
     );
   }
 
   if (screen === 'student-credential') {
-    return <StudentCredential onContinue={() => setScreen('pin')} user={session?.user} />;
+    return (
+      <>
+        {renderOverlays()}
+        <StudentCredential onContinue={() => setScreen('pin')} onLogout={handleLogout} user={session?.user} />
+      </>
+    );
   }
 
   if (screen === 'pin') {
     return (
-      <PinEntry
-        onSuccess={async () => {
-          // PIN validated successfully - minimize main window and show overlay
-          try {
-            const electronAPI = (window as any).electronAPI;
-            if (electronAPI) {
-              await electronAPI.minimizeMainWindow();
-              await electronAPI.showProfileOverlay();
-              // Notify Electron about login
-              if (session?.user) {
-                await electronAPI.studentLoggedIn({
-                  userId: session.user.id,
-                  email: session.user.email,
-                  fullName: session.user.fullName,
-                  token: session.token,
-                  monitoringReady: true,
-                });
+      <>
+        {renderOverlays()}
+        <PinEntry
+          onSuccess={async () => {
+            // PIN validated successfully - minimize main window and show overlay
+            try {
+              const electronAPI = (window as any).electronAPI;
+              if (electronAPI) {
+                await electronAPI.minimizeMainWindow();
+                await electronAPI.showProfileOverlay();
+                // Notify Electron about login
+                if (session?.user) {
+                  await electronAPI.studentLoggedIn({
+                    userId: session.user.id,
+                    email: session.user.email,
+                    fullName: session.user.fullName,
+                    token: session.token,
+                    monitoringReady: true,
+                  });
+                }
               }
+              // Set screen to logged-in for main window (though it will be hidden)
+              setScreen('logged-in');
+            } catch (error) {
+              console.error('Failed to minimize window:', error);
+              setScreen('logged-in');
             }
-            // Set screen to logged-in for main window (though it will be hidden)
-            setScreen('logged-in');
-          } catch (error) {
-            console.error('Failed to minimize window:', error);
-            setScreen('logged-in');
-          }
-        }}
-        onError={(message) => {
-          // Error is already shown in PinEntry component
-          console.error('PIN validation error:', message);
-        }}
-      />
+          }}
+          onError={(message) => {
+            // Error is already shown in PinEntry component
+            console.error('PIN validation error:', message);
+          }}
+        />
+      </>
     );
   }
 
@@ -357,7 +480,7 @@ function App() {
           style={{
             overflow: 'visible',
             minHeight: '100vh',
-            pointerEvents: 'none' // Make container click-through, widget itself will handle events
+            pointerEvents: 'none', // Make container click-through, widget itself will handle events
           }}
         >
           <ProfileWidget user={session.user} onLogout={handleLogout} />
@@ -365,37 +488,42 @@ function App() {
       );
     }
 
-    // Main window logged-in screen (should be hidden, but fallback)
+    // Main window logged-in screen (normally hidden when minimized, but becomes visible during lock or presentation)
     if (!session?.user) {
       return (
         <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+          {renderOverlays()}
           <div className="text-white">Loading...</div>
         </div>
       );
     }
 
-    // Main window - show ProfileWidget (though window should be minimized)
+    // Main window - show ProfileWidget with overlays
     return (
       <div className="min-h-screen bg-slate-900">
+        {renderOverlays()}
         <ProfileWidget user={session.user} onLogout={handleLogout} />
       </div>
     );
   }
 
   return (
-    <LockScreenShell>
-      <div className="flex flex-col items-center">
-        <h1 className="text-6xl font-bold text-red-400 drop-shadow-lg mb-8">
-          Welcome Fatimanians!
-        </h1>
-        <button
-          onClick={() => setScreen('email-login')}
-          className="px-8 py-3 bg-red-800 text-white font-bold rounded-lg hover:bg-red-900 transition-colors shadow-lg"
-        >
-          Login
-        </button>
-      </div>
-    </LockScreenShell>
+    <>
+      {renderOverlays()}
+      <LockScreenShell>
+        <div className="flex flex-col items-center">
+          <h1 className="text-6xl font-bold text-red-400 drop-shadow-lg mb-8">
+            Welcome Fatimanians!
+          </h1>
+          <button
+            onClick={() => setScreen('email-login')}
+            className="px-8 py-3 bg-red-800 text-white font-bold rounded-lg hover:bg-red-900 transition-colors shadow-lg"
+          >
+            Login
+          </button>
+        </div>
+      </LockScreenShell>
+    </>
   );
 }
 

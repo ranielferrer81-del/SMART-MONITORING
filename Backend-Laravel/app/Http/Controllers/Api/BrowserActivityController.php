@@ -174,47 +174,106 @@ class BrowserActivityController extends Controller
         if ($activeSession) {
             $hasChanges = false;
 
+            // If the student is heartbeating from a DIFFERENT PC, close the old
+            // session first and start a fresh one. This ensures a student can only
+            // appear as logged-in on ONE PC at a time in the teacher dashboard.
+            $pcChanged = false;
             if (
                 $hasComputerNameColumn &&
                 $computerName &&
+                $activeSession->computer_name &&
                 $activeSession->computer_name !== $labContext['computer_name']
             ) {
-                $activeSession->computer_name = $labContext['computer_name'];
-                $hasChanges = true;
+                $pcChanged = true;
             }
-
-            if (
-                $hasGatewayIpColumn &&
-                $gatewayIp !== null &&
-                $activeSession->gateway_ip !== $labContext['gateway_ip']
-            ) {
-                $activeSession->gateway_ip = $labContext['gateway_ip'];
-                $hasChanges = true;
-            }
-
-            if (
-                $hasLaboratoryRoomColumn &&
-                $gatewayIp !== null &&
-                $activeSession->laboratory_room !== $labContext['laboratory_room']
-            ) {
-                $activeSession->laboratory_room = $labContext['laboratory_room'];
-                $hasChanges = true;
-            }
-
-            if ($desktopPatch !== [] && Schema::hasColumn('monitoring_sessions', 'device_info')) {
-                $merged = $this->mergeDesktopIntoDeviceInfo($activeSession->device_info, $desktopPatch);
-                $before = json_encode($activeSession->device_info ?? []);
-                $after = json_encode($merged);
-                if ($before !== $after) {
-                    $activeSession->device_info = $merged;
-                    $hasChanges = true;
+            if (! $pcChanged) {
+                $gatewayChanged = false;
+                if (
+                    $hasGatewayIpColumn &&
+                    $gatewayIp !== null &&
+                    $activeSession->gateway_ip !== null &&
+                    $activeSession->gateway_ip !== $labContext['gateway_ip']
+                ) {
+                    $gatewayChanged = true;
+                }
+                if ($gatewayChanged) {
+                    // Gateway shifted to a different lab subnet but computer_name
+                    // is the same (unlikely) — still treat as PC/lab change.
+                    $pcChanged = true;
                 }
             }
 
-            if ($hasChanges) {
-                $activeSession->save();
+            if ($pcChanged) {
+                // End the old session so the old PC card disappears.
+                $activeSession->update([
+                    'is_active' => false,
+                    'session_end' => now(),
+                ]);
+
+                $payload = [
+                    'student_user_id' => $user->id,
+                    'session_start' => now(),
+                    'is_active' => true,
+                    'session_name' => 'Auto-started Session',
+                    'created_by' => $user->id,
+                ];
+                if ($hasComputerNameColumn) {
+                    $payload['computer_name'] = $labContext['computer_name'];
+                }
+                if ($hasGatewayIpColumn) {
+                    $payload['gateway_ip'] = $labContext['gateway_ip'];
+                }
+                if ($hasLaboratoryRoomColumn) {
+                    $payload['laboratory_room'] = $labContext['laboratory_room'];
+                }
+                if ($desktopPatch !== [] && Schema::hasColumn('monitoring_sessions', 'device_info')) {
+                    $payload['device_info'] = $this->mergeDesktopIntoDeviceInfo(null, $desktopPatch);
+                }
+
+                $activeSession = MonitoringSession::create($payload);
             } else {
-                $activeSession->touch(); // Updates updated_at
+                if (
+                    $hasComputerNameColumn &&
+                    $computerName &&
+                    $activeSession->computer_name !== $labContext['computer_name']
+                ) {
+                    $activeSession->computer_name = $labContext['computer_name'];
+                    $hasChanges = true;
+                }
+
+                if (
+                    $hasGatewayIpColumn &&
+                    $gatewayIp !== null &&
+                    $activeSession->gateway_ip !== $labContext['gateway_ip']
+                ) {
+                    $activeSession->gateway_ip = $labContext['gateway_ip'];
+                    $hasChanges = true;
+                }
+
+                if (
+                    $hasLaboratoryRoomColumn &&
+                    $gatewayIp !== null &&
+                    $activeSession->laboratory_room !== $labContext['laboratory_room']
+                ) {
+                    $activeSession->laboratory_room = $labContext['laboratory_room'];
+                    $hasChanges = true;
+                }
+
+                if ($desktopPatch !== [] && Schema::hasColumn('monitoring_sessions', 'device_info')) {
+                    $merged = $this->mergeDesktopIntoDeviceInfo($activeSession->device_info, $desktopPatch);
+                    $before = json_encode($activeSession->device_info ?? []);
+                    $after = json_encode($merged);
+                    if ($before !== $after) {
+                        $activeSession->device_info = $merged;
+                        $hasChanges = true;
+                    }
+                }
+
+                if ($hasChanges) {
+                    $activeSession->save();
+                } else {
+                    $activeSession->touch(); // Updates updated_at
+                }
             }
         } else {
             // Auto-start a session if none exists
@@ -242,7 +301,108 @@ class BrowserActivityController extends Controller
             $activeSession = MonitoringSession::create($payload);
         }
 
-        return response()->json(['success' => true]);
+        // Return lock state so the Desktop App can show/hide the overlay each heartbeat
+        $isLocked = (bool) ($activeSession->is_locked ?? false);
+        $lockMessage = $activeSession->lock_message ?? null;
+
+        // Check if there is an active screen share presentation for this student
+        $presentationRow = null;
+        if (Schema::hasTable('presentation_sessions')) {
+            $presentationQuery = DB::table('presentation_sessions as ps')
+                ->join('users as t', 't.id', '=', 'ps.teacher_user_id')
+                ->where('ps.status', 'active')
+                ->where('ps.updated_at', '>=', now()->subSeconds(60));
+
+            $hasSubjectIdCol = Schema::hasColumn('presentation_sessions', 'subject_id');
+            if ($hasSubjectIdCol) {
+                $presentationQuery->leftJoin('subjects as s', 's.id', '=', 'ps.subject_id')
+                    ->where(function ($query) use ($user) {
+                        $query->where(function ($specific) use ($user) {
+                            $specific->whereNotNull('ps.subject_id')
+                                ->whereExists(function ($sub) use ($user) {
+                                    $sub->select(DB::raw(1))
+                                        ->from('subject_enrollments')
+                                        ->whereColumn('subject_enrollments.subject_id', 'ps.subject_id')
+                                        ->where('subject_enrollments.student_id', $user->id)
+                                        ->where('subject_enrollments.status', 'active');
+                                });
+                        })->orWhere(function ($fallback) use ($user) {
+                            $fallback->whereNull('ps.subject_id')
+                                ->whereExists(function ($sub) use ($user) {
+                                    $sub->select(DB::raw(1))
+                                        ->from('subject_enrollments')
+                                        ->join('subjects', 'subjects.id', '=', 'subject_enrollments.subject_id')
+                                        ->whereColumn('subjects.teacher_user_id', 'ps.teacher_user_id')
+                                        ->where('subject_enrollments.student_id', $user->id)
+                                        ->where('subject_enrollments.status', 'active');
+                                });
+                        });
+                    })
+                    ->select(
+                        'ps.public_uuid',
+                        'ps.teacher_user_id',
+                        'ps.subject_id',
+                        't.full_name as teacher_name',
+                        's.code as subject_code',
+                        's.name as subject_name'
+                    );
+            } else {
+                $presentationQuery->whereExists(function ($sub) use ($user) {
+                    $sub->select(DB::raw(1))
+                        ->from('subject_enrollments')
+                        ->join('subjects', 'subjects.id', '=', 'subject_enrollments.subject_id')
+                        ->whereColumn('subjects.teacher_user_id', 'ps.teacher_user_id')
+                        ->where('subject_enrollments.student_id', $user->id)
+                        ->where('subject_enrollments.status', 'active');
+                })
+                ->select(
+                    'ps.public_uuid',
+                    'ps.teacher_user_id',
+                    't.full_name as teacher_name'
+                );
+            }
+
+            $presentationRow = $presentationQuery->orderByDesc('ps.id')->first();
+        }
+
+        $isPresenting = $presentationRow !== null;
+        $subjectDisplay = null;
+        if ($presentationRow && !empty($presentationRow->subject_id)) {
+            $code = $presentationRow->subject_code ?? '';
+            $name = $presentationRow->subject_name ?? '';
+            $subjectDisplay = trim(($code ? $code . ' - ' : '') . $name);
+        }
+
+        // Active quiz the student still has to finish (locks the Desktop App until submitted)
+        $activeQuiz = null;
+        try {
+            if (Schema::hasTable('quizzes') && Schema::hasTable('quiz_attempts')) {
+                $pending = \App\Http\Controllers\Api\QuizController::pendingQuizForStudent((int) $user->id);
+                if ($pending) {
+                    $activeQuiz = [
+                        'id' => (int) $pending->id,
+                        'title' => $pending->title,
+                        'subject_name' => trim(($pending->subject_code ? $pending->subject_code . ' - ' : '') . ($pending->subject_name ?? '')),
+                        'time_limit_minutes' => (int) $pending->time_limit_minutes,
+                        'total_questions' => (int) $pending->total_questions,
+                    ];
+                }
+            }
+        } catch (\Throwable $e) {
+            $activeQuiz = null;
+        }
+
+        return response()->json([
+            'success'                   => true,
+            'is_locked'                 => $isLocked,
+            'lock_message'              => $lockMessage,
+            'is_presenting'             => $isPresenting,
+            'presentation_session_uuid' => $presentationRow?->public_uuid,
+            'presentation_teacher_name' => $presentationRow?->teacher_name,
+            'presentation_subject_name' => $subjectDisplay,
+            'is_quiz_active'            => $activeQuiz !== null,
+            'active_quiz'               => $activeQuiz,
+        ]);
     }
 
     /**
@@ -264,13 +424,27 @@ class BrowserActivityController extends Controller
                 'session_end' => now(),
             ]);
 
-        // Revoke the current access token to prevent 'ghost' heartbeats
-        // from the Chrome Extension creating new stray sessions.
-        $user->currentAccessToken()->delete();
+        // Revoke EVERY active personal access token owned by this student.
+        //
+        // The student typically has at least TWO tokens in flight:
+        //   1. token issued to the Electron Desktop App (screen capture + PC bind)
+        //   2. token issued to the Chrome Browser Extension (tab tracking)
+        //
+        // `currentAccessToken()->delete()` (the old approach) only killed the
+        // token used for THIS logout request, leaving the OTHER token alive.
+        // That surviving token would keep sending heartbeats every ~3s and
+        // immediately recreate a "fresh" MonitoringSession row, making the
+        // student appear logged in on a PC that they had already vacated.
+        //
+        // Deleting every token forces BOTH clients to re-authenticate the next
+        // time they try to hit an auth:sanctum endpoint — which requires a
+        // real login form submit.
+        $user->tokens()->delete();
 
         return response()->json([
             'success' => true,
-            'sessions_ended' => $updated
+            'sessions_ended' => $updated,
+            'tokens_revoked' => true
         ]);
     }
 
@@ -285,8 +459,8 @@ class BrowserActivityController extends Controller
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
-        // Students active in the last 2 minutes
-        $threshold = now()->subMinutes(2);
+        // Students active in the last 20 seconds (matches screen monitoring threshold)
+        $threshold = now()->subSeconds(20);
 
         $query = MonitoringSession::where('is_active', true)
             ->where('updated_at', '>=', $threshold)
@@ -340,6 +514,9 @@ class BrowserActivityController extends Controller
                 ? $session->session_end->toIso8601String()
                 : null;
             $student->desktop_telemetry = $desktop !== [] ? $desktop : null;
+            $student->is_locked = (bool) ($session->is_locked ?? false);
+            $student->lock_message = $session->lock_message;
+            $student->locked_at = $session->locked_at ? $session->locked_at->toIso8601String() : null;
 
             return $student;
         })->filter()->unique('id')->values();
@@ -366,7 +543,7 @@ class BrowserActivityController extends Controller
         return response()->json([
             'is_active' => $session ? true : false,
             'last_heartbeat' => $session ? $session->updated_at : null,
-            'is_extension_connected' => $session && $session->updated_at >= now()->subMinutes(2)
+            'is_extension_connected' => $session && $session->updated_at >= now()->subSeconds(20)
         ]);
     }
 
@@ -817,6 +994,92 @@ class BrowserActivityController extends Controller
             'success' => true,
             'message' => 'Commands cleared successfully',
             'deleted_count' => $deletedCount
+        ]);
+    }
+
+    /**
+     * Lock a student PC remotely (Admin/Teacher only).
+     * Finds the most recent active session for the given computer_name and sets is_locked = true.
+     */
+    public function lockPc(Request $request)
+    {
+        $request->validate([
+            'computer_name' => 'required|string|max:255',
+            'message'       => 'nullable|string|max:500',
+        ]);
+
+        $user = Auth::user();
+
+        if (!in_array($user->role, ['admin', 'teacher'])) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $computerName = strtoupper(trim($request->computer_name));
+
+        $session = MonitoringSession::where('computer_name', $computerName)
+            ->where('is_active', true)
+            ->latest('session_start')
+            ->first();
+
+        if (!$session) {
+            return response()->json([
+                'error' => 'No active student session found on this PC. The student may not be logged in.',
+            ], 404);
+        }
+
+        $session->update([
+            'is_locked'    => true,
+            'lock_message' => $request->message ?: 'This PC has been locked by your instructor.',
+            'locked_by'    => $user->id,
+            'locked_at'    => now(),
+        ]);
+
+        return response()->json([
+            'success'       => true,
+            'message'       => 'PC locked successfully.',
+            'computer_name' => $computerName,
+            'locked_by'     => $user->name ?? $user->email,
+        ]);
+    }
+
+    /**
+     * Unlock a student PC remotely (Admin/Teacher only).
+     */
+    public function unlockPc(Request $request)
+    {
+        $request->validate([
+            'computer_name' => 'required|string|max:255',
+        ]);
+
+        $user = Auth::user();
+
+        if (!in_array($user->role, ['admin', 'teacher'])) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $computerName = strtoupper(trim($request->computer_name));
+
+        // Unlock all active sessions for this computer (handles edge cases of multiple sessions)
+        $updated = MonitoringSession::where('computer_name', $computerName)
+            ->where('is_active', true)
+            ->where('is_locked', true)
+            ->update([
+                'is_locked'    => false,
+                'lock_message' => null,
+                'locked_by'    => null,
+                'locked_at'    => null,
+            ]);
+
+        if ($updated === 0) {
+            return response()->json([
+                'error' => 'No locked active session found for this PC.',
+            ], 404);
+        }
+
+        return response()->json([
+            'success'       => true,
+            'message'       => 'PC unlocked successfully.',
+            'computer_name' => $computerName,
         ]);
     }
 

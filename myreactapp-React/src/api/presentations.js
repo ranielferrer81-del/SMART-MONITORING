@@ -1,7 +1,8 @@
 import { api } from './client';
 
-export async function presentationStart() {
-  const { data } = await api.post('/api/presentations/start');
+export async function presentationStart(subjectId = null) {
+  const payload = subjectId ? { subject_id: subjectId } : {};
+  const { data } = await api.post('/api/presentations/start', payload);
   return data;
 }
 

@@ -33,7 +33,7 @@ const StudentProfileModal = ({
                 {/* Modal Header */}
                 <div className="flex flex-row items-center justify-between p-4 sm:p-6 border-b border-slate-200 dark:border-slate-800">
                     <div>
-                        <h3 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent dark:from-indigo-400 dark:to-purple-400">
+                        <h3 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-red-600 to-rose-600 bg-clip-text text-transparent dark:from-red-400 dark:to-rose-400">
                             Student Profile
                         </h3>
                         <p className="text-xs sm:text-sm text-slate-600 mt-1 dark:text-slate-400">
@@ -93,7 +93,7 @@ const StudentProfileModal = ({
                             </div>
                             <div>
                                 <span className={`px-4 py-2 inline-flex text-sm leading-5 font-semibold rounded-full ${selectedStudent.is_active
-                                    ? 'bg-green-100 text-green-800'
+                                    ? 'bg-red-100 text-red-800'
                                     : 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-200'
                                     }`}>
                                     {selectedStudent.is_active ? 'Active' : 'Inactive'}
@@ -116,7 +116,7 @@ const StudentProfileModal = ({
                                 <div className="flex flex-col items-center justify-center space-y-4">
                                     <div className="relative w-48 h-48">
                                         <div
-                                            className="absolute inset-0 rounded-full shadow-lg shadow-indigo-500/10 border border-white/80 dark:border-slate-800"
+                                            className="absolute inset-0 rounded-full shadow-lg shadow-red-500/10 border border-white/80 dark:border-slate-800"
                                             style={{ backgroundImage: attendanceChartGradient }}
                                         ></div>
                                         <div className="absolute inset-4 bg-white rounded-full flex flex-col items-center justify-center shadow-inner dark:bg-slate-950">
@@ -207,7 +207,7 @@ const StudentProfileModal = ({
                                                 setUpdatingAttendance(false);
                                             }
                                         }}
-                                        className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow disabled:opacity-60 disabled:cursor-not-allowed"
+                                        className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold shadow disabled:opacity-60 disabled:cursor-not-allowed"
                                     >
                                         Mark Present
                                     </button>
@@ -245,7 +245,7 @@ const StudentProfileModal = ({
                                                 setUpdatingAttendance(false);
                                             }
                                         }}
-                                        className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold shadow disabled:opacity-60 disabled:cursor-not-allowed"
+                                        className="px-3 py-1.5 rounded-lg bg-rose-500 hover:bg-rose-600 text-white text-xs font-semibold shadow disabled:opacity-60 disabled:cursor-not-allowed"
                                     >
                                         Mark Late
                                     </button>
@@ -364,3 +364,5 @@ const StudentProfileModal = ({
 };
 
 export default StudentProfileModal;
+
+

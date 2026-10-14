@@ -6,7 +6,9 @@ import {
     getIncognitoAlerts,
     eraseStudentMonitoringHistory,
     forceCloseStudentBrowser,
-    forceCloseStudentTab
+    forceCloseStudentTab,
+    lockStudentPc,
+    unlockStudentPc
 } from '../api/browserMonitoring';
 import { getApiBase } from '../config/apiBase';
 
@@ -23,6 +25,9 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
     const [tabCloseConfirm, setTabCloseConfirm] = useState(null);
     const [tabCloseNotice, setTabCloseNotice] = useState(null);
     const [isSendingTabClose, setIsSendingTabClose] = useState(false);
+    const [lockModalTarget, setLockModalTarget] = useState(null);
+    const [actionLoading, setActionLoading] = useState('');
+    const [lockNotice, setLockNotice] = useState(null);
 
     // Poll online students and alerts
     useEffect(() => {
@@ -83,6 +88,65 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
         }
     };
 
+    const handleLockSubmit = async (computerName, message) => {
+        if (!computerName) return;
+        setActionLoading(computerName);
+        try {
+            const res = await lockStudentPc(computerName, message);
+            if (res.ok) {
+                setOnlineStudents(prev =>
+                    prev.map(s => (s.computer_name === computerName ? { ...s, is_locked: true, lock_message: message } : s))
+                );
+                setLockNotice({
+                    type: 'success',
+                    message: `PC ${computerName} is now locked.`,
+                });
+                setLockModalTarget(null);
+            } else {
+                setLockNotice({
+                    type: 'error',
+                    message: `Failed to lock PC: ${res.error || 'Unknown error'}`,
+                });
+            }
+        } catch (err) {
+            setLockNotice({
+                type: 'error',
+                message: `Error locking PC: ${err.message}`,
+            });
+        } finally {
+            setActionLoading('');
+        }
+    };
+
+    const handleUnlockClick = async (computerName) => {
+        if (!computerName) return;
+        setActionLoading(computerName);
+        try {
+            const res = await unlockStudentPc(computerName);
+            if (res.ok) {
+                setOnlineStudents(prev =>
+                    prev.map(s => (s.computer_name === computerName ? { ...s, is_locked: false, lock_message: null } : s))
+                );
+                setLockNotice({
+                    type: 'success',
+                    message: `PC ${computerName} has been unlocked.`,
+                });
+            } else {
+                setLockNotice({
+                    type: 'error',
+                    message: `Failed to unlock PC: ${res.error || 'Unknown error'}`,
+                });
+            }
+        } catch (err) {
+            setLockNotice({
+                type: 'error',
+                message: `Error unlocking PC: ${err.message}`,
+            });
+        } finally {
+            setActionLoading('');
+        }
+    };
+
     const handleViewActivity = async (student) => {
         setCurrentViewStudent(student);
         setActivityModalOpen(true);
@@ -93,6 +157,7 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
             setStudentActivity([]);
         }
     };
+
 
     // Group students by course and section
     const groupedStudents = enrolledStudents.reduce((acc, student) => {
@@ -336,7 +401,7 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm">
                                                 {isStudentOnline(student.id) && computerName ? (
-                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-mono text-xs border border-blue-200 dark:border-blue-800">
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-50 dark:bg-slate-900/20 text-red-700 dark:text-red-300 font-mono text-xs border border-slate-200 dark:border-slate-800">
                                                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                                                         </svg>
@@ -348,7 +413,7 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm">
                                                 {isStudentOnline(student.id) ? (
-                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 font-medium text-xs border border-purple-200 dark:border-purple-800">
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-50 dark:bg-slate-900/20 text-red-700 dark:text-red-300 font-medium text-xs border border-red-200 dark:border-red-800">
                                                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -361,12 +426,17 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 {isStudentOnline(student.id) ? (
-                                                    <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 border border-green-200">
+                                                    <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800 border border-red-200">
                                                         Online
                                                     </span>
                                                 ) : (
                                                     <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-slate-100 text-slate-500 border border-slate-200">
                                                         Offline
+                                                    </span>
+                                                )}
+                                                {onlineInfo?.is_locked && (
+                                                    <span className="ml-2 px-2.5 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-red-600 text-white animate-pulse shadow-sm">
+                                                        🔒 Locked
                                                     </span>
                                                 )}
                                                 {hasIncognitoAlert(student.id) && (
@@ -376,12 +446,41 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
                                                 )}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                                <button
-                                                    onClick={() => handleViewActivity(student)}
-                                                    className="text-rose-600 hover:text-rose-900 dark:text-rose-400 dark:hover:text-rose-300 font-medium"
-                                                >
-                                                    View Activity
-                                                </button>
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => handleViewActivity(student)}
+                                                        className="text-rose-600 hover:text-rose-900 dark:text-rose-400 dark:hover:text-rose-300 font-medium text-xs px-2.5 py-1 rounded-lg border border-rose-200 dark:border-rose-800 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                                                    >
+                                                        View Activity
+                                                    </button>
+                                                    {isStudentOnline(student.id) && computerName && (
+                                                        onlineInfo?.is_locked ? (
+                                                            <button
+                                                                onClick={() => handleUnlockClick(computerName)}
+                                                                disabled={actionLoading === computerName}
+                                                                className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white shadow-sm transition-colors disabled:opacity-50"
+                                                                title="Unlock this student PC"
+                                                            >
+                                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                                                                </svg>
+                                                                {actionLoading === computerName ? '…' : 'Unlock'}
+                                                            </button>
+                                                        ) : (
+                                                            <button
+                                                                onClick={() => setLockModalTarget({ student, computer_name: computerName })}
+                                                                disabled={actionLoading === computerName}
+                                                                className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white shadow-sm transition-colors disabled:opacity-50"
+                                                                title="Lock this student PC"
+                                                            >
+                                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                                                </svg>
+                                                                Lock
+                                                            </button>
+                                                        )
+                                                    )}
+                                                </div>
                                             </td>
                                         </tr>
                                     );
@@ -409,10 +508,51 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
                 <div className="fixed inset-0 z-[100] flex items-start justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm pt-8 sm:pt-20">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] sm:max-h-[85vh] overflow-hidden flex flex-col border border-slate-200 dark:border-slate-700">
                         <div className="p-4 sm:p-6 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-900/50 gap-2">
-                            <h3 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-slate-50 min-w-0 truncate">
-                                Activity for {currentViewStudent.full_name}
-                            </h3>
+                            <div className="flex items-center gap-2 min-w-0">
+                                <h3 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-slate-50 truncate">
+                                    Activity for {currentViewStudent.full_name}
+                                </h3>
+                                {(() => {
+                                    const activeInfo = onlineStudents.find(s => s.id === currentViewStudent.id);
+                                    return activeInfo?.is_locked ? (
+                                        <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-red-600 text-white uppercase tracking-wider animate-pulse flex-shrink-0">
+                                            🔒 Locked
+                                        </span>
+                                    ) : null;
+                                })()}
+                            </div>
                             <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3 flex-shrink-0">
+                                {(() => {
+                                    const activeInfo = onlineStudents.find(s => s.id === currentViewStudent.id);
+                                    const pcName = activeInfo?.display_name || activeInfo?.computer_name;
+                                    if (!pcName) return null;
+
+                                    return activeInfo?.is_locked ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => handleUnlockClick(pcName)}
+                                            disabled={actionLoading === pcName}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 sm:py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold text-xs sm:text-sm transition-colors shadow-md disabled:opacity-50"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                                            </svg>
+                                            <span>{actionLoading === pcName ? 'Unlocking…' : 'Unlock PC'}</span>
+                                        </button>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            onClick={() => setLockModalTarget({ student: currentViewStudent, computer_name: pcName })}
+                                            disabled={actionLoading === pcName}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 sm:py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-semibold text-xs sm:text-sm transition-colors shadow-md disabled:opacity-50"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                            </svg>
+                                            <span>Lock PC</span>
+                                        </button>
+                                    );
+                                })()}
                                 {userRole === 'admin' && (
                                     <button
                                         type="button"
@@ -433,7 +573,7 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
                                                 alert(e.message || 'Failed to erase history');
                                             }
                                         }}
-                                        className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-semibold text-sm sm:text-base transition-colors shadow-md"
+                                        className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-semibold text-sm sm:text-base transition-colors shadow-md"
                                         title="Delete stored monitoring log from the server; does not close student tabs"
                                     >
                                         <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -475,7 +615,7 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
                         {tabCloseNotice && (
                             <div className={`mx-4 sm:mx-6 mt-4 rounded-lg border px-4 py-3 text-sm ${
                                 tabCloseNotice.type === 'success'
-                                    ? 'border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300'
+                                    ? 'border-red-300 bg-red-50 text-red-800 dark:border-red-700 dark:bg-red-900/20 dark:text-red-300'
                                     : 'border-red-300 bg-red-50 text-red-800 dark:border-red-700 dark:bg-red-900/20 dark:text-red-300'
                             }`}>
                                 <div className="flex items-center justify-between gap-3">
@@ -508,7 +648,7 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
                                                     <td className="px-6 py-4 text-center sticky left-0 bg-white dark:bg-slate-800 z-10 border-r border-slate-200 dark:border-slate-700">
                                                         <button
                                                             onClick={() => requestTabClose(currentViewStudent, log)}
-                                                            className="inline-flex items-center px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold rounded-lg transition-all duration-200 shadow hover:shadow-md transform hover:scale-105"
+                                                            className="inline-flex items-center px-3 py-1.5 bg-rose-500 hover:bg-rose-600 text-white text-xs font-semibold rounded-lg transition-all duration-200 shadow hover:shadow-md transform hover:scale-105"
                                                             title="Close this tab on student's browser"
                                                         >
                                                             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -577,11 +717,111 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
                                 type="button"
                                 onClick={submitTabClose}
                                 disabled={isSendingTabClose}
-                                className="px-4 py-2 rounded-lg bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-60"
+                                className="px-4 py-2 rounded-lg bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-60"
                             >
                                 {isSendingTabClose ? 'Sending...' : 'Send Close Command'}
                             </button>
                         </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* Lock PC Modal Portal */}
+            {lockModalTarget && createPortal(
+                <div
+                    className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn"
+                    onClick={() => setLockModalTarget(null)}
+                    role="presentation"
+                >
+                    <div
+                        className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-700 relative text-left"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 rounded-full bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 flex items-center justify-center flex-shrink-0">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Lock Student PC</h3>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                    Show lock screen overlay on student's computer
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="bg-slate-50 dark:bg-slate-800/60 rounded-xl p-3.5 mb-4 border border-slate-200/80 dark:border-slate-700 text-xs space-y-1.5">
+                            <div className="flex justify-between">
+                                <span className="text-slate-500 dark:text-slate-400 font-medium">Student:</span>
+                                <span className="font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[200px]">
+                                    {lockModalTarget.student?.full_name || 'Student'}
+                                </span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-slate-500 dark:text-slate-400 font-medium">Computer:</span>
+                                <span className="font-mono font-bold text-rose-600 dark:text-rose-400">
+                                    {lockModalTarget.computer_name}
+                                </span>
+                            </div>
+                        </div>
+
+                        <form
+                            onSubmit={(e) => {
+                                e.preventDefault();
+                                const msg = e.target.elements.message.value;
+                                handleLockSubmit(lockModalTarget.computer_name, msg.trim());
+                            }}
+                            className="space-y-4"
+                        >
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
+                                    Lock Message (Displayed to student)
+                                </label>
+                                <textarea
+                                    name="message"
+                                    rows={3}
+                                    defaultValue="This PC has been locked by your instructor."
+                                    placeholder="Enter message for student screen..."
+                                    className="w-full text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-rose-500/50 focus:border-rose-500 resize-none"
+                                    maxLength={500}
+                                />
+                            </div>
+
+                            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-200 dark:border-slate-700">
+                                <button
+                                    type="button"
+                                    onClick={() => setLockModalTarget(null)}
+                                    disabled={actionLoading === lockModalTarget.computer_name}
+                                    className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={actionLoading === lockModalTarget.computer_name}
+                                    className="px-4 py-2 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-md transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                                >
+                                    {actionLoading === lockModalTarget.computer_name ? (
+                                        <>
+                                            <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                            </svg>
+                                            Locking…
+                                        </>
+                                    ) : (
+                                        <>
+                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                            </svg>
+                                            Lock PC
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>,
                 document.body
@@ -591,3 +831,5 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
 };
 
 export default BrowserMonitoringDashboard;
+
+

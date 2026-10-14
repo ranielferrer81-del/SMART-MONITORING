@@ -17,13 +17,21 @@ class MonitoringSession extends Model
         'is_active',
         'session_name',
         'created_by',
+        'is_locked',
+        'lock_message',
+        'locked_by',
+        'locked_at',
+        'open_tabs',
     ];
 
     protected $casts = [
         'session_start' => 'datetime',
-        'session_end' => 'datetime',
-        'device_info' => 'array',
-        'is_active' => 'boolean',
+        'session_end'   => 'datetime',
+        'locked_at'     => 'datetime',
+        'device_info'   => 'array',
+        'is_active'     => 'boolean',
+        'is_locked'     => 'boolean',
+        'open_tabs'     => 'array',
     ];
 
     public function student()

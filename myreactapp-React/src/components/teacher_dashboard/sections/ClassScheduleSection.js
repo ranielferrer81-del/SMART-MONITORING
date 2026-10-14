@@ -56,7 +56,7 @@ export default function ClassScheduleSection({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-indigo-200/60 bg-white/75 p-4 shadow-sm dark:border-indigo-800/40 dark:bg-slate-900/50">
+      <div className="rounded-2xl border border-red-200/60 bg-white/75 p-4 shadow-sm dark:border-red-800/40 dark:bg-slate-900/50">
         <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Class Schedule</h3>
         <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">Manage class day/time for PIN attendance windows.</p>
         <div className="mt-3">
@@ -104,7 +104,7 @@ export default function ClassScheduleSection({
             </div>
           </div>
           <div className="mt-4 flex justify-end">
-            <button onClick={saveSlot} disabled={saving} className="rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg disabled:opacity-50">
+            <button onClick={saveSlot} disabled={saving} className="rounded-xl bg-gradient-to-r from-red-600 to-rose-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg disabled:opacity-50">
               {saving ? 'Saving...' : 'Save Schedule'}
             </button>
           </div>
@@ -126,7 +126,7 @@ export default function ClassScheduleSection({
                 <div key={`${slot.day_of_week}-${slot.start_time}-${idx}`} className="flex items-center justify-between rounded-lg border border-slate-200 bg-white/80 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900/50">
                   <span className="font-medium text-slate-800 dark:text-slate-100">{dayOptions.find((d) => d.value === slot.day_of_week)?.label || `Day ${slot.day_of_week}`}</span>
                   <span className="text-slate-700 dark:text-slate-300">{slot.start_time} - {slot.end_time}</span>
-                  <span className="text-xs text-indigo-700 dark:text-indigo-300">Grace {slot.late_grace_minutes}m</span>
+                  <span className="text-xs text-red-700 dark:text-red-300">Grace {slot.late_grace_minutes}m</span>
                 </div>
               ))}
           </div>
@@ -135,4 +135,5 @@ export default function ClassScheduleSection({
     </div>
   );
 }
+
 

@@ -65,18 +65,18 @@ const AttendanceHistoryModal = ({
                                         setShowEditModal(true);
                                     }}
                                     className={`flex items-center justify-between p-4 rounded-lg border cursor-pointer transition-all hover:shadow-lg hover:scale-[1.02] ${record.status === 'present'
-                                        ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-900/30'
+                                        ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/30'
                                         : record.status === 'late'
-                                            ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/30'
+                                            ? 'bg-rose-50 dark:bg-rose-900/20 border-rose-200 dark:border-rose-800 hover:bg-rose-100 dark:hover:bg-rose-900/30'
                                             : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/30'
                                         }`}
                                 >
                                     <div className="flex-1">
                                         <div className="flex items-center space-x-4 mb-2">
                                             <span className={`px-3 py-1.5 text-sm font-semibold rounded-lg ${record.status === 'present'
-                                                ? 'bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200'
+                                                ? 'bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200'
                                                 : record.status === 'late'
-                                                    ? 'bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200'
+                                                    ? 'bg-rose-200 dark:bg-rose-800 text-rose-800 dark:text-rose-200'
                                                     : 'bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200'
                                                 }`}>
                                                 {record.status === 'present' ? 'Present' : record.status === 'late' ? 'Late' : 'Absent'}
@@ -107,7 +107,7 @@ const AttendanceHistoryModal = ({
                                                 Source: {record.source || 'manual'}
                                             </span>
                                             {record.mark_reason && (
-                                                <span className="rounded bg-indigo-100 px-2 py-1 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-200">
+                                                <span className="rounded bg-slate-100 px-2 py-1 text-red-700 dark:bg-slate-900/40 dark:text-red-200">
                                                     Note: {record.mark_reason}
                                                 </span>
                                             )}
@@ -138,3 +138,5 @@ const AttendanceHistoryModal = ({
 };
 
 export default AttendanceHistoryModal;
+
+

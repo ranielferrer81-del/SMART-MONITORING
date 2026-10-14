@@ -2,6 +2,12 @@
 // Also sends direct heartbeats to the backend so computer tracking works without Chrome
 const express = require('express');
 const cors = require('cors');
+const {
+    setScreenCaptureContext,
+    clearScreenCaptureContext,
+    startScreenCaptureLoop,
+    stopScreenCaptureLoop,
+} = require('./screen-capture.cjs');
 
 // Backend API URL - set dynamically from main.ts (reads Desktop App .env)
 let apiBaseUrl = 'http://127.0.0.1:8000/api';
@@ -169,6 +175,14 @@ function setStudentCredentials(studentData) {
     }
 
     startDirectHeartbeat();
+
+    setScreenCaptureContext({
+        apiBaseUrl: apiBaseUrl.replace(/\/api\/?$/i, ''),
+        token: copy.token,
+        computerName: computerName,
+        gatewayIp: gatewayIp,
+    });
+    startScreenCaptureLoop();
 }
 
 function clearStudentCredentials() {
@@ -176,6 +190,8 @@ function clearStudentCredentials() {
     logoutSignal++;
     resetDesktopHeartbeatFields();
     stopDirectHeartbeat();
+    stopScreenCaptureLoop();
+    clearScreenCaptureContext();
     console.log('✅ Student logged out from monitoring (signal:', logoutSignal + ')');
 }
 

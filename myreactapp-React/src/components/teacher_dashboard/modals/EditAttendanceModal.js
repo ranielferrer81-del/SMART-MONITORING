@@ -115,9 +115,9 @@ const EditAttendanceModal = ({
                     <div className="mb-6">
                         <p className="text-sm font-medium text-slate-900 dark:text-slate-50 font-semibold mb-3">Current Status:</p>
                         <div className={`inline-block px-4 py-2 rounded-lg font-semibold ${editingRecord.status === 'present'
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200'
+                            ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200'
                             : editingRecord.status === 'late'
-                                ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200'
+                                ? 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-200'
                                 : 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200'
                             }`}>
                             {editingRecord.status === 'present' ? 'Present' : editingRecord.status === 'late' ? 'Late' : 'Absent'}
@@ -131,8 +131,8 @@ const EditAttendanceModal = ({
                                 onClick={() => handleUpdateStatus('present')}
                                 disabled={updatingRecord || editingRecord.status === 'present'}
                                 className={`px-4 py-3 rounded-lg font-semibold text-sm transition-all ${editingRecord.status === 'present'
-                                    ? 'bg-green-200 text-green-800 cursor-not-allowed opacity-60 dark:bg-green-900/60 dark:text-green-300'
-                                    : 'bg-green-600 hover:bg-green-700 text-white shadow hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed'
+                                    ? 'bg-red-200 text-red-800 cursor-not-allowed opacity-60 dark:bg-red-900/60 dark:text-red-300'
+                                    : 'bg-red-600 hover:bg-red-700 text-white shadow hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed'
                                     }`}
                             >
                                 Present
@@ -141,8 +141,8 @@ const EditAttendanceModal = ({
                                 onClick={() => handleUpdateStatus('late')}
                                 disabled={updatingRecord || editingRecord.status === 'late'}
                                 className={`px-4 py-3 rounded-lg font-semibold text-sm transition-all ${editingRecord.status === 'late'
-                                    ? 'bg-amber-200 text-amber-800 cursor-not-allowed opacity-60 dark:bg-amber-900/60 dark:text-amber-300'
-                                    : 'bg-amber-500 hover:bg-amber-600 text-white shadow hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed'
+                                    ? 'bg-rose-200 text-rose-800 cursor-not-allowed opacity-60 dark:bg-rose-900/60 dark:text-rose-300'
+                                    : 'bg-rose-500 hover:bg-rose-600 text-white shadow hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed'
                                     }`}
                             >
                                 Late
@@ -176,3 +176,5 @@ const EditAttendanceModal = ({
 };
 
 export default EditAttendanceModal;
+
+

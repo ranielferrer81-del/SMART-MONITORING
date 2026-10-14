@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   studentLoggedOut: () => ipcRenderer.invoke('student-logged-out'),
   reportDesktopScreen: (screenName: string) => ipcRenderer.invoke('desktop-screen-changed', screenName),
   quitApp: () => ipcRenderer.invoke('quit-app'),
+  getStudentToken: (): Promise<string | null> => ipcRenderer.invoke('get-student-token'),
   onLockScreenReset: (callback: () => void) => {
     const listener = () => callback();
     ipcRenderer.on('lock-screen-reset', listener);
@@ -20,5 +21,76 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.removeListener('lock-screen-reset', listener);
     };
   },
+  onPcLocked: (callback: (message: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, message: string) => callback(message);
+    ipcRenderer.on('pc-locked', listener);
+    return () => {
+      ipcRenderer.removeListener('pc-locked', listener);
+    };
+  },
+  onPcUnlocked: (callback: () => void) => {
+    const listener = () => callback();
+    ipcRenderer.on('pc-unlocked', listener);
+    return () => {
+      ipcRenderer.removeListener('pc-unlocked', listener);
+    };
+  },
+  onPresentationStart: (
+    callback: (data: {
+      sessionUuid: string;
+      teacherName: string | null;
+      subjectName: string | null;
+      token: string | null;
+    }) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      data: { sessionUuid: string; teacherName: string | null; subjectName: string | null; token: string | null }
+    ) => callback(data);
+    ipcRenderer.on('presentation-start', listener);
+    return () => {
+      ipcRenderer.removeListener('presentation-start', listener);
+    };
+  },
+  onPresentationEnd: (callback: () => void) => {
+    const listener = () => callback();
+    ipcRenderer.on('presentation-end', listener);
+    return () => {
+      ipcRenderer.removeListener('presentation-end', listener);
+    };
+  },
+  onQuizStart: (
+    callback: (data: {
+      quizId: number;
+      title: string;
+      subjectName: string | null;
+      timeLimitMinutes: number;
+      totalQuestions: number;
+      token: string | null;
+    }) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      data: {
+        quizId: number;
+        title: string;
+        subjectName: string | null;
+        timeLimitMinutes: number;
+        totalQuestions: number;
+        token: string | null;
+      }
+    ) => callback(data);
+    ipcRenderer.on('quiz-start', listener);
+    return () => {
+      ipcRenderer.removeListener('quiz-start', listener);
+    };
+  },
+  onQuizEnd: (callback: () => void) => {
+    const listener = () => callback();
+    ipcRenderer.on('quiz-end', listener);
+    return () => {
+      ipcRenderer.removeListener('quiz-end', listener);
+    };
+  },
+  quizDismiss: () => ipcRenderer.invoke('quiz-dismiss'),
 });
-

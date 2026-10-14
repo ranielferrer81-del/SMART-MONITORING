@@ -80,7 +80,7 @@ export const EnrolledStudentsModal = ({
                                             </td>
                                             <td className="px-3 lg:px-6 py-3 lg:py-4 whitespace-nowrap">
                                                 <span className={`px-2 lg:px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${student.is_active
-                                                    ? 'bg-green-100 text-green-800'
+                                                    ? 'bg-red-100 text-red-800'
                                                     : 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-200'
                                                     }`}>
                                                     {student.is_active ? 'Active' : 'Inactive'}
@@ -359,7 +359,7 @@ export const AddStudentsModal = ({
                                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                                     <span
                                                                         className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${student.is_active
-                                                                            ? 'bg-green-100 text-green-800'
+                                                                            ? 'bg-red-100 text-red-800'
                                                                             : 'bg-gray-100 text-gray-800 dark:bg-slate-700 dark:text-slate-200'
                                                                             }`}
                                                                     >
@@ -390,3 +390,4 @@ export const AddStudentsModal = ({
         </div>
     );
 };
+

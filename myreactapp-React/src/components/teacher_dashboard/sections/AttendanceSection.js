@@ -69,7 +69,7 @@ export default function AttendanceSection({
         <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Attendance Workspace</h3>
         <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
           Choose a subject, then mark present/late/absent. Students logged in on a lab PC show as{' '}
-          <span className="font-semibold text-emerald-600 dark:text-emerald-400">Active in lab</span> (updates every
+          <span className="font-semibold text-red-600 dark:text-red-400">Active in lab</span> (updates every
           few seconds).
         </p>
         <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -95,17 +95,17 @@ export default function AttendanceSection({
       </div>
 
       {selectedSubject && !loadingStudents && (
-        <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/80 px-4 py-3 dark:border-emerald-800/50 dark:bg-emerald-950/30">
+        <div className="rounded-xl border border-red-200/80 bg-red-50/80 px-4 py-3 dark:border-red-800/50 dark:bg-red-950/30">
           <div className="flex flex-wrap items-center gap-3">
             <span className="relative flex h-2.5 w-2.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
             </span>
-            <p className="text-sm font-semibold text-emerald-900 dark:text-emerald-100">
+            <p className="text-sm font-semibold text-red-900 dark:text-red-100">
               {onlineInClassCount} of {(enrolledStudents || []).length} enrolled{' '}
               {onlineInClassCount === 1 ? 'student is' : 'students are'} active in the lab right now
             </p>
-            <span className="text-xs text-emerald-800/80 dark:text-emerald-300/80">
+            <span className="text-xs text-red-800/80 dark:text-red-300/80">
               (Desktop app + monitoring session)
             </span>
           </div>
@@ -113,13 +113,13 @@ export default function AttendanceSection({
       )}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3 dark:border-emerald-800/40 dark:bg-emerald-900/20">
-          <p className="text-xs uppercase tracking-wide text-emerald-700 dark:text-emerald-300">Present</p>
-          <p className="text-2xl font-bold text-emerald-800 dark:text-emerald-200">{attendanceCounts.present}</p>
+        <div className="rounded-xl border border-red-200 bg-red-50/70 p-3 dark:border-red-800/40 dark:bg-red-900/20">
+          <p className="text-xs uppercase tracking-wide text-red-700 dark:text-red-300">Present</p>
+          <p className="text-2xl font-bold text-red-800 dark:text-red-200">{attendanceCounts.present}</p>
         </div>
-        <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-3 dark:border-amber-800/40 dark:bg-amber-900/20">
-          <p className="text-xs uppercase tracking-wide text-amber-700 dark:text-amber-300">Late</p>
-          <p className="text-2xl font-bold text-amber-800 dark:text-amber-200">{attendanceCounts.late}</p>
+        <div className="rounded-xl border border-rose-200 bg-rose-50/70 p-3 dark:border-rose-800/40 dark:bg-rose-900/20">
+          <p className="text-xs uppercase tracking-wide text-rose-700 dark:text-rose-300">Late</p>
+          <p className="text-2xl font-bold text-rose-800 dark:text-rose-200">{attendanceCounts.late}</p>
         </div>
         <div className="rounded-xl border border-rose-200 bg-rose-50/70 p-3 dark:border-rose-800/40 dark:bg-rose-900/20">
           <p className="text-xs uppercase tracking-wide text-rose-700 dark:text-rose-300">Absent</p>
@@ -182,7 +182,7 @@ export default function AttendanceSection({
                     key={student.id}
                     className={
                       online
-                        ? 'bg-emerald-50/50 hover:bg-emerald-50/80 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/30'
+                        ? 'bg-red-50/50 hover:bg-red-50/80 dark:bg-red-950/20 dark:hover:bg-red-950/30'
                         : 'hover:bg-slate-50/60 dark:hover:bg-slate-800/30'
                     }
                   >
@@ -192,8 +192,8 @@ export default function AttendanceSection({
                     <td className="px-4 py-3">
                       {online ? (
                         <div className="flex flex-col gap-0.5">
-                          <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200">
-                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                          <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-800 dark:bg-red-900/50 dark:text-red-200">
+                            <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
                             Active in lab
                           </span>
                           {onlineMeta?.laboratory_room && (
@@ -225,7 +225,7 @@ export default function AttendanceSection({
                           type="button"
                           onClick={() => handleMark(student.id, 'present')}
                           disabled={savingStudentId === student.id}
-                          className="rounded-md bg-emerald-600 px-2.5 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+                          className="rounded-md bg-red-600 px-2.5 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
                         >
                           Present
                         </button>
@@ -233,7 +233,7 @@ export default function AttendanceSection({
                           type="button"
                           onClick={() => handleMark(student.id, 'late')}
                           disabled={savingStudentId === student.id}
-                          className="rounded-md bg-amber-500 px-2.5 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+                          className="rounded-md bg-rose-500 px-2.5 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
                         >
                           Late
                         </button>
@@ -264,3 +264,5 @@ export default function AttendanceSection({
     </div>
   );
 }
+
+

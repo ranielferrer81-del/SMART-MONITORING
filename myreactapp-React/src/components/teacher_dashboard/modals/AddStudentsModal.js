@@ -182,7 +182,7 @@ const AddStudentsModal = ({
                                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-slate-300">{student.email || '-'}</td>
                                                                 <td className="px-6 py-4 whitespace-nowrap text-slate-800 dark:text-slate-100">{student.student_number || '-'}</td>
                                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${student.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800 dark:bg-slate-700 dark:text-slate-200'}`}>
+                                                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${student.is_active ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800 dark:bg-slate-700 dark:text-slate-200'}`}>
                                                                         {student.is_active ? 'Active' : 'Inactive'}
                                                                     </span>
                                                                 </td>
@@ -207,3 +207,4 @@ const AddStudentsModal = ({
 };
 
 export default AddStudentsModal;
+

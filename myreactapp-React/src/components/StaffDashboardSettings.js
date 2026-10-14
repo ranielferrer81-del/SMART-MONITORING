@@ -338,7 +338,7 @@ export default function StaffDashboardSettings({
       {role === 'teacher' && (
         <>
           <form onSubmit={handlePollSave} className="bg-white/40 backdrop-blur-md shadow-2xl rounded-2xl border border-white/20 dark:bg-slate-900/40 dark:border-white/10 overflow-hidden">
-            <div className="bg-gradient-to-r from-emerald-50/50 to-teal-50/50 dark:from-emerald-900/20 dark:to-teal-900/20 border-b border-emerald-200/50 dark:border-emerald-800/50 px-6 lg:px-8 py-4">
+            <div className="bg-gradient-to-r from-red-50/50 to-rose-50/50 dark:from-red-900/20 dark:to-rose-900/20 border-b border-red-200/50 dark:border-red-800/50 px-6 lg:px-8 py-4">
               <h4 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Live monitoring refresh</h4>
               <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                 How often online students, incognito alerts, and activity data refresh on this device
@@ -360,7 +360,7 @@ export default function StaffDashboardSettings({
               </label>
               <button
                 type="submit"
-                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-semibold shadow"
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 text-white text-sm font-semibold shadow"
               >
                 Save interval
               </button>
@@ -368,7 +368,7 @@ export default function StaffDashboardSettings({
           </form>
 
           <form onSubmit={handleNotifySave} className="bg-white/40 backdrop-blur-md shadow-2xl rounded-2xl border border-white/20 dark:bg-slate-900/40 dark:border-white/10 overflow-hidden">
-            <div className="bg-gradient-to-r from-amber-50/50 to-orange-50/50 dark:from-amber-900/20 dark:to-orange-900/20 border-b border-amber-200/50 dark:border-amber-800/50 px-6 lg:px-8 py-4">
+            <div className="bg-gradient-to-r from-rose-50/50 to-rose-400 dark:from-rose-900/20 dark:to-rose-400 border-b border-rose-200/50 dark:border-rose-800/50 px-6 lg:px-8 py-4">
               <h4 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Incognito alerts</h4>
               <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                 Get a desktop notification when a new incognito alert is reported (same timing as your refresh interval)
@@ -399,7 +399,7 @@ export default function StaffDashboardSettings({
                 <button
                   type="button"
                   onClick={requestNotificationPermission}
-                  className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold"
+                  className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold"
                 >
                   Allow notifications in browser
                 </button>
@@ -414,7 +414,7 @@ export default function StaffDashboardSettings({
 
       {role === 'admin' && (
         <form onSubmit={handleAdminWorkspaceSave} className="bg-white/40 backdrop-blur-md shadow-2xl rounded-2xl border border-white/20 dark:bg-slate-900/40 dark:border-white/10 overflow-hidden">
-          <div className="bg-gradient-to-r from-sky-50/50 to-indigo-50/50 dark:from-sky-900/20 dark:to-indigo-900/20 border-b border-sky-200/50 dark:border-sky-800/50 px-6 lg:px-8 py-4">
+          <div className="bg-gradient-to-r from-red-50/50 to-red-50/50 dark:from-red-900/20 dark:to-red-900/20 border-b border-slate-200/50 dark:border-slate-800/50 px-6 lg:px-8 py-4">
             <h4 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Account management workspace</h4>
             <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
               Defaults when you open Account Management and safer deletes (stored in this browser)
@@ -451,13 +451,13 @@ export default function StaffDashboardSettings({
               </span>
             </label>
             {!confirmDelete && (
-              <p className="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3 border border-amber-200 dark:border-amber-800">
+              <p className="text-xs text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-900/20 rounded-lg p-3 border border-rose-200 dark:border-rose-800">
                 Disabling this will delete accounts immediately when Delete is clicked. Use only if you trust this device.
               </p>
             )}
             <button
               type="submit"
-              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 to-indigo-600 text-white text-sm font-semibold shadow"
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-red-600 text-white text-sm font-semibold shadow"
             >
               Save workspace preferences
             </button>
@@ -466,10 +466,13 @@ export default function StaffDashboardSettings({
       )}
 
       {success && (
-        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 text-sm text-green-800 dark:text-green-200">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 text-sm text-red-800 dark:text-red-200">
           {success}
         </div>
       )}
     </div>
   );
 }
+
+
+

@@ -88,7 +88,7 @@ const BrowserActivityModal = ({
                                                             alert('Error closing tab: ' + error.message);
                                                         }
                                                     }}
-                                                    className="inline-flex items-center px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold rounded-lg transition-all duration-200 shadow hover:shadow-md transform hover:scale-105"
+                                                    className="inline-flex items-center px-3 py-1.5 bg-rose-500 hover:bg-rose-600 text-white text-xs font-semibold rounded-lg transition-all duration-200 shadow hover:shadow-md transform hover:scale-105"
                                                     title="Close this tab on student's browser"
                                                 >
                                                     <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -100,7 +100,7 @@ const BrowserActivityModal = ({
                                             <td className="px-4 sm:px-6 py-4 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">
                                                 {new Date(log.visit_timestamp).toLocaleTimeString()}
                                                 {log.is_incognito && (
-                                                    <span className="ml-2 px-1.5 py-0.5 bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300 rounded text-xs font-semibold">
+                                                    <span className="ml-2 px-1.5 py-0.5 bg-slate-100 text-red-700 dark:bg-slate-900/50 dark:text-red-300 rounded text-xs font-semibold">
                                                         Incognito
                                                     </span>
                                                 )}
@@ -137,3 +137,4 @@ const BrowserActivityModal = ({
 };
 
 export default BrowserActivityModal;
+

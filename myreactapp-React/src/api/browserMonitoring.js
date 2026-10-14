@@ -322,3 +322,51 @@ export const getMonitoringTimeSessionsForDate = async (studentId, date) => {
         };
     }
 };
+
+/** Lock a student PC remotely (admin/teacher) */
+export const lockStudentPc = async (computerName, message = '') => {
+    try {
+        const token = getAuthToken();
+        const response = await axios.post(
+            `${API_BASE}/api/browser-activity/lock-pc`,
+            { computer_name: computerName, message: message },
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                },
+            }
+        );
+        return { ok: true, data: response.data };
+    } catch (error) {
+        return {
+            ok: false,
+            error: error.response?.data?.error || error.response?.data?.message || error.message,
+        };
+    }
+};
+
+/** Unlock a student PC remotely (admin/teacher) */
+export const unlockStudentPc = async (computerName) => {
+    try {
+        const token = getAuthToken();
+        const response = await axios.post(
+            `${API_BASE}/api/browser-activity/unlock-pc`,
+            { computer_name: computerName },
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                },
+            }
+        );
+        return { ok: true, data: response.data };
+    } catch (error) {
+        return {
+            ok: false,
+            error: error.response?.data?.error || error.response?.data?.message || error.message,
+        };
+    }
+};

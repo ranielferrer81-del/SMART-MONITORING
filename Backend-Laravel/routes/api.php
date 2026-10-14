@@ -26,6 +26,8 @@ use App\Http\Controllers\Api\LabGatewayController;
 use App\Http\Controllers\Api\AdminProfileController;
 use App\Http\Controllers\Api\MonitoringTimeClockController;
 use App\Http\Controllers\Api\PresentationController;
+use App\Http\Controllers\Api\ScreenMonitorController;
+use App\Http\Controllers\Api\QuizController;
 
 Route::get('/mail-readiness', function () {
     $smtpUser = trim((string) config('mail.mailers.smtp.username', ''));
@@ -141,6 +143,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // Force close specific student tab (Admin/Teacher only)
     Route::post('/browser-activity/force-close-tab/{studentId}', [BrowserActivityController::class, 'forceCloseTab']);
 
+    // PC Lock / Unlock (Admin/Teacher only)
+    Route::post('/browser-activity/lock-pc', [BrowserActivityController::class, 'lockPc']);
+    Route::post('/browser-activity/unlock-pc', [BrowserActivityController::class, 'unlockPc']);
+
+
     // Lab Computer Management (hostname-to-room mapping)
     Route::get('/lab-computers', [LabComputerController::class, 'index']);
     Route::post('/lab-computers', [LabComputerController::class, 'store']);
@@ -167,5 +174,23 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/presentations/{uuid}/viewers', [PresentationController::class, 'viewers']);
     Route::post('/presentations/{uuid}/signals', [PresentationController::class, 'sendSignal']);
     Route::get('/presentations/{uuid}/signals', [PresentationController::class, 'pollSignals']);
+
+    // Desktop screen monitoring (Faronics-style thumbnails; capture on lab PC, view in web)
+    Route::post('/screen-monitor/frame', [ScreenMonitorController::class, 'uploadFrame']);
+    Route::get('/screen-monitor/grid', [ScreenMonitorController::class, 'getGrid']);
+    Route::get('/screen-monitor/student/{studentId}/frame', [ScreenMonitorController::class, 'getFrame']);
+
+    // AI quizzes (teacher manages; students take them on the locked Desktop App screen)
+    Route::get('/quizzes', [QuizController::class, 'index']);
+    Route::post('/quizzes/generate-ai', [QuizController::class, 'generate']);
+    Route::post('/quizzes', [QuizController::class, 'store']);
+    Route::get('/quizzes/{id}', [QuizController::class, 'show'])->whereNumber('id');
+    Route::put('/quizzes/{id}', [QuizController::class, 'update'])->whereNumber('id');
+    Route::delete('/quizzes/{id}', [QuizController::class, 'destroy'])->whereNumber('id');
+    Route::post('/quizzes/{id}/start', [QuizController::class, 'start'])->whereNumber('id');
+    Route::post('/quizzes/{id}/end', [QuizController::class, 'end'])->whereNumber('id');
+    Route::get('/quizzes/{id}/proctor', [QuizController::class, 'proctor'])->whereNumber('id');
+    Route::get('/quizzes/{id}/student-view', [QuizController::class, 'studentView'])->whereNumber('id');
+    Route::post('/quizzes/{id}/submit', [QuizController::class, 'submit'])->whereNumber('id');
 });
 

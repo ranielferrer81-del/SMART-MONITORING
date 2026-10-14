@@ -76,6 +76,10 @@ const {
   setComputerName,
   setGatewayIp,
   setApiBaseUrl,
+  registerLockStateCallback,
+  registerPresentationStateCallback,
+  registerQuizStateCallback,
+  getStudentToken,
 } = require('./monitoring-server.cjs');
 
 let GATEWAY_IP: string | null = null;
@@ -165,6 +169,12 @@ let allowAppQuit = false;
 let lockScreenEnforced = false;
 /** After PIN: student is in session; app must stay running until Logout. */
 let studentSessionActive = false;
+/** Live screen share presentation from instructor is currently active. */
+let presentationActive = false;
+/** A quiz is active for this student; screen stays locked until they dismiss the result screen. */
+let quizActive = false;
+/** Instructor has remotely locked this PC. */
+let remoteLockActive = false;
 
 /** Packaged .exe and production builds enforce kiosk-style lock on the login screen. */
 const shouldEnforceLockScreen = app.isPackaged || process.env.SIA_LOCK_SCREEN === 'true';
@@ -173,17 +183,18 @@ function isStudentExitBlocked(): boolean {
   return shouldEnforceLockScreen && !allowAppQuit;
 }
 
-/** Block close shortcuts on lock screen and while a student session is active. */
+/** Block close shortcuts on lock screen and while a student session or presentation is active. */
 function shouldBlockSystemShortcuts(): boolean {
   if (!isStudentExitBlocked()) return false;
-  return lockScreenEnforced || studentSessionActive;
+  return lockScreenEnforced || studentSessionActive || presentationActive || quizActive;
 }
 
 function applyLockScreenMode(win: BrowserWindow) {
+  if (!win || win.isDestroyed()) return;
   if (!shouldEnforceLockScreen) {
     lockScreenEnforced = false;
-    win.setAlwaysOnTop(true);
-    win.setFullScreen(true);
+    win.setAlwaysOnTop(false);
+    win.setFullScreen(false);
     return;
   }
   lockScreenEnforced = true;
@@ -245,12 +256,12 @@ const createWindow = () => {
     ? path.join(__dirname, '../dist-electron/preload.js')
     : path.join(__dirname, 'preload.js');
 
-  // Create the browser window - frameless, fullscreen for lock screen
+  // Create the browser window - frameless, fullscreen for lock screen (unless dev)
   mainWindow = new BrowserWindow({
     width: 1920,
     height: 1080,
-    fullscreen: true,
-    frame: false, // Remove window controls (minimize, maximize, close)
+    fullscreen: shouldEnforceLockScreen,
+    frame: !shouldEnforceLockScreen, // Show window controls in dev
     kiosk: shouldEnforceLockScreen,
     webPreferences: {
       preload: preloadPath,
@@ -259,11 +270,11 @@ const createWindow = () => {
       sandbox: false,
     },
     backgroundColor: '#1e293b', // Dark background
-    alwaysOnTop: true, // Keep on top until unlocked
+    alwaysOnTop: shouldEnforceLockScreen, // Keep on top until unlocked (unless dev)
     resizable: !shouldEnforceLockScreen,
     minimizable: !shouldEnforceLockScreen,
     maximizable: !shouldEnforceLockScreen,
-    fullscreenable: !shouldEnforceLockScreen,
+    fullscreenable: true, // Allow manual fullscreening in dev
   });
 
   attachLockScreenInputGuards(mainWindow);
@@ -278,8 +289,15 @@ const createWindow = () => {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
 
-  // Remove menu bar
-  mainWindow.setMenuBarVisibility(false);
+  // Forward renderer console logs to the main process terminal
+  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    console.log(`[Renderer Main] ${message}`);
+  });
+
+  // Remove menu bar only if lock screen is enforced
+  if (shouldEnforceLockScreen) {
+    mainWindow.setMenuBarVisibility(false);
+  }
 
   attachWindowCloseGuard(mainWindow, isDevBuild);
 };
@@ -325,10 +343,12 @@ const createProfileWindow = () => {
   if (isDevBuild) {
     profileWindow.loadURL('http://localhost:5173/?overlay=profile');
   } else {
-    // For production, use query string in the URL
-    const indexPath = path.join(__dirname, '../dist/index.html');
-    profileWindow.loadURL(`file://${indexPath}?overlay=profile`);
+    profileWindow.loadFile(path.join(__dirname, '../dist/index.html'), { query: { overlay: 'profile' } });
   }
+
+  profileWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    console.log(`[Renderer Profile] ${message}`);
+  });
 
   profileWindow.setMenuBarVisibility(false);
   attachLockScreenInputGuards(profileWindow);
@@ -337,6 +357,7 @@ const createProfileWindow = () => {
 
 // IPC handlers for window control
 ipcMain.handle('minimize-main-window', () => {
+  if (quizActive) return; // cannot leave the screen during a quiz
   if (mainWindow) {
     // Keep kiosk/lock flags; only hide so students cannot "unlock" by PIN.
     mainWindow.hide();
@@ -367,19 +388,26 @@ ipcMain.handle('hide-profile-overlay', () => {
 ipcMain.handle('logout', () => {
   monitoringReadyStickyIso = null;
   studentSessionActive = false;
+  quizActive = false;
+  remoteLockActive = false;
   clearStudentCredentials();
 
-  if (profileWindow) {
+  if (profileWindow && !profileWindow.isDestroyed()) {
     profileWindow.destroy();
     profileWindow = null;
   }
 
-  if (mainWindow) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
     applyLockScreenMode(mainWindow);
     mainWindow.show();
     mainWindow.focus();
     mainWindow.webContents.send('lock-screen-reset');
   }
+});
+
+// IPC handler: renderer asks for the student token stored in the main process
+ipcMain.handle('get-student-token', () => {
+  return getStudentToken();
 });
 
 // IPC handler for student login (for browser monitoring)
@@ -428,7 +456,22 @@ ipcMain.handle('desktop-screen-changed', (_event, screen: unknown) => {
 ipcMain.handle('student-logged-out', () => {
   monitoringReadyStickyIso = null;
   studentSessionActive = false;
+  quizActive = false;
+  remoteLockActive = false;
   clearStudentCredentials();
+});
+
+// Student pressed "Return to desktop" on the quiz result screen — release the lock.
+ipcMain.handle('quiz-dismiss', () => {
+  quizActive = false;
+  if (!studentSessionActive) return; // still on login/PIN screen: keep the window as is
+  if (presentationActive || remoteLockActive) return; // other overlays still own the screen
+  if (profileWindow && !profileWindow.isDestroyed()) {
+    profileWindow.show();
+  }
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.hide();
+  }
 });
 
 ipcMain.handle('quit-app', () => {
@@ -447,6 +490,115 @@ app.on('ready', async () => {
   setComputerName(COMPUTER_NAME); // Set the hostname for the monitoring server
   setApiBaseUrl(API_BASE_URL);    // Set the API URL for heartbeats
   startMonitoringServer(); // Start monitoring server on port 9876
+
+  // Register PC lock state callback — fires whenever heartbeat lock state changes
+  registerLockStateCallback((isLocked: boolean, message: string | null) => {
+    remoteLockActive = isLocked;
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+
+    if (isLocked) {
+      console.log('🔒 PC locked remotely — showing lock overlay');
+      // If main window was hidden (student in session), bring it back so overlay is visible
+      if (!mainWindow.isVisible()) {
+        mainWindow.show();
+        mainWindow.focus();
+      }
+      mainWindow.webContents.send('pc-locked', message ?? 'This PC has been locked by your instructor.');
+      // Also notify profile overlay so it can dim/disable itself
+      if (profileWindow && !profileWindow.isDestroyed()) {
+        profileWindow.webContents.send('pc-locked', message ?? 'This PC has been locked by your instructor.');
+      }
+    } else {
+      console.log('🔓 PC unlocked remotely — hiding lock overlay');
+      mainWindow.webContents.send('pc-unlocked');
+      if (profileWindow && !profileWindow.isDestroyed()) {
+        profileWindow.webContents.send('pc-unlocked');
+      }
+    }
+  });
+
+  // Register Screen Share Presentation callback — fires whenever professor starts/stops sharing
+  registerPresentationStateCallback(
+    (
+      isPresenting: boolean,
+      data: {
+        sessionUuid: string | null;
+        teacherName: string | null;
+        subjectName: string | null;
+      }
+    ) => {
+      presentationActive = isPresenting;
+      if (!mainWindow || mainWindow.isDestroyed()) return;
+
+      if (isPresenting && data?.sessionUuid) {
+        console.log('📡 Live presentation started remotely:', data.sessionUuid, 'by', data.teacherName);
+        // If main window was hidden (student in session), bring it back so presentation overlay is visible
+        if (!mainWindow.isVisible()) {
+          mainWindow.show();
+          mainWindow.focus();
+        }
+        // Hide the profile overlay window so it doesn't float on top of the presentation
+        if (profileWindow && !profileWindow.isDestroyed()) {
+          profileWindow.hide();
+        }
+        // Include the student token in the payload so the renderer can authenticate API calls
+        const token = getStudentToken();
+        mainWindow.webContents.send('presentation-start', { ...data, token });
+      } else {
+        console.log('📡 Live presentation ended remotely');
+        mainWindow.webContents.send('presentation-end');
+        // Restore the profile overlay window after the presentation ends (unless a quiz owns the screen)
+        if (!quizActive && profileWindow && !profileWindow.isDestroyed()) {
+          profileWindow.show();
+        }
+        // If student is logged in and not locked, hide the main window so they return to their normal desktop
+        if (!quizActive && studentSessionActive && !lockScreenEnforced && !mainWindow.isDestroyed()) {
+          mainWindow.hide();
+        }
+      }
+    }
+  );
+
+  // Register Quiz callback — fires when the professor launches a quiz for this student, or it stops being active.
+  registerQuizStateCallback(
+    (
+      isActive: boolean,
+      data: {
+        quizId: number;
+        title: string;
+        subjectName: string | null;
+        timeLimitMinutes: number;
+        totalQuestions: number;
+      } | null
+    ) => {
+      if (isActive && data) {
+        console.log('📝 Quiz started remotely:', data.quizId, data.title);
+        quizActive = true;
+        if (!mainWindow || mainWindow.isDestroyed()) return;
+
+        // Hide the floating profile widget so nothing sits above the exam screen
+        if (profileWindow && !profileWindow.isDestroyed()) {
+          profileWindow.hide();
+        }
+        applyLockScreenMode(mainWindow);
+        if (!mainWindow.isVisible()) {
+          mainWindow.show();
+        }
+        mainWindow.focus();
+        // The renderer's token is cleared on startup, so hand it over with the event
+        mainWindow.webContents.send('quiz-start', { ...data, token: getStudentToken() });
+      } else {
+        console.log('📝 Quiz no longer active on server');
+        // Do NOT release the lock here: the renderer shows the result / "quiz ended" screen
+        // and calls quiz-dismiss when the student is ready to return to the desktop.
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('quiz-end');
+        } else {
+          quizActive = false;
+        }
+      }
+    }
+  );
 });
 
 app.on('before-quit', (event) => {

@@ -15,7 +15,7 @@ return new class extends Migration
         Schema::create('presentation_sessions', function (Blueprint $table) {
             $table->id();
             $table->uuid('public_uuid')->unique();
-            $table->unsignedBigInteger('teacher_user_id');
+            $table->unsignedInteger('teacher_user_id');
             $table->string('status', 20)->default('active'); // active | ended
             $table->timestamps();
 

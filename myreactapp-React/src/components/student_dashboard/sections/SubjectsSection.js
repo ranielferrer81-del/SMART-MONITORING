@@ -47,7 +47,7 @@ const SubjectsSection = ({
                             />
                             <span className="text-xs text-slate-700 dark:text-slate-300">Attendance is only recorded if session day/time is valid.</span>
                         </div>
-                        {checkInMessage && <p className="mb-2 text-sm text-green-700 dark:text-green-300">{checkInMessage}</p>}
+                        {checkInMessage && <p className="mb-2 text-sm text-red-700 dark:text-red-300">{checkInMessage}</p>}
                         {checkInError && <p className="mb-2 text-sm text-red-700 dark:text-red-300">{checkInError}</p>}
                         {openSessions?.length ? (
                             <div className="space-y-2">
@@ -137,21 +137,21 @@ const SubjectsSection = ({
                                                     <p className="text-sm text-red-600 dark:text-red-400">Failed to load attendance data.</p>
                                                 ) : (
                                                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                                                        <div className="bg-green-50/40 backdrop-blur-sm dark:bg-green-900/20 border border-green-200/50 dark:border-green-800/50 rounded-lg p-4">
-                                                            <p className="text-xs uppercase tracking-widest text-green-600 dark:text-green-400 mb-1">Present</p>
-                                                            <p className="text-2xl font-bold text-green-700 dark:text-green-300">{attendance.present || 0}</p>
+                                                        <div className="bg-red-50/40 backdrop-blur-sm dark:bg-red-900/20 border border-red-200/50 dark:border-red-800/50 rounded-lg p-4">
+                                                            <p className="text-xs uppercase tracking-widest text-red-600 dark:text-red-400 mb-1">Present</p>
+                                                            <p className="text-2xl font-bold text-red-700 dark:text-red-300">{attendance.present || 0}</p>
                                                         </div>
                                                         <div className="bg-red-50/40 backdrop-blur-sm dark:bg-red-900/20 border border-red-200/50 dark:border-red-800/50 rounded-lg p-4">
                                                             <p className="text-xs uppercase tracking-widest text-red-600 dark:text-red-400 mb-1">Absent</p>
                                                             <p className="text-2xl font-bold text-red-700 dark:text-red-300">{attendance.absent || 0}</p>
                                                         </div>
-                                                        <div className="bg-amber-50/40 backdrop-blur-sm dark:bg-amber-900/20 border border-amber-200/50 dark:border-amber-800/50 rounded-lg p-4">
-                                                            <p className="text-xs uppercase tracking-widest text-amber-600 dark:text-amber-400 mb-1">Late</p>
-                                                            <p className="text-2xl font-bold text-amber-700 dark:text-amber-300">{attendance.late || 0}</p>
+                                                        <div className="bg-rose-50/40 backdrop-blur-sm dark:bg-rose-900/20 border border-rose-200/50 dark:border-rose-800/50 rounded-lg p-4">
+                                                            <p className="text-xs uppercase tracking-widest text-rose-600 dark:text-rose-400 mb-1">Late</p>
+                                                            <p className="text-2xl font-bold text-rose-700 dark:text-rose-300">{attendance.late || 0}</p>
                                                         </div>
-                                                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                                                            <p className="text-xs uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-1">Total Classes</p>
-                                                            <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{attendance.total || 0}</p>
+                                                        <div className="bg-slate-50 dark:bg-slate-900/20 border border-slate-200 dark:border-slate-800 rounded-lg p-4">
+                                                            <p className="text-xs uppercase tracking-widest text-red-600 dark:text-red-400 mb-1">Total Classes</p>
+                                                            <p className="text-2xl font-bold text-red-700 dark:text-red-300">{attendance.total || 0}</p>
                                                         </div>
                                                     </div>
                                                 )}
@@ -160,9 +160,9 @@ const SubjectsSection = ({
                                                         <h6 className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2 uppercase tracking-widest">Recent Records</h6>
                                                         <div className="space-y-2 max-h-48 overflow-y-auto">
                                                             {attendance.records.slice(0, 10).map((record, idx) => (
-                                                                <div key={idx} className={`flex items-center justify-between p-2 rounded-lg text-sm ${record.status === 'present' ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300' : record.status === 'late' ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300' : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'}`}>
+                                                                <div key={idx} className={`flex items-center justify-between p-2 rounded-lg text-sm ${record.status === 'present' ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300' : record.status === 'late' ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300' : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'}`}>
                                                                     <span className="font-medium">{record.date || record.attendance_date || 'N/A'}</span>
-                                                                    <span className={`px-2 py-1 rounded text-xs font-medium ${record.status === 'present' ? 'bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200' : record.status === 'late' ? 'bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200' : 'bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200'}`}>{record.status === 'present' ? 'Present' : record.status === 'late' ? 'Late' : 'Absent'}</span>
+                                                                    <span className={`px-2 py-1 rounded text-xs font-medium ${record.status === 'present' ? 'bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200' : record.status === 'late' ? 'bg-rose-200 dark:bg-rose-800 text-rose-800 dark:text-rose-200' : 'bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200'}`}>{record.status === 'present' ? 'Present' : record.status === 'late' ? 'Late' : 'Absent'}</span>
                                                                 </div>
                                                             ))}
                                                         </div>
@@ -182,3 +182,5 @@ const SubjectsSection = ({
 };
 
 export default SubjectsSection;
+
+

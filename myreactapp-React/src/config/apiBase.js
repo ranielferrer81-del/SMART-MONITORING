@@ -60,8 +60,68 @@ function normalizeOrigin(raw) {
   return s;
 }
 
-/** Same-origin JSON: /api-base.json (dynamic on server) then /railway-fallback.json (static). */
+/**
+ * Same-origin JSON: /api-base.json (dynamic on server) then /railway-fallback.json (static).
+ *
+ * An async pre-fetch runs immediately at module load so the memo is populated
+ * before any component calls getApiBase(). The legacy synchronous XHR below is
+ * kept only as a last-resort fallback for the rare case where getApiBase() is
+ * called before the async fetch has resolved (e.g., a very early synchronous
+ * render). In normal usage the sync path is never hit.
+ */
 let __siaApiBaseJsonMemo;
+
+/** Async pre-fetch — runs once at module load, result stored in memo. */
+function _prefetchApiBaseJson() {
+  if (typeof window === 'undefined' || typeof fetch === 'undefined') return;
+  try {
+    const pub =
+      (typeof process !== 'undefined' && process.env && process.env.PUBLIC_URL) || '';
+    const normalizedPub = pub.endsWith('/') ? pub.slice(0, -1) : pub;
+    const root =
+      window.location.origin +
+      (normalizedPub === '' || normalizedPub.startsWith('/')
+        ? normalizedPub
+        : `/${normalizedPub}`);
+    const baseForUrl = root.endsWith('/') ? root : `${root}/`;
+
+    const tryFetchPath = async (name) => {
+      try {
+        const res = await fetch(new URL(name, baseForUrl).href, {
+          cache: 'no-store',
+          method: 'GET',
+        });
+        if (!res.ok) return '';
+        const j = await res.json();
+        return j && j.apiBase != null ? String(j.apiBase).trim() : '';
+      } catch {
+        return '';
+      }
+    };
+
+    // Do not await — fire-and-forget; result stored when ready.
+    Promise.resolve()
+      .then(() => tryFetchPath('api-base.json'))
+      .then((result) => result || tryFetchPath('railway-fallback.json'))
+      .then((result) => {
+        // Only write the memo if it has not already been set by the sync fallback.
+        if (__siaApiBaseJsonMemo === undefined && result) {
+          __siaApiBaseJsonMemo = result;
+        }
+      })
+      .catch(() => {/* ignore — sync fallback will handle it */});
+  } catch {
+    /* ignore */
+  }
+}
+
+// Kick off async pre-fetch immediately at module load.
+_prefetchApiBaseJson();
+
+/**
+ * Synchronous fallback — only called when getApiBase() is invoked before the
+ * async pre-fetch has resolved. Deprecated per MDN but kept as a last resort.
+ */
 function readApiBaseFromDeployedJson() {
   if (__siaApiBaseJsonMemo !== undefined) return __siaApiBaseJsonMemo;
   let out = '';
@@ -82,6 +142,7 @@ function readApiBaseFromDeployedJson() {
 
     const tryPath = (name) => {
       const xhr = new XMLHttpRequest();
+      // eslint-disable-next-line no-restricted-globals -- last-resort fallback; async pre-fetch should prevent this path
       xhr.open('GET', new URL(name, baseForUrl).href, false);
       xhr.send(null);
       if (xhr.status !== 200) return '';

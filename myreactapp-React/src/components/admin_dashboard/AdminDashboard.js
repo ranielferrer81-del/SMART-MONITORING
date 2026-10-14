@@ -3,6 +3,7 @@ import { createAccount, fetchTeachers, fetchAllStudents, fetchStudentsByCourse, 
 import { getStudentBrowserActivity, getRealtimeBrowserActivity, getIncognitoAlerts, acknowledgeIncognitoAlert, startMonitoringSession, endMonitoringSession, getMonitoringSessions } from '../../api/browserMonitoring';
 import ThemeToggle from '../../components/ThemeToggle';
 import BrowserMonitoringDashboard from '../BrowserMonitoringDashboard';
+import ScreenMonitoringSection from '../ScreenMonitoringSection';
 import StudentsTimeClockSection from '../StudentsTimeClockSection';
 
 // Extracted components
@@ -642,45 +643,48 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="relative flex h-[100dvh] min-h-0 w-full max-w-[100vw] overflow-hidden bg-gradient-to-br from-slate-50 via-rose-50/40 to-indigo-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950">
-      {/* Animated Background Mesh */}
-      <div className="admin-aurora pointer-events-none absolute inset-0 z-0" aria-hidden />
-      <div className="absolute top-0 left-0 z-0 h-full w-full overflow-hidden">
-        <div className="animate-blob absolute top-0 left-1/4 h-[28rem] w-[28rem] rounded-full bg-rose-400/35 mix-blend-multiply blur-3xl dark:mix-blend-screen dark:bg-rose-500/25" />
-        <div className="animate-blob animation-delay-2000 absolute top-0 right-1/4 h-[26rem] w-[26rem] rounded-full bg-indigo-400/30 mix-blend-multiply blur-3xl dark:mix-blend-screen dark:bg-indigo-500/20" />
-        <div className="animate-blob animation-delay-4000 absolute -bottom-8 left-1/3 h-[24rem] w-[24rem] rounded-full bg-cyan-400/25 mix-blend-multiply blur-3xl dark:mix-blend-screen dark:bg-cyan-500/15" />
-        <div className="absolute inset-0 bg-[length:32px_32px] bg-grid-slate-200/[0.06] dark:bg-grid-slate-800/[0.06]" />
+    <div className="relative flex h-[100dvh] min-h-0 w-full max-w-[100vw] overflow-hidden">
+      {/* ── Background ─────────────────────────────── */}
+      <div aria-hidden className="admin-aurora pointer-events-none absolute inset-0 -z-10" />
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute inset-0 bg-dotgrid opacity-60" />
+        <div className="absolute -top-32 -left-32 h-[30rem] w-[30rem] rounded-full bg-rose-400/40 mix-blend-multiply blur-3xl animate-blob" />
+        <div className="absolute -top-20 right-0 h-[28rem] w-[28rem] rounded-full bg-slate-400/35 mix-blend-multiply blur-3xl animate-blob animation-delay-2000" />
+        <div className="absolute -bottom-32 left-1/3 h-[26rem] w-[26rem] rounded-full bg-slate-400/30 mix-blend-multiply blur-3xl animate-blob animation-delay-4000" />
       </div>
       {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden animate-fade-in-slow"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
 
-      {/* Floating Sidebar — same width/safe-area pattern as Student & Professor dashboards */}
+      {/* ── Sidebar ─────────────────────────────────── */}
       <div className={`
-        fixed lg:static inset-y-0 left-0 z-50 
+        fixed lg:static inset-y-0 left-0 z-50
         w-[min(100vw-2rem,280px)] sm:w-80 lg:w-72 lg:max-h-[95vh] lg:h-[95vh] lg:my-auto lg:ml-6
         max-h-[100dvh] overflow-hidden
-        border border-white/50 bg-white/55 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35),0_0_0_1px_rgba(255,255,255,0.6)_inset] backdrop-blur-2xl
-        dark:border-white/10 dark:bg-slate-900/70 dark:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.6),0_0_0_1px_rgba(244,63,94,0.12)_inset]
-        lg:rounded-3xl transform transition-all duration-300 ease-in-out 
+        glass-strong lg:rounded-[1.75rem]
+        transform transition-all duration-500 cubic-bezier(0.22,1,0.36,1)
         ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
-        <div className="pointer-events-none absolute inset-y-0 left-0 w-[3px] bg-gradient-to-b from-rose-500 via-red-500 to-violet-600 opacity-90" aria-hidden />
+        {/* Left accent bar */}
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-[3px] bg-gradient-to-b from-rose-500 via-red-500 to-red-500 opacity-95" aria-hidden />
         <div className="h-full overflow-y-auto p-4 lg:p-6 pl-5 lg:pl-7">
           <div className="mb-6 flex items-center justify-between lg:mb-8">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-rose-500/20 to-red-600/10 p-1.5 shadow-inner ring-1 ring-rose-500/20 dark:from-rose-500/30 dark:to-red-900/20 lg:h-12 lg:w-12">
-                <img src={`${process.env.PUBLIC_URL}/favicon.svg`} alt="" className="h-full w-full object-contain" />
+              <div className="relative">
+                <div className="absolute -inset-1 rounded-2xl bg-gradient-to-br from-rose-500/40 via-red-500/30 to-red-500/40 blur-lg opacity-70" aria-hidden />
+                <div className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white/80 p-1.5 shadow-soft ring-1 ring-white/80 dark:bg-slate-800/70 dark:ring-white/10 lg:h-12 lg:w-12 backdrop-blur">
+                  <img src={`${process.env.PUBLIC_URL}/favicon.svg`} alt="" className="h-full w-full object-contain" />
+                </div>
               </div>
               <div>
-                <h1 className="bg-gradient-to-r from-rose-600 to-red-600 bg-clip-text text-lg font-bold tracking-tight text-transparent dark:from-rose-300 dark:to-orange-300 lg:text-xl">
+                <h1 className="text-red-700 dark:text-red-400 text-lg font-extrabold tracking-tight lg:text-xl">
                   S.M.A.R.T
                 </h1>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Admin</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">Admin Console</p>
               </div>
             </div>
             {/* Close button for mobile */}
@@ -695,119 +699,69 @@ export default function AdminDashboard() {
           </div>
 
           <nav className="space-y-1.5">
-            <button
-              onClick={() => { setActiveSection('accounts'); setMobileMenuOpen(false); }}
-              className={`flex w-full items-center rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 ${activeSection === 'accounts'
-                ? 'bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-lg shadow-rose-500/35 ring-2 ring-rose-400/40'
-                : 'text-slate-600 hover:translate-x-0.5 hover:bg-white/70 hover:text-rose-700 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-rose-200'
-                }`}
-            >
-              <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-              </svg>
-              Account Management
-            </button>
-
-            <button
-              onClick={() => { setActiveSection('add-account'); setMobileMenuOpen(false); }}
-              className={`flex w-full items-center rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 ${activeSection === 'add-account'
-                ? 'bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-lg shadow-rose-500/35 ring-2 ring-rose-400/40'
-                : 'text-slate-600 hover:translate-x-0.5 hover:bg-white/70 hover:text-rose-700 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-rose-200'
-                }`}
-            >
-              <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-              Add New Account
-            </button>
-
-            <button
-              onClick={() => { setActiveSection('subjects'); setMobileMenuOpen(false); }}
-              className={`flex w-full items-center rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 ${activeSection === 'subjects'
-                ? 'bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-lg shadow-rose-500/35 ring-2 ring-rose-400/40'
-                : 'text-slate-600 hover:translate-x-0.5 hover:bg-white/70 hover:text-rose-700 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-rose-200'
-                }`}
-            >
-              <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 19.477 5.754 20 7.5 20s3.332-.477 4.5-1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 19.477 18.247 20 16.5 20c-1.746 0-3.332-.477-4.5-1.253" />
-              </svg>
-              Subject List
-            </button>
-
-            <button
-              onClick={() => { setActiveSection('monitoring'); setMobileMenuOpen(false); }}
-              className={`flex w-full items-center rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 ${activeSection === 'monitoring'
-                ? 'bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-lg shadow-rose-500/35 ring-2 ring-rose-400/40'
-                : 'text-slate-600 hover:translate-x-0.5 hover:bg-white/70 hover:text-rose-700 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-rose-200'
-                }`}
-            >
-              <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-              Browser Monitoring
-            </button>
-
-            <button
-              type="button"
-              onClick={() => { setActiveSection('time-clock'); setMobileMenuOpen(false); }}
-              className={`flex w-full items-center rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 ${activeSection === 'time-clock'
-                ? 'bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-lg shadow-rose-500/35 ring-2 ring-rose-400/40'
-                : 'text-slate-600 hover:translate-x-0.5 hover:bg-white/70 hover:text-rose-700 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-rose-200'
-                }`}
-            >
-              <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Students time-in / out
-            </button>
-
-            <button
-              onClick={() => { setActiveSection('manage-subjects'); setMobileMenuOpen(false); }}
-              className={`flex w-full items-center rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 ${activeSection === 'manage-subjects'
-                ? 'bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-lg shadow-rose-500/35 ring-2 ring-rose-400/40'
-                : 'text-slate-600 hover:translate-x-0.5 hover:bg-white/70 hover:text-rose-700 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-rose-200'
-                }`}
-            >
-              <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              Create Subject
-            </button>
-
-            <button
-              onClick={() => { setActiveSection('settings'); setMobileMenuOpen(false); }}
-              className={`flex w-full items-center rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 ${activeSection === 'settings'
-                ? 'bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-lg shadow-rose-500/35 ring-2 ring-rose-400/40'
-                : 'text-slate-600 hover:translate-x-0.5 hover:bg-white/70 hover:text-rose-700 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-rose-200'
-                }`}
-            >
-              <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              Settings
-            </button>
+            {[
+              { id: 'accounts',        label: 'Account Management', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z' },
+              { id: 'add-account',     label: 'Add New Account',      icon: 'M12 6v6m0 0v6m0-6h6m-6 0H6' },
+              { id: 'subjects',        label: 'Subject List',         icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 19.477 5.754 20 7.5 20s3.332-.477 4.5-1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 19.477 18.247 20 16.5 20c-1.746 0-3.332-.477-4.5-1.253' },
+              { id: 'monitoring',      label: 'Browser Monitoring',   icon: 'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
+              { id: 'screen-monitoring', label: 'Screen Monitoring',  icon: 'M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z' },
+              { id: 'time-clock',      label: 'Students time-in / out', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
+              { id: 'manage-subjects', label: 'Create Subject',       icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z' },
+              { id: 'settings',        label: 'Settings',             icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z' },
+            ].map((item) => {
+              const active = activeSection === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => { setActiveSection(item.id); setMobileMenuOpen(false); }}
+                  className={`group relative flex w-full items-center rounded-2xl px-4 py-3 text-sm font-semibold transition-all duration-300 ease-out overflow-hidden
+                    ${active
+                      ? 'text-white shadow-glow bg-gradient-to-r from-rose-500 via-red-500 to-red-500 bg-size-200 animate-gradient-shift'
+                      : 'text-slate-700 hover:bg-white/70 hover:text-rose-600 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-rose-300 hover:translate-x-0.5 hover:shadow-soft'
+                    }`}
+                >
+                  <span className={`mr-3 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all duration-300
+                    ${active
+                      ? 'bg-white/20 text-white shadow-inner'
+                      : 'bg-rose-50 text-rose-500 group-hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-400 dark:group-hover:bg-rose-900/50'
+                    }`}
+                  >
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
+                    </svg>
+                  </span>
+                  <span className="relative z-10 whitespace-nowrap">{item.label}</span>
+                </button>
+              );
+            })}
           </nav>
 
           {/* Logout Button */}
           <div className="mt-6 lg:mt-8 pt-6 border-t border-slate-200/60 dark:border-slate-700/60">
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 rounded-xl transition-all duration-300 dark:text-red-400 dark:hover:bg-red-900/20"
-            >
-              <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-              Sign Out
-            </button>
+            <div className="relative group">
+              <div className="absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-rose-500 via-red-500 to-rose-400 opacity-30 blur-md group-hover:opacity-50 transition-opacity duration-300" aria-hidden />
+              <button
+                onClick={handleLogout}
+                className="relative w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-white rounded-2xl bg-gradient-to-r from-rose-500 via-red-500 to-rose-400 shadow-[0_8px_24px_-8px_rgba(244,63,94,0.5)] hover:shadow-[0_12px_32px_-8px_rgba(244,63,94,0.7)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 overflow-hidden"
+              >
+                <span className="absolute inset-0 bg-shimmer opacity-0 group-hover:opacity-100 transition-opacity duration-500" aria-hidden />
+                <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/20 shadow-inner backdrop-blur">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                </span>
+                <span className="relative whitespace-nowrap">Sign Out</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Main Content — same shell as Student & Professor dashboards: glass card, sticky header, scroll body */}
+      {/* Main Content */}
       <div className="relative z-10 flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden lg:p-6">
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border border-white/30 bg-white/40 shadow-2xl backdrop-blur-3xl dark:border-white/10 dark:bg-slate-900/40 lg:rounded-3xl">
-          <header className="sticky top-0 z-40 border-b border-white/20 bg-white/50 backdrop-blur-md dark:border-white/10 dark:bg-slate-800/50">
+        <div className="glass-panel flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+          <header className="sticky top-0 z-40 border-b border-white/40 dark:border-white/10 bg-white/60 backdrop-blur-2xl dark:bg-slate-900/50">
             <div className="px-4 py-4 lg:px-8 lg:py-5">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -822,7 +776,7 @@ export default function AdminDashboard() {
                   </button>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 lg:gap-3">
-                      <span className="hidden h-8 w-1 shrink-0 rounded-full bg-gradient-to-b from-rose-500 via-red-500 to-violet-600 shadow-[0_0_12px_rgba(244,63,94,0.5)] lg:block" aria-hidden />
+                      <span className="hidden h-8 w-1 shrink-0 rounded-full bg-gradient-to-b from-rose-500 via-red-500 to-rose-600 shadow-[0_0_12px_rgba(244,63,94,0.5)] lg:block" aria-hidden />
                       <h2 className="truncate text-xl font-bold tracking-tight text-transparent bg-gradient-to-r from-rose-600 to-red-600 bg-clip-text dark:from-rose-400 dark:to-red-400 lg:text-3xl">
                         {activeSection === 'accounts'
                           ? 'Account Management'
@@ -832,6 +786,8 @@ export default function AdminDashboard() {
                               ? 'Create Subject'
                               : activeSection === 'monitoring'
                                 ? 'Browser Monitoring'
+                                : activeSection === 'screen-monitoring'
+                                  ? 'Screen Monitoring'
                                 : activeSection === 'time-clock'
                                   ? 'Students time-in / time-out'
                                   : activeSection === 'settings'
@@ -845,43 +801,53 @@ export default function AdminDashboard() {
                       {activeSection === 'subjects' && 'View subjects, sections, enrolled students, and open monitoring context.'}
                       {activeSection === 'manage-subjects' && 'Create subjects, assign professors, and set class schedule.'}
                       {activeSection === 'monitoring' && 'Pick a course and section to view live browser activity and sessions.'}
+                      {activeSection === 'screen-monitoring' && 'View live desktop thumbnails from all online lab PCs (Desktop App).'}
                       {activeSection === 'time-clock' && 'Browse all students by course and section; open date-based PC sign-in and sign-out history.'}
                       {activeSection === 'settings' && 'Your account, password, position title, account-management defaults, and delete confirmations.'}
                     </p>
                   </div>
                 </div>
                 <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 lg:gap-3">
-                  <div className="hidden items-center gap-2 rounded-2xl border border-white/50 bg-white/55 px-4 py-2 shadow-md backdrop-blur-md dark:border-white/10 dark:bg-slate-900/50 lg:flex">
-                    <div className="h-2 w-2 animate-pulse rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                  <div className="relative hidden lg:flex items-center gap-3 rounded-2xl px-5 py-2.5 bg-white/70 backdrop-blur-xl border border-white/60 shadow-soft dark:bg-slate-900/60 dark:border-white/10">
+                    <span className="relative flex h-3 w-3">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-60" />
+                      <span className="relative inline-flex h-3 w-3 rounded-full bg-gradient-to-br from-red-400 to-red-600 shadow-[0_0_12px_rgba(16,185,129,0.7)]" />
+                    </span>
                     <div className="text-sm text-slate-700 dark:text-slate-200">
                       Welcome,{' '}
-                      <span className="font-semibold text-rose-600 dark:text-rose-300">{user?.fullName || user?.full_name || 'Admin'}</span>
+                      <span className="font-bold text-red-700 dark:text-red-400">{user?.fullName || user?.full_name || 'Admin'}</span>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => loadAllLists(true)}
-                    disabled={loading}
-                    className="flex items-center space-x-2 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 px-3 py-2 text-xs font-semibold text-white shadow-lg shadow-indigo-500/25 transition hover:from-sky-400 hover:to-indigo-500 disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none lg:px-4 lg:text-sm"
-                    title="Refresh all data"
-                  >
-                    <svg className={`h-4 w-4 shrink-0 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    <span className="hidden lg:inline">{loading ? 'Refreshing...' : 'Refresh'}</span>
-                  </button>
+                  <div className="relative group">
+                    <div className="absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-red-500 via-rose-500 to-rose-500 opacity-0 group-hover:opacity-40 blur transition-opacity duration-300" aria-hidden />
+                    <button
+                      type="button"
+                      onClick={() => loadAllLists(true)}
+                      disabled={loading}
+                      className="relative flex items-center gap-2 rounded-2xl bg-gradient-to-r from-red-500 via-rose-500 to-rose-600 bg-size-200 animate-gradient-shift px-4 py-2.5 text-xs font-bold text-white shadow-glow hover:scale-[1.03] active:scale-[0.97] disabled:scale-100 disabled:opacity-70 transition-all duration-300 lg:text-sm"
+                      title="Refresh all data"
+                    >
+                      <svg className={`h-4 w-4 shrink-0 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      <span className="hidden lg:inline">{loading ? 'Refreshing...' : 'Refresh'}</span>
+                    </button>
+                  </div>
                   <ThemeToggle />
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    title="Logout"
-                    className="flex items-center space-x-2 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 px-3 py-2 text-xs font-medium text-white shadow-lg transition hover:from-rose-700 hover:to-red-700 lg:px-5 lg:text-sm"
-                  >
-                    <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
-                    <span className="hidden sm:inline">Logout</span>
-                  </button>
+                  <div className="relative group">
+                    <div className="absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-rose-500 via-red-500 to-rose-400 opacity-0 group-hover:opacity-40 blur transition-opacity duration-300" aria-hidden />
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      title="Logout"
+                      className="relative flex items-center gap-2 rounded-2xl bg-gradient-to-r from-rose-500 via-red-500 to-rose-400 bg-size-200 animate-gradient-shift px-4 py-2.5 text-xs font-bold text-white shadow-glow hover:scale-[1.03] active:scale-[0.97] transition-all duration-300 lg:text-sm"
+                    >
+                      <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                      </svg>
+                      <span className="hidden sm:inline">Logout</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -889,10 +855,14 @@ export default function AdminDashboard() {
 
           <div className="relative min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 py-4 lg:px-8 lg:py-8">
             {loading && (
-              <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/50 backdrop-blur-sm dark:bg-slate-900/50">
-                <div className="flex flex-col items-center">
-                  <div className="h-12 w-12 animate-spin rounded-full border-4 border-rose-600 border-t-transparent" />
-                  <p className="mt-4 font-medium text-slate-800 dark:text-slate-100">Loading data...</p>
+              <div className="absolute inset-0 z-50 flex items-center justify-center animate-fade-in-slow">
+                <div className="absolute inset-0 glass-strong" />
+                <div className="relative flex flex-col items-center">
+                  <div className="relative">
+                    <div className="absolute inset-0 rounded-full border-4 border-rose-500/30 animate-pulse-ring" />
+                    <div className="relative h-16 w-16 animate-spin rounded-full border-[3px] border-transparent border-t-red-500 border-r-rose-500 border-b-red-700 shadow-glow" />
+                  </div>
+                  <p className="mt-6 text-sm font-bold text-red-600 dark:text-red-400 lg:text-base">Loading data...</p>
                 </div>
               </div>
             )}
@@ -950,6 +920,12 @@ export default function AdminDashboard() {
                   ...studentsBSEMC
                 ]}
               />
+            </div>
+          )}
+
+          {activeSection === 'screen-monitoring' && (
+            <div className="space-y-6">
+              <ScreenMonitoringSection />
             </div>
           )}
 
@@ -1019,7 +995,7 @@ export default function AdminDashboard() {
         className={`fixed top-6 left-1/2 transform -translate-x-1/2 z-50 transition-all duration-300 ${toast.show ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3 pointer-events-none'
           }`}
       >
-        <div className={`${toast.type === 'error' ? 'bg-red-600' : 'bg-green-600'} text-white px-5 py-3 rounded-lg shadow-lg flex items-center space-x-3`}>
+        <div className={`${toast.type === 'error' ? 'bg-red-600' : 'bg-red-600'} text-white px-5 py-3 rounded-lg shadow-lg flex items-center space-x-3`}>
           {toast.type === 'error' ? (
             <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
@@ -1037,3 +1013,6 @@ export default function AdminDashboard() {
     </div>
   );
 }
+
+
+

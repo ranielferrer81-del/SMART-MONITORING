@@ -7,10 +7,11 @@ import LockScreenShell from './LockScreenShell';
 
 type StudentCredentialProps = {
   onContinue: () => void;
+  onLogout?: () => void;
   user?: AuthenticatedUser | null;
 };
 
-export default function StudentCredential({ onContinue, user }: StudentCredentialProps) {
+export default function StudentCredential({ onContinue, onLogout, user }: StudentCredentialProps) {
   const [profile, setProfile] = useState<AuthenticatedUser | null>(user ?? null);
   const [credentials, setCredentials] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(() => {
@@ -132,13 +133,23 @@ export default function StudentCredential({ onContinue, user }: StudentCredentia
           </p>
         </div>
 
-        <button
-          onClick={onContinue}
-          disabled={isLoading || Boolean(error)}
-          className="mt-6 px-10 py-3 bg-red-600 text-white font-semibold rounded-full border border-white/30 hover:bg-red-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-        >
-          Continue
-        </button>
+        <div className="mt-6 flex flex-col sm:flex-row items-center gap-4">
+          <button
+            onClick={onContinue}
+            disabled={isLoading || Boolean(error)}
+            className="px-10 py-3 bg-red-600 text-white font-semibold rounded-full border border-white/30 hover:bg-red-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed w-full sm:w-auto"
+          >
+            Continue
+          </button>
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              className="px-6 py-3 bg-transparent text-red-200 font-semibold rounded-full border border-red-500/30 hover:bg-white/5 transition-colors text-sm w-full sm:w-auto"
+            >
+              Switch Account
+            </button>
+          )}
+        </div>
       </motion.div>
     </LockScreenShell>
   );

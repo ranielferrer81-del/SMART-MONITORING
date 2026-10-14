@@ -25,20 +25,20 @@ const AccountManagementSection = ({
                         <div className="w-full min-w-0 overflow-x-auto overscroll-x-contain rounded-2xl ring-1 ring-slate-200/60 [scrollbar-width:thin] dark:ring-slate-700/60">
                             <table className="min-w-[640px] w-full divide-y divide-slate-200/80 dark:divide-slate-700/80">
                                 <thead>
-                                    <tr className="bg-gradient-to-r from-indigo-500/10 via-sky-500/5 to-cyan-500/10 dark:from-indigo-950/50 dark:via-slate-900/80 dark:to-cyan-950/30">
-                                        <th className="px-3 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider text-indigo-900/90 dark:text-indigo-200/90 lg:px-6">Photo</th>
-                                        <th className="px-3 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider text-indigo-900/90 dark:text-indigo-200/90 lg:px-6">Name</th>
-                                        <th className="px-3 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider text-indigo-900/90 dark:text-indigo-200/90 lg:px-6">Email</th>
-                                        <th className="px-3 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider text-indigo-900/90 dark:text-indigo-200/90 lg:px-6">Student #</th>
-                                        <th className="px-3 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider text-indigo-900/90 dark:text-indigo-200/90 lg:px-6">Status</th>
-                                        <th className="px-3 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider text-indigo-900/90 dark:text-indigo-200/90 lg:px-6">Actions</th>
+                                    <tr className="bg-gradient-to-r from-red-500/10 via-rose-500/5 to-rose-500/10 dark:from-red-950/50 dark:via-slate-900/80 dark:to-rose-950/30">
+                                        <th className="px-3 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider text-red-900/90 dark:text-red-200/90 lg:px-6">Photo</th>
+                                        <th className="px-3 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider text-red-900/90 dark:text-red-200/90 lg:px-6">Name</th>
+                                        <th className="px-3 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider text-red-900/90 dark:text-red-200/90 lg:px-6">Email</th>
+                                        <th className="px-3 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider text-red-900/90 dark:text-red-200/90 lg:px-6">Student #</th>
+                                        <th className="px-3 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider text-red-900/90 dark:text-red-200/90 lg:px-6">Status</th>
+                                        <th className="px-3 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider text-red-900/90 dark:text-red-200/90 lg:px-6">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100 bg-white/50 dark:divide-slate-800/80 dark:bg-slate-950/20">
                                     {sectionStudents.map((s) => {
                                         const profilePicUrl = getProfilePictureUrl(s.profile_picture);
                                         return (
-                                            <tr key={s.id} className="transition-colors hover:bg-gradient-to-r hover:from-indigo-50/80 hover:to-transparent dark:hover:from-indigo-950/20 dark:hover:to-transparent">
+                                            <tr key={s.id} className="transition-colors hover:bg-gradient-to-r hover:from-red-50/80 hover:to-transparent dark:hover:from-red-950/20 dark:hover:to-transparent">
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="flex-shrink-0 h-10 w-10">
                                                         {profilePicUrl ? (<img className="h-10 w-10 rounded-full object-cover border-2 border-rose-200 dark:border-rose-700" src={profilePicUrl} alt={s.full_name} onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />) : null}
@@ -51,11 +51,11 @@ const AccountManagementSection = ({
                                                 <td className="px-3 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm text-gray-500 dark:text-slate-300">{s.email}</td>
                                                 <td className="px-3 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm">{s.student_number}</td>
                                                 <td className="px-3 lg:px-6 py-3 lg:py-4 whitespace-nowrap">
-                                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${s.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800 dark:bg-slate-700 dark:text-slate-200'}`}>{s.is_active ? 'Active' : 'Inactive'}</span>
+                                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${s.is_active ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800 dark:bg-slate-700 dark:text-slate-200'}`}>{s.is_active ? 'Active' : 'Inactive'}</span>
                                                 </td>
                                                 <td className="px-3 lg:px-6 py-3 lg:py-4 whitespace-nowrap">
                                                     <div className="flex flex-wrap gap-2">
-                                                    <button type="button" onClick={() => openEdit(s)} className="rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100 dark:bg-indigo-950/40 dark:text-indigo-300 dark:hover:bg-indigo-900/50">Edit</button>
+                                                    <button type="button" onClick={() => openEdit(s)} className="rounded-lg bg-slate-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-slate-100 dark:bg-slate-950/40 dark:text-red-300 dark:hover:bg-slate-900/50">Edit</button>
                                                     <button type="button" onClick={() => handleDeleteAccount(s.id)} className="rounded-lg border border-red-200/80 bg-red-50/80 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-100 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300">Delete</button>
                                                     </div>
                                                 </td>
@@ -115,7 +115,7 @@ const AccountManagementSection = ({
                 {tab === 'teachers' && (
                     <table className="min-w-[560px] w-full divide-y divide-slate-200/80 dark:divide-slate-700/80">
                         <thead>
-                            <tr className="bg-gradient-to-r from-rose-500/10 via-red-500/5 to-violet-500/10 dark:from-rose-900/40 dark:via-slate-900/80 dark:to-violet-900/30">
+                            <tr className="bg-gradient-to-r from-rose-500/10 via-red-500/5 to-rose-500/10 dark:from-rose-900/40 dark:via-slate-900/80 dark:to-rose-900/30">
                                 <th className="px-2 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-rose-800/90 dark:text-rose-200/90 sm:px-4 sm:text-[11px] lg:px-6">Photo</th>
                                 <th className="px-2 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-rose-800/90 dark:text-rose-200/90 sm:px-4 sm:text-[11px] lg:px-6">Name</th>
                                 <th className="px-2 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-rose-800/90 dark:text-rose-200/90 sm:px-4 sm:text-[11px] lg:px-6">Email</th>
@@ -166,3 +166,5 @@ const AccountManagementSection = ({
 };
 
 export default AccountManagementSection;
+
+

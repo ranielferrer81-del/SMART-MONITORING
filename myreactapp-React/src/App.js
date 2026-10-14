@@ -8,11 +8,8 @@ import AdminDashboard from './components/admin_dashboard/AdminDashboard';
 import './App.css';
 
 function RequireAuth({ children }) {
-  let user = null;
-  try {
-    user = JSON.parse(localStorage.getItem('user'));
-  } catch (_) {}
-  if (!user) {
+  const token = localStorage.getItem('token');
+  if (!token) {
     return <Navigate to="/" replace />;
   }
   return children;

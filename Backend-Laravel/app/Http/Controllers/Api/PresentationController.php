@@ -7,6 +7,7 @@ use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class PresentationController extends Controller
@@ -14,7 +15,7 @@ class PresentationController extends Controller
     private function assertTeacher(): object
     {
         $u = Auth::user();
-        if (! $u || ($u->role ?? '') !== 'teacher') {
+        if (! $u || ! in_array($u->role ?? '', ['teacher', 'admin'], true)) {
             $this->denyJson('Only teachers can do this', 403);
         }
 
@@ -71,24 +72,45 @@ class PresentationController extends Controller
         return DB::table('presentation_sessions')->where('public_uuid', $uuid)->first();
     }
 
-    private function studentTaughtByTeacher(int $studentId, int $teacherId): bool
+    private function studentEnrolledInSession(int $studentId, object $session): bool
     {
-        return DB::table('subject_enrollments')
+        $query = DB::table('subject_enrollments')
             ->join('subjects', 'subjects.id', '=', 'subject_enrollments.subject_id')
             ->where('subject_enrollments.student_id', $studentId)
-            ->where('subject_enrollments.status', 'active')
-            ->where('subjects.teacher_user_id', $teacherId)
-            ->exists();
+            ->where('subject_enrollments.status', 'active');
+
+        if (! empty($session->subject_id)) {
+            $query->where('subject_enrollments.subject_id', (int) $session->subject_id);
+        } else {
+            $query->where('subjects.teacher_user_id', (int) $session->teacher_user_id);
+        }
+
+        return $query->exists();
     }
 
     /**
-     * Start (or replace) an active presentation for this teacher.
+     * Start (or replace) an active presentation for this teacher with optional subject_id.
      */
     public function start(Request $request)
     {
         $teacher = $this->assertTeacher();
 
-        DB::transaction(function () use ($teacher) {
+        $validated = $request->validate([
+            'subject_id' => 'nullable|integer|exists:subjects,id',
+        ]);
+
+        $subjectId = isset($validated['subject_id']) ? (int) $validated['subject_id'] : null;
+        if ($subjectId && ($teacher->role ?? '') !== 'admin') {
+            $ownsSubject = DB::table('subjects')
+                ->where('id', $subjectId)
+                ->where('teacher_user_id', $teacher->id)
+                ->exists();
+            if (! $ownsSubject) {
+                $this->denyJson('You are not assigned to this subject', 403);
+            }
+        }
+
+        DB::transaction(function () use ($teacher, $subjectId) {
             $active = DB::table('presentation_sessions')
                 ->where('teacher_user_id', $teacher->id)
                 ->where('status', 'active')
@@ -99,20 +121,38 @@ class PresentationController extends Controller
                     ->where('id', $active->id)
                     ->update(['status' => 'ended', 'updated_at' => now()]);
             }
-            DB::table('presentation_sessions')->insert([
+
+            $insertData = [
                 'public_uuid' => (string) Str::uuid(),
                 'teacher_user_id' => $teacher->id,
                 'status' => 'active',
                 'created_at' => now(),
                 'updated_at' => now(),
-            ]);
+            ];
+
+            if (Schema::hasColumn('presentation_sessions', 'subject_id')) {
+                $insertData['subject_id'] = $subjectId;
+            }
+
+            DB::table('presentation_sessions')->insert($insertData);
         });
 
-        $row = DB::table('presentation_sessions')
-            ->where('teacher_user_id', $teacher->id)
-            ->where('status', 'active')
-            ->orderByDesc('id')
+        $row = DB::table('presentation_sessions as ps')
+            ->leftJoin('subjects as s', 's.id', '=', 'ps.subject_id')
+            ->where('ps.teacher_user_id', $teacher->id)
+            ->where('ps.status', 'active')
+            ->orderByDesc('ps.id')
+            ->select(
+                'ps.id',
+                'ps.public_uuid',
+                'ps.teacher_user_id',
+                'ps.subject_id',
+                's.code as subject_code',
+                's.name as subject_name'
+            )
             ->first();
+
+        $subjectDisplay = $row && $row->subject_id ? trim(($row->subject_code ? $row->subject_code . ' - ' : '') . ($row->subject_name ?? '')) : null;
 
         return response()->json([
             'ok' => true,
@@ -120,6 +160,8 @@ class PresentationController extends Controller
                 'id' => $row->id,
                 'uuid' => $row->public_uuid,
                 'teacher_user_id' => (int) $row->teacher_user_id,
+                'subject_id' => $row->subject_id ? (int) $row->subject_id : null,
+                'subject_name' => $subjectDisplay,
             ],
         ]);
     }
@@ -131,7 +173,7 @@ class PresentationController extends Controller
     {
         $teacher = $this->assertTeacher();
         $session = $this->sessionByUuid($uuid);
-        if (! $session || (int) $session->teacher_user_id !== (int) $teacher->id) {
+        if (! $session || (($teacher->role ?? '') !== 'admin' && (int) $session->teacher_user_id !== (int) $teacher->id)) {
             return response()->json(['ok' => false, 'message' => 'Session not found'], 404);
         }
         DB::table('presentation_sessions')
@@ -153,14 +195,24 @@ class PresentationController extends Controller
     public function statusForTeacher(Request $request)
     {
         $teacher = $this->assertTeacher();
-        $row = DB::table('presentation_sessions')
-            ->where('teacher_user_id', $teacher->id)
-            ->where('status', 'active')
-            ->orderByDesc('id')
+        $row = DB::table('presentation_sessions as ps')
+            ->leftJoin('subjects as s', 's.id', '=', 'ps.subject_id')
+            ->where('ps.teacher_user_id', $teacher->id)
+            ->where('ps.status', 'active')
+            ->orderByDesc('ps.id')
+            ->select(
+                'ps.id',
+                'ps.public_uuid',
+                'ps.subject_id',
+                's.code as subject_code',
+                's.name as subject_name'
+            )
             ->first();
         if (! $row) {
             return response()->json(['ok' => true, 'active' => false]);
         }
+
+        $subjectDisplay = $row->subject_id ? trim(($row->subject_code ? $row->subject_code . ' - ' : '') . ($row->subject_name ?? '')) : null;
 
         return response()->json([
             'ok' => true,
@@ -168,12 +220,14 @@ class PresentationController extends Controller
             'session' => [
                 'id' => $row->id,
                 'uuid' => $row->public_uuid,
+                'subject_id' => $row->subject_id ? (int) $row->subject_id : null,
+                'subject_name' => $subjectDisplay,
             ],
         ]);
     }
 
     /**
-     * Students: any active presentation by a teacher who teaches this student.
+     * Students: any active presentation by a teacher who teaches this student or subject.
      */
     public function activeForStudent(Request $request)
     {
@@ -181,21 +235,47 @@ class PresentationController extends Controller
 
         $row = DB::table('presentation_sessions as ps')
             ->join('users as t', 't.id', '=', 'ps.teacher_user_id')
+            ->leftJoin('subjects as s', 's.id', '=', 'ps.subject_id')
             ->where('ps.status', 'active')
-            ->whereIn('ps.teacher_user_id', function ($q) use ($student) {
-                $q->select('subjects.teacher_user_id')
-                    ->from('subject_enrollments')
-                    ->join('subjects', 'subjects.id', '=', 'subject_enrollments.subject_id')
-                    ->where('subject_enrollments.student_id', $student->id)
-                    ->where('subject_enrollments.status', 'active');
+            ->where(function ($query) use ($student) {
+                $query->where(function ($specific) use ($student) {
+                    $specific->whereNotNull('ps.subject_id')
+                        ->whereExists(function ($sub) use ($student) {
+                            $sub->select(DB::raw(1))
+                                ->from('subject_enrollments')
+                                ->whereColumn('subject_enrollments.subject_id', 'ps.subject_id')
+                                ->where('subject_enrollments.student_id', $student->id)
+                                ->where('subject_enrollments.status', 'active');
+                        });
+                })->orWhere(function ($fallback) use ($student) {
+                    $fallback->whereNull('ps.subject_id')
+                        ->whereExists(function ($sub) use ($student) {
+                            $sub->select(DB::raw(1))
+                                ->from('subject_enrollments')
+                                ->join('subjects', 'subjects.id', '=', 'subject_enrollments.subject_id')
+                                ->whereColumn('subjects.teacher_user_id', 'ps.teacher_user_id')
+                                ->where('subject_enrollments.student_id', $student->id)
+                                ->where('subject_enrollments.status', 'active');
+                        });
+                });
             })
             ->orderByDesc('ps.id')
-            ->select('ps.id', 'ps.public_uuid', 'ps.teacher_user_id', 't.full_name as teacher_name')
+            ->select(
+                'ps.id',
+                'ps.public_uuid',
+                'ps.teacher_user_id',
+                'ps.subject_id',
+                't.full_name as teacher_name',
+                's.code as subject_code',
+                's.name as subject_name'
+            )
             ->first();
 
         if (! $row) {
             return response()->json(['ok' => true, 'active' => false]);
         }
+
+        $subjectDisplay = $row->subject_id ? trim(($row->subject_code ? $row->subject_code . ' - ' : '') . ($row->subject_name ?? '')) : null;
 
         return response()->json([
             'ok' => true,
@@ -204,6 +284,8 @@ class PresentationController extends Controller
                 'uuid' => $row->public_uuid,
                 'teacher_user_id' => (int) $row->teacher_user_id,
                 'teacher_name' => $row->teacher_name,
+                'subject_id' => $row->subject_id ? (int) $row->subject_id : null,
+                'subject_name' => $subjectDisplay,
             ],
         ]);
     }
@@ -217,23 +299,37 @@ class PresentationController extends Controller
         }
 
         $teacherId = (int) $session->teacher_user_id;
-        if (! $this->studentTaughtByTeacher((int) $student->id, $teacherId)) {
-            return response()->json(['ok' => false, 'message' => 'You are not enrolled with this instructor'], 403);
+        if (! $this->studentEnrolledInSession((int) $student->id, $session)) {
+            return response()->json(['ok' => false, 'message' => 'You are not enrolled in this presentation class'], 403);
         }
 
         $now = now();
-        $updated = DB::table('presentation_viewers')
+        $exists = DB::table('presentation_viewers')
             ->where('presentation_session_id', $session->id)
             ->where('student_user_id', $student->id)
-            ->update(['joined_at' => $now, 'updated_at' => $now]);
-        if ($updated === 0) {
-            DB::table('presentation_viewers')->insert([
-                'presentation_session_id' => $session->id,
-                'student_user_id' => $student->id,
-                'joined_at' => $now,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ]);
+            ->exists();
+
+        if ($exists) {
+            DB::table('presentation_viewers')
+                ->where('presentation_session_id', $session->id)
+                ->where('student_user_id', $student->id)
+                ->update(['joined_at' => $now, 'updated_at' => $now]);
+        } else {
+            // Still wrap in try/catch just in case a race condition happens
+            try {
+                DB::table('presentation_viewers')->insert([
+                    'presentation_session_id' => $session->id,
+                    'student_user_id' => $student->id,
+                    'joined_at' => $now,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+            } catch (\Illuminate\Database\QueryException $e) {
+                // Ignore unique constraint violation (code 23000 / 1062)
+                if ($e->getCode() !== '23000') {
+                    throw $e;
+                }
+            }
         }
 
         return response()->json([
@@ -246,7 +342,7 @@ class PresentationController extends Controller
     {
         $teacher = $this->assertTeacher();
         $session = $this->sessionByUuid($uuid);
-        if (! $session || (int) $session->teacher_user_id !== (int) $teacher->id) {
+        if (! $session || (($teacher->role ?? '') !== 'admin' && (int) $session->teacher_user_id !== (int) $teacher->id)) {
             return response()->json(['ok' => false, 'message' => 'Session not found'], 404);
         }
 
@@ -284,8 +380,8 @@ class PresentationController extends Controller
         $teacherId = (int) $session->teacher_user_id;
         $recipientId = isset($data['recipient_user_id']) ? (int) $data['recipient_user_id'] : null;
 
-        if (($sender->role ?? '') === 'teacher') {
-            if ((int) $sender->id !== $teacherId) {
+        if (in_array($sender->role ?? '', ['teacher', 'admin'], true)) {
+            if (($sender->role ?? '') !== 'admin' && (int) $sender->id !== $teacherId) {
                 return response()->json(['ok' => false, 'message' => 'Forbidden'], 403);
             }
             $allowedTypes = ['offer', 'iceCandidate'];
@@ -305,7 +401,7 @@ class PresentationController extends Controller
                 return response()->json(['ok' => false, 'message' => 'Recipient has not joined this session'], 422);
             }
         } elseif (($sender->role ?? '') === 'student') {
-            if (! $this->studentTaughtByTeacher((int) $sender->id, $teacherId)) {
+            if (! $this->studentEnrolledInSession((int) $sender->id, $session)) {
                 return response()->json(['ok' => false, 'message' => 'Forbidden'], 403);
             }
             if (! DB::table('presentation_viewers')
@@ -359,8 +455,14 @@ class PresentationController extends Controller
             if ((int) $receiver->id !== $teacherId) {
                 return response()->json(['ok' => false, 'message' => 'Forbidden'], 403);
             }
+            // Keep session alive
+            DB::table('presentation_sessions')
+                ->where('id', $session->id)
+                ->update(['updated_at' => now()]);
+        } elseif ($role === 'admin') {
+            // Admin can view/signal if needed
         } elseif ($role === 'student') {
-            if (! $this->studentTaughtByTeacher((int) $receiver->id, $teacherId)) {
+            if (! $this->studentEnrolledInSession((int) $receiver->id, $session)) {
                 return response()->json(['ok' => false, 'message' => 'Forbidden'], 403);
             }
         } else {

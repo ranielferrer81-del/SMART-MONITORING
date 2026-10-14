@@ -151,7 +151,7 @@ const BrowserMonitoringSection = ({ subjects, loadingSubjects, isStudentOnline, 
                                         <div
                                             key={student.id}
                                             onClick={() => handleViewActivity(student)}
-                                            className="group bg-white/40 backdrop-blur-md overflow-hidden shadow-lg rounded-2xl hover:shadow-2xl hover:shadow-indigo-500/20 transition-all duration-300 transform hover:-translate-y-1 cursor-pointer border border-white/20 hover:border-indigo-300 dark:bg-slate-800/40 dark:border-white/5"
+                                            className="group bg-white/40 backdrop-blur-md overflow-hidden shadow-lg rounded-2xl hover:shadow-2xl hover:shadow-red-500/20 transition-all duration-300 transform hover:-translate-y-1 cursor-pointer border border-white/20 hover:border-red-300 dark:bg-slate-800/40 dark:border-white/5"
                                         >
                                             <div className="p-6">
                                                 <div className="flex items-center space-x-4 mb-4">
@@ -190,7 +190,7 @@ const BrowserMonitoringSection = ({ subjects, loadingSubjects, isStudentOnline, 
                                                     <div className="flex items-center justify-between">
                                                         <span className="text-xs text-slate-600 dark:text-slate-400">Status:</span>
                                                         {isStudentOnline(student.id) ? (
-                                                            <span className="text-xs font-semibold text-green-600 dark:text-green-400">● Online</span>
+                                                            <span className="text-xs font-semibold text-red-600 dark:text-red-400">● Online</span>
                                                         ) : (
                                                             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">● Offline</span>
                                                         )}
@@ -231,3 +231,5 @@ const BrowserMonitoringSection = ({ subjects, loadingSubjects, isStudentOnline, 
 };
 
 export default BrowserMonitoringSection;
+
+

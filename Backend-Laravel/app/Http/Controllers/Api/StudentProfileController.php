@@ -453,9 +453,16 @@ class StudentProfileController extends Controller
             return response()->json(['ok' => false, 'message' => 'Unauthorized'], 403);
         }
 
-        // Allow WebP/GIF (browsers/phones often use them); max in KB (5120 = 5MB)
+        $file = $request->file('profile_picture');
+        if (!$file || !$file->isValid()) {
+            return response()->json([
+                'message' => 'The selected file is too large or invalid. Please ensure your image is under 2MB.'
+            ], 422);
+        }
+
+        // Allow WebP/GIF/AVIF (browsers/phones often use them); max in KB
         $request->validate([
-            'profile_picture' => ['required', 'image', 'max:5120', 'mimes:jpeg,jpg,jpe,pjpeg,png,gif,webp'],
+            'profile_picture' => ['required', 'image', 'max:2048', 'mimes:jpeg,jpg,jpe,pjpeg,png,gif,webp,avif'],
         ]);
 
         try {

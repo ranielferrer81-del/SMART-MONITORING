@@ -433,7 +433,7 @@ export default function StudentsTimeClockSection() {
                           </td>
                           <td className="py-2">
                             {s.is_active ? (
-                              <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+                              <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900/40 dark:text-red-300">
                                 Active
                               </span>
                             ) : (
@@ -455,3 +455,4 @@ export default function StudentsTimeClockSection() {
     </div>
   );
 }
+

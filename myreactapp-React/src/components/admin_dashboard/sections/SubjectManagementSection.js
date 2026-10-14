@@ -84,7 +84,7 @@ const SubjectManagementSection = ({
     return (
         <div className="space-y-6">
             <div className="overflow-hidden rounded-3xl border border-white/40 bg-gradient-to-br from-white/70 to-slate-50/50 shadow-[0_20px_50px_-12px_rgba(15,23,42,0.12)] backdrop-blur-xl dark:border-white/10 dark:from-slate-900/80 dark:to-slate-950/90 dark:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.55)]">
-                <div className="h-1 w-full bg-gradient-to-r from-violet-500 via-rose-500 to-amber-400" aria-hidden />
+                <div className="h-1 w-full bg-gradient-to-r from-red-500 via-rose-500 to-rose-400" aria-hidden />
             <div className="p-4 lg:p-6">
                 <div className="mb-4 flex justify-end">
                     <button
@@ -99,7 +99,7 @@ const SubjectManagementSection = ({
                 </div>
 
                 {/* Create Subject Form */}
-                <div className="mb-6 overflow-hidden rounded-2xl border border-rose-200/60 bg-gradient-to-br from-white/85 via-rose-50/60 to-indigo-50/60 shadow-[0_20px_45px_-18px_rgba(244,63,94,0.35)] transition-all duration-300 hover:shadow-[0_24px_55px_-18px_rgba(99,102,241,0.35)] dark:border-rose-800/40 dark:from-slate-900/80 dark:via-slate-900/70 dark:to-indigo-950/45">
+                <div className="mb-6 overflow-hidden rounded-2xl border border-rose-200/60 bg-gradient-to-br from-white/85 via-rose-50/60 to-red-50/60 shadow-[0_20px_45px_-18px_rgba(244,63,94,0.35)] transition-all duration-300 hover:shadow-[0_24px_55px_-18px_rgba(99,102,241,0.35)] dark:border-rose-800/40 dark:from-slate-900/80 dark:via-slate-900/70 dark:to-red-950/45">
                     <div className="border-b border-rose-200/70 bg-white/70 px-4 py-3 backdrop-blur-sm dark:border-rose-900/60 dark:bg-slate-900/55">
                         <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-100">Create Subject Details</h4>
                         <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">Fill out the subject details and class schedule in one place.</p>
@@ -179,9 +179,9 @@ const SubjectManagementSection = ({
                             {subErrors.teacher_user_id && <p className="mt-1 text-[10px] text-red-600">{subErrors.teacher_user_id}</p>}
                         </div>
                     </div>
-                    <div className="mt-4 rounded-xl border border-indigo-200/70 bg-white/65 p-4 shadow-inner dark:border-indigo-800/70 dark:bg-slate-900/50">
-                        <h4 className="text-sm font-semibold text-indigo-700 dark:text-indigo-200">Class Schedule</h4>
-                        <p className="mt-1 text-xs text-indigo-600 dark:text-indigo-300">Required for auto attendance check-in.</p>
+                    <div className="mt-4 rounded-xl border border-red-200/70 bg-white/65 p-4 shadow-inner dark:border-red-800/70 dark:bg-slate-900/50">
+                        <h4 className="text-sm font-semibold text-red-700 dark:text-red-200">Class Schedule</h4>
+                        <p className="mt-1 text-xs text-red-600 dark:text-red-300">Required for auto attendance check-in.</p>
                         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                             <div>
                                 <label className="block text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300">Day</label>
@@ -292,3 +292,4 @@ const SubjectManagementSection = ({
 };
 
 export default SubjectManagementSection;
+

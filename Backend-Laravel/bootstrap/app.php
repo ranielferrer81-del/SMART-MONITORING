@@ -18,7 +18,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: '*');
         // Use our explicit middleware so CORS headers are always present on Railway.
         $middleware->prepend(\App\Http\Middleware\HandleCors::class);
-        $middleware->statefulApi();
+        // Token auth (Bearer via Sanctum) — not cookie/CSRF SPA login. statefulApi() would
+        // require /sanctum/csrf-cookie before POST /api/login from localhost:3000.
+        // $middleware->statefulApi();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
