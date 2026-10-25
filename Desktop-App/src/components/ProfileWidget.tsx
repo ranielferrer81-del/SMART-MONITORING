@@ -132,7 +132,7 @@ export default function ProfileWidget({ user, onLogout }: ProfileWidgetProps) {
         >
             <button
                 onMouseDown={handleMouseDown}
-                onClick={(e) => {
+                onClick={() => {
                     // Only toggle dropdown if not dragging
                     if (!isDragging) {
                         setIsOpen(!isOpen);

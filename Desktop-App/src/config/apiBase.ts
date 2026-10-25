@@ -96,7 +96,6 @@ export async function setServerMode(mode: ServerMode, customUrl?: string): Promi
 }
 
 export async function initApiBaseUrl(): Promise<string> {
-  const mode = getServerMode();
   let url = getApiBaseUrl();
 
   // In production builds, if no explicit user preference is stored, check api-base.json

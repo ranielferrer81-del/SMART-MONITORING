@@ -21,6 +21,7 @@ interface Window {
         sessionUuid: string;
         teacherName: string | null;
         subjectName: string | null;
+        token?: string | null;
       }) => void
     ) => () => void;
     onPresentationEnd?: (callback: () => void) => () => void;
