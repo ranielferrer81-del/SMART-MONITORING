@@ -1,5 +1,5 @@
-# Build Windows .exe installer when you push a version tag (e.g. v1.0.3).
-# API URL: Desktop-App/public/api-base.json (change before tagging for cloud vs localhost builds).
+# Build Windows .exe installer when you push a version tag (e.g. v1.0.7) or run manually.
+# API URL: Desktop-App/public/api-base.json (defaults to Render cloud backend).
 
 name: Desktop App Release
 
@@ -7,6 +7,12 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      version_tag:
+        description: 'Release Tag (e.g. v1.0.7)'
+        required: false
+        default: 'v1.0.7'
 
 permissions:
   contents: write
@@ -48,5 +54,7 @@ jobs:
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.event.inputs.version_tag || github.ref_name }}
           files: Desktop-App/release/*
           generate_release_notes: true
+
