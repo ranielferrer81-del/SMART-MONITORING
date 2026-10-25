@@ -17,43 +17,7 @@ SET time_zone = "+00:00";
 -- CREATE DATABASE IF NOT EXISTS `sia_app`;
 -- USE `sia_app`;
 
-DELIMITER $$
---
--- Functions
---
-CREATE DEFINER=`root`@`localhost` FUNCTION `generate_student_number` () RETURNS VARCHAR(50) CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci DETERMINISTIC READS SQL DATA BEGIN
-    DECLARE next_num INT;
-    SELECT COALESCE(MAX(CAST(SUBSTRING(student_number, 2) AS UNSIGNED)), 0) + 1 
-    INTO next_num 
-    FROM student_profiles 
-    WHERE student_number LIKE 'S%';
-    RETURN CONCAT('S', LPAD(next_num, 7, '0'));
-END$$
-
-CREATE DEFINER=`root`@`localhost` FUNCTION `generate_teacher_number` () RETURNS VARCHAR(50) CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci DETERMINISTIC READS SQL DATA BEGIN
-    DECLARE next_num INT;
-    SELECT COALESCE(MAX(CAST(SUBSTRING(teacher_number, 3) AS UNSIGNED)), 0) + 1 
-    INTO next_num 
-    FROM teacher_profiles 
-    WHERE teacher_number LIKE 'T-%';
-    RETURN CONCAT('T-', LPAD(next_num, 4, '0'));
-END$$
-
-CREATE DEFINER=`root`@`localhost` FUNCTION `user_dashboard_path` (`p_email` VARCHAR(191)) RETURNS VARCHAR(64) CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci DETERMINISTIC READS SQL DATA BEGIN
-  DECLARE v_role VARCHAR(50);
-  SELECT u.role INTO v_role
-    FROM users u
-   WHERE LOWER(u.email) = LOWER(p_email)
-   LIMIT 1;
-  RETURN CASE v_role
-    WHEN 'student' THEN '/student/dashboard'
-    WHEN 'teacher' THEN '/teacher/dashboard'
-    WHEN 'admin'   THEN '/admin/dashboard'
-    ELSE '/login'
-  END;
-END$$
-
-DELIMITER ;
+-- Functions removed for TiDB Cloud compatibility (not used in Laravel PHP logic)
 
 -- --------------------------------------------------------
 
@@ -84,7 +48,7 @@ INSERT INTO `admin_profiles` (`user_id`, `position`, `permissions`, `status`, `c
 --
 
 CREATE TABLE `attendance_logs` (
-  `id` bigint(20) UNSIGNED NOT NULL,
+  `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
   `subject_id` int(10) UNSIGNED NOT NULL,
   `student_id` int(10) UNSIGNED NOT NULL,
   `teacher_user_id` int(10) UNSIGNED DEFAULT NULL,
@@ -102,7 +66,7 @@ CREATE TABLE `attendance_logs` (
 --
 
 CREATE TABLE `browser_activities` (
-  `id` bigint(20) UNSIGNED NOT NULL,
+  `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
   `student_user_id` int(10) UNSIGNED NOT NULL,
   `url` text NOT NULL,
   `page_title` varchar(500) DEFAULT NULL,
@@ -204,7 +168,7 @@ INSERT INTO `bsit_students` (`user_id`, `email`, `full_name`, `student_number`, 
 --
 
 CREATE TABLE `course_sections` (
-  `id` int(10) UNSIGNED NOT NULL,
+  `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
   `course` enum('BSIT','BSCS','BSEMC') NOT NULL,
   `section` varchar(50) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
@@ -218,7 +182,7 @@ CREATE TABLE `course_sections` (
 --
 
 CREATE TABLE `email_verification_codes` (
-  `id` bigint(20) UNSIGNED NOT NULL,
+  `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
   `email` varchar(255) NOT NULL,
   `code` varchar(6) NOT NULL,
   `used` tinyint(1) DEFAULT 0,
@@ -243,7 +207,7 @@ INSERT INTO `email_verification_codes` (`id`, `email`, `code`, `used`, `expires_
 --
 
 CREATE TABLE `incognito_alerts` (
-  `id` bigint(20) UNSIGNED NOT NULL,
+  `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
   `student_user_id` int(10) UNSIGNED NOT NULL,
   `detected_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `session_id` bigint(20) UNSIGNED DEFAULT NULL,
@@ -259,7 +223,7 @@ CREATE TABLE `incognito_alerts` (
 --
 
 CREATE TABLE `master_subjects` (
-  `id` bigint(20) UNSIGNED NOT NULL,
+  `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
   `code` varchar(32) NOT NULL,
   `name` varchar(191) NOT NULL,
   `description` text DEFAULT NULL,
@@ -282,7 +246,7 @@ INSERT INTO `master_subjects` (`id`, `code`, `name`, `description`, `is_active`,
 --
 
 CREATE TABLE `migrations` (
-  `id` int(10) UNSIGNED NOT NULL,
+  `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
   `migration` varchar(255) NOT NULL,
   `batch` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -305,7 +269,7 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES
 --
 
 CREATE TABLE `monitoring_sessions` (
-  `id` bigint(20) UNSIGNED NOT NULL,
+  `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
   `student_user_id` int(10) UNSIGNED NOT NULL,
   `session_start` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `session_end` timestamp NULL DEFAULT NULL,
@@ -342,7 +306,7 @@ INSERT INTO `monitoring_sessions` (`id`, `student_user_id`, `session_start`, `se
 --
 
 CREATE TABLE `personal_access_tokens` (
-  `id` bigint(20) UNSIGNED NOT NULL,
+  `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
   `tokenable_type` varchar(255) NOT NULL,
   `tokenable_id` bigint(20) UNSIGNED NOT NULL,
   `name` varchar(255) NOT NULL,
@@ -404,86 +368,9 @@ INSERT INTO `student_profiles` (`user_id`, `student_number`, `course`, `year_lev
 (32, '01334567122', 'BSEMC', NULL, 'BSIT 3-Y2-2', NULL, NULL, 'active', '2026-01-15 06:53:35', '2026-01-15 10:01:05'),
 (38, '01223777150', 'BSIT', NULL, 'BSIT 3-Y2-2', '/storage/profile_pictures/profile_38_1770233287.jpg', '$2y$12$A6KtLT1dpJle2thqF38qKuVLomkx8My2mG.bbQQUBwKmkTbnBvis6', 'active', '2026-02-04 10:46:20', '2026-02-04 11:28:07');
 
---
--- Triggers `student_profiles`
---
-DELIMITER $$
-CREATE TRIGGER `student_profiles_ai_route` AFTER INSERT ON `student_profiles` FOR EACH ROW BEGIN
-  DECLARE v_course VARCHAR(100);
-  SET v_course = UPPER(COALESCE(NEW.course, ''));
+-- Triggers removed for TiDB Cloud compatibility (handled in PHP controllers)
 
-  -- First, clean from all course tables (in case of re-insert scenarios)
-  DELETE FROM bsit_students  WHERE user_id = NEW.user_id;
-  DELETE FROM bscs_students  WHERE user_id = NEW.user_id;
-  DELETE FROM bsemc_students WHERE user_id = NEW.user_id;
 
-  IF v_course = 'BSIT' THEN
-    INSERT INTO bsit_students (user_id, email, full_name, student_number, section, created_at, updated_at)
-    SELECT u.id, u.email, u.full_name, NEW.student_number, NEW.section, NOW(), NOW()
-    FROM users u WHERE u.id = NEW.user_id;
-  ELSEIF v_course = 'BSCS' THEN
-    INSERT INTO bscs_students (user_id, email, full_name, student_number, section, created_at, updated_at)
-    SELECT u.id, u.email, u.full_name, NEW.student_number, NEW.section, NOW(), NOW()
-    FROM users u WHERE u.id = NEW.user_id;
-  ELSEIF v_course = 'BSEMC' THEN
-    INSERT INTO bsemc_students (user_id, email, full_name, student_number, section, created_at, updated_at)
-    SELECT u.id, u.email, u.full_name, NEW.student_number, NEW.section, NOW(), NOW()
-    FROM users u WHERE u.id = NEW.user_id;
-  END IF;
-END
-$$
-DELIMITER ;
-DELIMITER $$
-CREATE TRIGGER `student_profiles_au_route` AFTER UPDATE ON `student_profiles` FOR EACH ROW BEGIN
-  DECLARE v_course_old VARCHAR(100);
-  DECLARE v_course_new VARCHAR(100);
-  SET v_course_old = UPPER(COALESCE(OLD.course, ''));
-  SET v_course_new = UPPER(COALESCE(NEW.course, ''));
-
-  -- If course changed or student_number/section changed, re-sync
-  IF v_course_old <> v_course_new
-     OR OLD.student_number <> NEW.student_number
-     OR IFNULL(OLD.section,'') <> IFNULL(NEW.section,'') THEN
-
-    -- Remove from all tables
-    DELETE FROM bsit_students  WHERE user_id = NEW.user_id;
-    DELETE FROM bscs_students  WHERE user_id = NEW.user_id;
-    DELETE FROM bsemc_students WHERE user_id = NEW.user_id;
-
-    -- Insert into the correct one (if matches)
-    IF v_course_new = 'BSIT' THEN
-      INSERT INTO bsit_students (user_id, email, full_name, student_number, section, created_at, updated_at)
-      SELECT u.id, u.email, u.full_name, NEW.student_number, NEW.section, NOW(), NOW()
-      FROM users u WHERE u.id = NEW.user_id;
-    ELSEIF v_course_new = 'BSCS' THEN
-      INSERT INTO bscs_students (user_id, email, full_name, student_number, section, created_at, updated_at)
-      SELECT u.id, u.email, u.full_name, NEW.student_number, NEW.section, NOW(), NOW()
-      FROM users u WHERE u.id = NEW.user_id;
-    ELSEIF v_course_new = 'BSEMC' THEN
-      INSERT INTO bsemc_students (user_id, email, full_name, student_number, section, created_at, updated_at)
-      SELECT u.id, u.email, u.full_name, NEW.student_number, NEW.section, NOW(), NOW()
-      FROM users u WHERE u.id = NEW.user_id;
-    END IF;
-  END IF;
-END
-$$
-DELIMITER ;
-DELIMITER $$
-CREATE TRIGGER `student_profiles_bi_normalize` BEFORE INSERT ON `student_profiles` FOR EACH ROW BEGIN
-  IF NEW.course IS NOT NULL THEN
-    SET NEW.course = UPPER(TRIM(NEW.course));
-  END IF;
-END
-$$
-DELIMITER ;
-DELIMITER $$
-CREATE TRIGGER `student_profiles_bu_normalize` BEFORE UPDATE ON `student_profiles` FOR EACH ROW BEGIN
-  IF NEW.course IS NOT NULL THEN
-    SET NEW.course = UPPER(TRIM(NEW.course));
-  END IF;
-END
-$$
-DELIMITER ;
 
 -- --------------------------------------------------------
 
@@ -492,7 +379,7 @@ DELIMITER ;
 --
 
 CREATE TABLE `subjects` (
-  `id` int(10) UNSIGNED NOT NULL,
+  `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
   `master_subject_id` bigint(20) UNSIGNED DEFAULT NULL,
   `code` varchar(32) NOT NULL,
   `name` varchar(191) NOT NULL,
@@ -519,7 +406,7 @@ INSERT INTO `subjects` (`id`, `master_subject_id`, `code`, `name`, `course`, `se
 --
 
 CREATE TABLE `subject_enrollments` (
-  `id` int(10) UNSIGNED NOT NULL,
+  `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
   `subject_id` int(10) UNSIGNED NOT NULL,
   `student_id` int(10) UNSIGNED NOT NULL,
   `enrolled_at` timestamp NOT NULL DEFAULT current_timestamp(),
@@ -567,7 +454,7 @@ INSERT INTO `teacher_profiles` (`user_id`, `teacher_number`, `department`, `spec
 --
 
 CREATE TABLE `users` (
-  `id` int(10) UNSIGNED NOT NULL,
+  `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
   `email` varchar(191) NOT NULL,
   `password` varchar(255) NOT NULL,
   `role` enum('admin','teacher','student') NOT NULL,
@@ -926,81 +813,8 @@ ALTER TABLE `users`
   ADD KEY `idx_users_created_by` (`created_by`),
   ADD KEY `idx_users_is_active` (`is_active`);
 
---
--- AUTO_INCREMENT for dumped tables
---
+-- AUTO_INCREMENT is now defined inline in CREATE TABLE statements above (TiDB compatibility)
 
---
--- AUTO_INCREMENT for table `attendance_logs`
---
-ALTER TABLE `attendance_logs`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
-
---
--- AUTO_INCREMENT for table `browser_activities`
---
-ALTER TABLE `browser_activities`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1600;
-
---
--- AUTO_INCREMENT for table `course_sections`
---
-ALTER TABLE `course_sections`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `email_verification_codes`
---
-ALTER TABLE `email_verification_codes`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=48;
-
---
--- AUTO_INCREMENT for table `incognito_alerts`
---
-ALTER TABLE `incognito_alerts`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `master_subjects`
---
-ALTER TABLE `master_subjects`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
-
---
--- AUTO_INCREMENT for table `migrations`
---
-ALTER TABLE `migrations`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
-
---
--- AUTO_INCREMENT for table `monitoring_sessions`
---
-ALTER TABLE `monitoring_sessions`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
-
---
--- AUTO_INCREMENT for table `personal_access_tokens`
---
-ALTER TABLE `personal_access_tokens`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=81;
-
---
--- AUTO_INCREMENT for table `subjects`
---
-ALTER TABLE `subjects`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
-
---
--- AUTO_INCREMENT for table `subject_enrollments`
---
-ALTER TABLE `subject_enrollments`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
-
---
--- AUTO_INCREMENT for table `users`
---
-ALTER TABLE `users`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=39;
 
 --
 -- Constraints for dumped tables

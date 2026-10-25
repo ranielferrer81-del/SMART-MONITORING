@@ -11,7 +11,11 @@ return new class extends Migration
     public function up(): void
     {
         // Drop the auto-enrollment trigger if it exists
-        DB::statement('DROP TRIGGER IF EXISTS `subjects_ai_auto_enroll`');
+        try {
+            DB::statement('DROP TRIGGER IF EXISTS `subjects_ai_auto_enroll`');
+        } catch (\Throwable $e) {
+            // TiDB and engines without trigger support safely ignore
+        }
     }
 
     /**

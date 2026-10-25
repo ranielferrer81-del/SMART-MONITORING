@@ -40,17 +40,21 @@ class ImportLegacyDatabase extends Command
                     $this->line("  Dropped table: {$tableName}");
                 }
 
-                // Also drop stored functions and procedures
-                $functions = DB::select("SHOW FUNCTION STATUS WHERE Db = DATABASE()");
-                foreach ($functions as $func) {
-                    DB::statement("DROP FUNCTION IF EXISTS `{$func->Name}`");
-                    $this->line("  Dropped function: {$func->Name}");
-                }
+                // Also drop stored functions and procedures if supported by engine
+                try {
+                    $functions = DB::select("SHOW FUNCTION STATUS WHERE Db = DATABASE()");
+                    foreach ($functions as $func) {
+                        DB::statement("DROP FUNCTION IF EXISTS `{$func->Name}`");
+                        $this->line("  Dropped function: {$func->Name}");
+                    }
 
-                $procedures = DB::select("SHOW PROCEDURE STATUS WHERE Db = DATABASE()");
-                foreach ($procedures as $proc) {
-                    DB::statement("DROP PROCEDURE IF EXISTS `{$proc->Name}`");
-                    $this->line("  Dropped procedure: {$proc->Name}");
+                    $procedures = DB::select("SHOW PROCEDURE STATUS WHERE Db = DATABASE()");
+                    foreach ($procedures as $proc) {
+                        DB::statement("DROP PROCEDURE IF EXISTS `{$proc->Name}`");
+                        $this->line("  Dropped procedure: {$proc->Name}");
+                    }
+                } catch (\Throwable $e) {
+                    // Engines like TiDB do not support stored routines
                 }
 
                 DB::statement('SET FOREIGN_KEY_CHECKS=1');
@@ -67,7 +71,7 @@ class ImportLegacyDatabase extends Command
 
         // ---- Pre-process the SQL to fix compatibility issues ----
 
-        // 1. Strip DEFINER clauses (Railway MySQL user is not root@localhost)
+        // 1. Strip DEFINER clauses (Railway/TiDB MySQL user is not root@localhost)
         $sql = preg_replace('/\bDEFINER\s*=\s*`[^`]*`@`[^`]*`\s*/i', '', $sql);
 
         // 2. Strip SQL SECURITY DEFINER
@@ -81,9 +85,34 @@ class ImportLegacyDatabase extends Command
         $sql = preg_replace('/^\s*COMMIT\s*;?\s*$/im', '', $sql);
         $sql = preg_replace('/^\s*ROLLBACK\s*;?\s*$/im', '', $sql);
 
-        // 5. Strip CREATE DATABASE and USE statements (must use connected DB e.g. railway)
+        // 5. Strip CREATE DATABASE and USE statements (must use connected DB e.g. railway/test)
         $sql = preg_replace('/^\s*CREATE\s+DATABASE\b[^;]*;?/im', '', $sql);
         $sql = preg_replace('/^\s*USE\b[^;]*;?/im', '', $sql);
+
+        // 6. Strip CREATE FUNCTION and CREATE TRIGGER blocks (unsupported in TiDB, logic handled in PHP)
+        $sql = preg_replace('/CREATE\s+FUNCTION\b.*?END(?:\$\$|;)/is', '', $sql);
+        $sql = preg_replace('/CREATE\s+TRIGGER\b.*?END(?:\$\$|;)/is', '', $sql);
+
+        // 7. Strip DELIMITER statements
+        $sql = preg_replace('/^\s*DELIMITER\s+.*$/im', '', $sql);
+
+        // 8. Ensure AUTO_INCREMENT is placed inline in CREATE TABLE if present in ALTER TABLE
+        $sql = preg_replace_callback(
+            '/ALTER TABLE\s+`?([a-zA-Z0-9_]+)`?\s+MODIFY\s+`?id`?\s+((?:bigint|int)\([0-9]+\)\s+UNSIGNED\s+NOT\s+NULL)\s+AUTO_INCREMENT[^;]*;/is',
+            function ($matches) use (&$sql) {
+                $tableName = $matches[1];
+                // Replace in CREATE TABLE
+                $sql = preg_replace_callback(
+                    '/(CREATE TABLE `' . $tableName . '` \([^;]+?`id`\s+(?:bigint|int)\([0-9]+\)\s+UNSIGNED\s+NOT\s+NULL)(,)/is',
+                    function ($m) {
+                        return strpos($m[1], 'AUTO_INCREMENT') === false ? ($m[1] . ' AUTO_INCREMENT' . $m[2]) : ($m[1] . $m[2]);
+                    },
+                    $sql
+                );
+                return ''; // remove the ALTER TABLE statement so TiDB doesn't throw error 8200
+            },
+            $sql
+        );
 
         // ---- Parse and execute ----
         $statements = $this->parseSql($sql);
