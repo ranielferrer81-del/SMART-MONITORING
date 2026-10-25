@@ -1,6 +1,18 @@
 {
   "rewrites": [
     {
+      "source": "/api/:match*",
+      "destination": "https://smart-backend-gwym.onrender.com/api/:match*"
+    },
+    {
+      "source": "/sanctum/:match*",
+      "destination": "https://smart-backend-gwym.onrender.com/sanctum/:match*"
+    },
+    {
+      "source": "/storage/:match*",
+      "destination": "https://smart-backend-gwym.onrender.com/storage/:match*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
