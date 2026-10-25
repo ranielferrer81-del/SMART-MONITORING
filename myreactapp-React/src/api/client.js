@@ -44,7 +44,7 @@ function extractLoginErrorMessage(error) {
 
 export const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
-  timeout: 90000, // Render free instances can cold-start in ~50s; keep enough buffer
+  timeout: 120000, // Render free instances can cold-start in ~60-90s; keep 120s buffer
 });
 
 // Resolve base URL per request so runtime patches (e.g. patch-api-base.js before serve) apply.

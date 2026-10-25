@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { loginRequest } from '../api/client';
+import { getApiBase } from '../config/apiBase';
 import ThemeToggle from './ThemeToggle';
 
 const roleDefaultRoutes = {
@@ -33,6 +34,13 @@ const LoginForm = () => {
     emailHint: '',
   });
   const [isLoading, setIsLoading] = useState(false);
+
+  // Silently wake up Render backend on page load so it is warm by the time user submits
+  useEffect(() => {
+    try {
+      fetch(`${getApiBase()}/api/mail-readiness`, { method: 'GET', cache: 'no-store' }).catch(() => {});
+    } catch (_) {}
+  }, []);
 
 
   const handleChange = (e) => {
@@ -91,6 +99,12 @@ const LoginForm = () => {
           });
         } else if (msg.includes('incorrect password')) {
           setServerErrors({ email: '', emailHint: '', password: 'Incorrect password. Try again.' });
+        } else if (msg.includes('timeout') || msg.includes('90000') || msg.includes('120000') || msg.includes('network error')) {
+          setServerErrors({
+            email: 'Server took longer than expected to respond (Render cloud instance waking up). Please click Login again.',
+            emailHint: 'Free-tier cloud servers sleep when idle and take ~60 seconds on the first request to wake up.',
+            password: '',
+          });
         } else {
           setServerErrors({
             email: result.error || 'Login failed',

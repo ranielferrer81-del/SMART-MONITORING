@@ -66,7 +66,7 @@ export default function EmailVerification({
     }
 
     if (propCode && /^\d{6}$/.test(propCode) && !emailDelivered) {
-      setCode(propCode);
+      setCode('');
       setDevCode(propCode);
       setEmailSent(false);
       setVerificationFailed(false);
@@ -78,7 +78,7 @@ export default function EmailVerification({
     const emailSentStatus = localStorage.getItem('email_sent_status');
 
     if (storedCode && emailSentStatus === 'false' && /^\d{6}$/.test(storedCode)) {
-      setCode(storedCode);
+      setCode('');
       setDevCode(storedCode);
       setEmailSent(false);
       setVerificationFailed(false);

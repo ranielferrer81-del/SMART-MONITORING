@@ -16,13 +16,13 @@ class EmailService
     /** True on Railway even when getenv is empty after config:cache (uses APP_URL). */
     public static function isHostedOnRailway(): bool
     {
-        if (getenv('RAILWAY_ENVIRONMENT') !== false || getenv('RAILWAY_PROJECT_ID') !== false) {
+        if (getenv('RAILWAY_ENVIRONMENT') !== false || getenv('RAILWAY_PROJECT_ID') !== false || getenv('RENDER') !== false) {
             return true;
         }
 
         $url = strtolower((string) config('app.url', ''));
 
-        return str_contains($url, 'railway.app');
+        return str_contains($url, 'railway.app') || str_contains($url, 'onrender.com');
     }
 
     /**
@@ -90,8 +90,18 @@ class EmailService
      */
     private static function shouldSkipBrevoRestForOtp(): bool
     {
+        if (filter_var(env('EMAIL_SKIP_BREVO_REST', false), FILTER_VALIDATE_BOOLEAN)) {
+            return true;
+        }
+
         $dedicated = trim((string) (self::envValue('BREVO_SENDER_EMAIL') ?: config('services.brevo.sender_email', '')));
         if ($dedicated !== '' && ! str_contains(strtolower($dedicated), 'example.com')) {
+            return false;
+        }
+
+        // On cloud (Railway / Render), outbound SMTP port 587 is blocked or times out.
+        // Never skip Brevo REST API (HTTPS :443) on cloud deployments.
+        if (self::isHostedOnRailway()) {
             return false;
         }
 
@@ -484,34 +494,33 @@ class EmailService
         $brevoSenderEmail = trim((string) ($brevoSender['email'] ?? ''));
         $brevoSenderReady = $brevoSenderEmail !== ''
             && ! str_contains(strtolower($brevoSenderEmail), 'example.com');
-        $preferBrevoRestOnRailway = $runningOnRailway
-            && $brevoKey !== ''
+        $preferBrevoRestFirst = $brevoKey !== ''
             && ! $skipBrevoRest
             && $brevoSenderReady
             && (bool) config('app.email_try_brevo_before_resend_on_railway', true);
 
         $brevoRestAttempted = false;
 
-        // Railway + Brevo: try HTTPS REST before Gmail/SMTP (587 often blocked; Gmail MAIL_* burns the OTP budget).
-        if ($preferBrevoRestOnRailway && ! self::shouldSkipByOtpBudget($otpBudgetDeadline, 'brevo_rest_railway_first')) {
+        // Brevo REST over HTTPS :443: always try before Gmail/SMTP (port 587 is blocked or slow on cloud).
+        if ($preferBrevoRestFirst && ! self::shouldSkipByOtpBudget($otpBudgetDeadline, 'brevo_rest_primary_first')) {
             $brevoRestAttempted = true;
-            self::noteDiagnostic('brevo_rest_railway_first', true);
+            self::noteDiagnostic('brevo_rest_primary_first', true);
             try {
                 if (self::sendViaBrevo($toEmail, $code, $brevoKey)) {
-                    Log::info('✅ Email sent via Brevo REST API (Railway — before Gmail/SMTP)', ['to' => $toEmail]);
+                    Log::info('✅ Email sent via Brevo REST API (primary — before Gmail/SMTP)', ['to' => $toEmail]);
 
                     return true;
                 }
             } catch (\Throwable $e) {
-                Log::warning('Brevo REST (Railway first) failed', ['error' => $e->getMessage()]);
+                Log::warning('Brevo REST (primary first) failed', ['error' => $e->getMessage()]);
             }
         }
 
-        $tryGmailProcessEnv = ! ($runningOnRailway && $brevoKey !== '' && $brevoSenderReady);
+        $tryGmailProcessEnv = ! ($brevoKey !== '' && $brevoSenderReady && ! $skipBrevoRest);
         if ($tryGmailProcessEnv) {
             self::noteDiagnostic('gmail_process_env_skipped', false);
         } else {
-            self::noteDiagnostic('gmail_process_env_skipped', 'railway_brevo_configured');
+            self::noteDiagnostic('gmail_process_env_skipped', 'brevo_configured');
         }
 
         if ($tryGmailProcessEnv && ! self::verificationOtpBudgetExceeded($otpBudgetDeadline)) {
