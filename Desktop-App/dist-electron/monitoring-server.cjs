@@ -283,6 +283,14 @@ function setApiBaseUrl(url) {
     }
     apiBaseUrl = base;
     console.log('🌐 API Base URL set:', apiBaseUrl);
+    if (currentStudentCredentials && currentStudentCredentials.token) {
+        setScreenCaptureContext({
+            apiBaseUrl: apiBaseUrl.replace(/\/api\/?$/i, ''),
+            token: currentStudentCredentials.token,
+            computerName: computerName,
+            gatewayIp: gatewayIp,
+        });
+    }
 }
 
 function registerLockStateCallback(cb) {

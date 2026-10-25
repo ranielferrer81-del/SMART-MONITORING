@@ -1,6 +1,7 @@
 // Configuration
 // Default API URL (used when Desktop App is not running or hasn't provided one)
-const DEFAULT_API_BASE_URL = 'http://127.0.0.1:8000/api';
+const DEFAULT_API_BASE_URL = 'https://smart-backend-gwym.onrender.com/api';
+const LOCAL_API_BASE_URL = 'http://127.0.0.1:8000/api';
 const DESKTOP_APP_URL = 'http://localhost:9876';
 
 // Dynamic API URL - updated from Desktop App credentials
@@ -94,9 +95,15 @@ async function pollDesktopAppOnce() {
 
         const incomingToken = data.credentials.token;
         const incomingUserId = data.credentials.userId;
+        const incomingApiBaseUrl = data.credentials.apiBaseUrl || DEFAULT_API_BASE_URL;
 
-        // If extension already has the same token AND same user, do nothing.
+        // If extension already has the same token AND same user, just ensure API URL is in sync.
         if (storedToken && storedToken === incomingToken && storedUserId && storedUserId === incomingUserId) {
+            if (incomingApiBaseUrl && incomingApiBaseUrl !== dynamicApiBaseUrl) {
+                dynamicApiBaseUrl = incomingApiBaseUrl;
+                await chrome.storage.local.set({ [STORAGE_KEYS.API_BASE_URL]: dynamicApiBaseUrl });
+                console.log('🌐 Synchronized API URL from Desktop App:', dynamicApiBaseUrl);
+            }
             return;
         }
 

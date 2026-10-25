@@ -93,4 +93,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
     };
   },
   quizDismiss: () => ipcRenderer.invoke('quiz-dismiss'),
+  setApiBaseUrl: (url: string) => ipcRenderer.invoke('set-api-base-url', url),
 });

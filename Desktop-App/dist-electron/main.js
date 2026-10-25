@@ -51,8 +51,9 @@ function readApiBaseFromBuildConfig() {
         return null;
     }
 }
-const DEFAULT_API_BASE_URL = 'http://127.0.0.1:8000';
-/** Packaged builds use build-config.json from CI; dev prefers .env */
+const DEFAULT_API_BASE_URL = 'https://smart-backend-gwym.onrender.com';
+const LOCAL_API_URL = 'http://127.0.0.1:8000';
+/** Packaged builds use build-config.json from CI; dev prefers .env or cloud */
 function resolveApiBaseUrl() {
     const fromBuildConfig = readApiBaseFromBuildConfig();
     const fromEnvFile = readApiBaseFromDotEnv();
@@ -427,6 +428,14 @@ ipcMain.handle('quit-app', () => {
         profileWindow = null;
     }
     app.quit();
+});
+ipcMain.handle('set-api-base-url', (_event, url) => {
+    if (typeof url === 'string' && url.trim()) {
+        const normalized = normalizeApiBaseUrl(url);
+        setApiBaseUrl(normalized);
+        console.log(`🌐 API Base URL updated via UI: ${normalized}`);
+    }
+    return true;
 });
 // This method will be called when Electron has finished initialization
 app.on('ready', async () => {

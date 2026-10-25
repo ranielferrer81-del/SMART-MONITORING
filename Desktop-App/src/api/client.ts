@@ -41,6 +41,7 @@ export const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
+  config.baseURL = getApiBaseUrl();
   const token = localStorage.getItem('token');
   if (token) {
     config.headers = config.headers ?? {};
@@ -337,8 +338,12 @@ const parseEmailSent = (value: unknown): boolean =>
   value === true || value === 1 || value === '1' || value === 'true';
 
 export async function verifyLaravelBackend(): Promise<BackendCheckResult> {
+  const currentBase = getApiBaseUrl();
   try {
-    const { data } = await api.get('/health', { timeout: BACKEND_HEALTH_CHECK_TIMEOUT_MS });
+    const { data } = await api.get('/health', { 
+      baseURL: currentBase,
+      timeout: BACKEND_HEALTH_CHECK_TIMEOUT_MS 
+    });
     const isJsonHealthOk =
       data &&
       typeof data === 'object' &&
@@ -354,12 +359,12 @@ export async function verifyLaravelBackend(): Promise<BackendCheckResult> {
     return {
       ok: false,
       message:
-        'This URL does not look like the Laravel API (GET /health should return JSON with status and php). Set VITE_API_BASE_URL to your Railway backend service, not the React website.',
+        `Server responded, but is not reporting healthy at ${currentBase}.`,
     };
   } catch (e) {
     return {
       ok: false,
-      message: `Cannot reach the Laravel API: ${extractErrorMessage(e)}. Check VITE_API_BASE_URL and rebuild.`,
+      message: `Cannot reach backend at ${currentBase}: ${extractErrorMessage(e)}.`,
     };
   }
 }

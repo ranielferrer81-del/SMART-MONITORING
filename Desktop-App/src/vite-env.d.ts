@@ -36,5 +36,6 @@ interface Window {
     ) => () => void;
     onQuizEnd?: (callback: () => void) => () => void;
     quizDismiss?: () => Promise<void>;
+    setApiBaseUrl?: (url: string) => Promise<boolean>;
   };
 }
