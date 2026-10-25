@@ -10,7 +10,7 @@ export async function fetchLabGateways(search = '') {
     if (search && search.trim()) {
       params.search = search.trim();
     }
-    const response = await api.get('/lab-gateways', { params });
+    const response = await api.get('/api/lab-gateways', { params });
     return { ok: true, data: response.data || [] };
   } catch (error) {
     const message = error.response?.data?.error || error.response?.data?.message || 'Failed to load lab gateways';
@@ -23,7 +23,7 @@ export async function fetchLabGateways(search = '') {
  */
 export async function fetchLabRooms() {
   try {
-    const response = await api.get('/lab-gateways/rooms');
+    const response = await api.get('/api/lab-gateways/rooms');
     return { ok: true, data: response.data || [] };
   } catch (error) {
     return { ok: false, data: [] };
@@ -35,7 +35,7 @@ export async function fetchLabRooms() {
  */
 export async function fetchUnmappedGateways() {
   try {
-    const response = await api.get('/lab-gateways/unmapped');
+    const response = await api.get('/api/lab-gateways/unmapped');
     return { ok: true, data: response.data || [] };
   } catch (error) {
     return { ok: false, data: [] };
@@ -48,7 +48,7 @@ export async function fetchUnmappedGateways() {
  */
 export async function createLabGateway(payload) {
   try {
-    const response = await api.post('/lab-gateways', {
+    const response = await api.post('/api/lab-gateways', {
       gateway_ip: payload.gateway_ip?.trim(),
       laboratory_room: payload.laboratory_room?.trim(),
       description: payload.description ? payload.description.trim() : null,
@@ -83,7 +83,7 @@ export async function updateLabGateway(id, payload) {
       cleanPayload.description = payload.description ? payload.description.trim() : null;
     }
 
-    const response = await api.patch(`/lab-gateways/${id}`, cleanPayload);
+    const response = await api.patch(`/api/lab-gateways/${id}`, cleanPayload);
     return { ok: true, data: response.data?.gateway || response.data };
   } catch (error) {
     let message = 'Failed to update lab gateway mapping';
@@ -106,7 +106,7 @@ export async function updateLabGateway(id, payload) {
  */
 export async function deleteLabGateway(id) {
   try {
-    const response = await api.delete(`/lab-gateways/${id}`);
+    const response = await api.delete(`/api/lab-gateways/${id}`);
     return { ok: true, data: response.data };
   } catch (error) {
     const message = error.response?.data?.error || error.response?.data?.message || 'Failed to delete lab gateway mapping';
