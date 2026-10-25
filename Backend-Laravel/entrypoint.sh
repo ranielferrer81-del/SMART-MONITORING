@@ -186,7 +186,8 @@ else
 fi
 
 # ---------------------------------------------------------------
-# 8. Start the server
+# 8. Start the server (with multi-worker concurrency)
 # ---------------------------------------------------------------
-echo "Starting Laravel server on port ${PORT:-8080}..."
+export PHP_CLI_SERVER_WORKERS="${PHP_CLI_SERVER_WORKERS:-4}"
+echo "Starting Laravel server on port ${PORT:-8080} (PHP_CLI_SERVER_WORKERS=${PHP_CLI_SERVER_WORKERS})..."
 exec php artisan serve --host=0.0.0.0 --port=${PORT:-8080}

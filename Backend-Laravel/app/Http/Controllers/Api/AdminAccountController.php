@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Services\AccountAiService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -58,12 +59,17 @@ class AdminAccountController extends Controller
                 if ($existsSn) {
                     abort(response()->json(['ok' => false, 'message' => 'Student number already exists'], 422));
                 }
+                $cleanSection = $data['section'] ?? null;
+                if ($cleanSection) {
+                    $cleanSection = preg_replace('/^(?:' . preg_quote($data['course'] ?? '', '/') . '|BSIT|BSCS|BSEMC|IT|CS|EMC)\s*[-_]?\s*/i', '', $cleanSection);
+                    $cleanSection = trim($cleanSection) ?: $data['section'];
+                }
                 DB::table('student_profiles')->insert([
                     'user_id' => $userId,
                     'student_number' => $data['student_number'],
                     'course' => $data['course'] ?? null,
                     'year_level' => null,
-                    'section' => $data['section'] ?? null,
+                    'section' => $cleanSection,
                     'status' => 'active',
                     'created_at' => now(),
                     'updated_at' => now(),
@@ -255,6 +261,244 @@ class AdminAccountController extends Controller
         DB::table('users')->where('id', $userId)->delete();
 
         return response()->json(['ok' => true]);
+    }
+
+    /**
+     * AI-powered parsing & verification of registrar roster files or text.
+     */
+    public function aiParseRegistrarFile(Request $request, AccountAiService $aiService)
+    {
+        $this->ensureAdmin();
+
+        $request->validate([
+            'file' => ['nullable', 'file', 'max:20480'], // up to 20MB
+            'raw_text' => ['nullable', 'string'],
+            'default_course' => ['nullable', 'string', 'in:BSIT,BSCS,BSEMC'],
+            'default_section' => ['nullable', 'string', 'max:50'],
+            'email_domain' => ['nullable', 'string', 'max:100'],
+        ]);
+
+        $defaultCourse = $request->input('default_course') ?: 'BSIT';
+        $defaultSection = $request->input('default_section') ?: '3-A';
+        $emailDomain = trim((string) $request->input('email_domain', 'student.edu')) ?: 'student.edu';
+
+        $rawText = (string) $request->input('raw_text', '');
+        $fileMime = null;
+        $fileBase64 = null;
+
+        if ($request->hasFile('file')) {
+            $file = $request->file('file');
+            $mime = $file->getMimeType();
+            $path = $file->getRealPath();
+
+            $ext = strtolower($file->getClientOriginalExtension());
+            if ($ext === 'docx') {
+                $docText = $aiService->extractTextFromDocx($path);
+                if ($docText) {
+                    $rawText = $docText . "\n" . $rawText;
+                }
+            } elseif ($ext === 'xlsx') {
+                $xlText = $aiService->extractTextFromXlsx($path);
+                if ($xlText) {
+                    $rawText = $xlText . "\n" . $rawText;
+                }
+            } elseif (str_contains($mime, 'text') || str_contains($mime, 'csv') || in_array($ext, ['csv', 'txt', 'tsv', 'tab'])) {
+                $rawText = file_get_contents($path) . "\n" . $rawText;
+            } else {
+                $fileMime = $mime;
+                $fileBase64 = base64_encode(file_get_contents($path));
+            }
+        }
+
+        if (trim($rawText) === '' && empty($fileBase64)) {
+            return response()->json(['ok' => false, 'message' => 'Please provide a file or paste student list text.'], 422);
+        }
+
+        $parsed = $aiService->parseRoster(
+            $rawText,
+            $fileMime,
+            $fileBase64,
+            $defaultCourse,
+            $defaultSection,
+            $emailDomain
+        );
+
+        $students = $parsed['students'] ?? [];
+        if (empty($students)) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'No student records could be identified from the input. Please check the file formatting.',
+                'source' => $parsed['source'] ?? 'offline',
+            ], 422);
+        }
+
+        // Gather emails and student numbers for duplicate checking
+        $emails = array_map(fn ($s) => strtolower(trim($s['email'])), $students);
+        $studentNumbers = array_map(fn ($s) => trim($s['student_number']), $students);
+
+        $existingEmails = DB::table('users')
+            ->whereIn(DB::raw('LOWER(email)'), $emails)
+            ->pluck('email')
+            ->map(fn ($e) => strtolower($e))
+            ->flip()
+            ->toArray();
+
+        $existingSn = DB::table('student_profiles')
+            ->whereIn('student_number', $studentNumbers)
+            ->pluck('student_number')
+            ->flip()
+            ->toArray();
+
+        $seenEmailsInBatch = [];
+        $seenSnInBatch = [];
+
+        $verifiedStudents = [];
+        $validCount = 0;
+        $conflictCount = 0;
+
+        foreach ($students as $index => $s) {
+            $email = strtolower(trim($s['email']));
+            $sn = trim($s['student_number']);
+            $status = 'valid';
+            $conflictReason = null;
+
+            if (isset($existingEmails[$email])) {
+                $status = 'conflict';
+                $conflictReason = 'Email already registered in system';
+            } elseif (isset($existingSn[$sn])) {
+                $status = 'conflict';
+                $conflictReason = 'Student number already registered';
+            } elseif (isset($seenEmailsInBatch[$email])) {
+                $status = 'conflict';
+                $conflictReason = 'Duplicate email in this file';
+            } elseif (isset($seenSnInBatch[$sn])) {
+                $status = 'conflict';
+                $conflictReason = 'Duplicate student number in this file';
+            }
+
+            $seenEmailsInBatch[$email] = true;
+            $seenSnInBatch[$sn] = true;
+
+            if ($status === 'valid') {
+                $validCount++;
+            } else {
+                $conflictCount++;
+            }
+
+            $verifiedStudents[] = [
+                'id' => 'row_' . ($index + 1),
+                'full_name' => $s['full_name'],
+                'student_number' => $sn,
+                'course' => $s['course'],
+                'section' => $s['section'],
+                'email' => $email,
+                'status' => $status,
+                'conflict_reason' => $conflictReason,
+            ];
+        }
+
+        return response()->json([
+            'ok' => true,
+            'source' => $parsed['source'] ?? 'offline',
+            'students' => $verifiedStudents,
+            'summary' => [
+                'total' => count($verifiedStudents),
+                'valid_count' => $validCount,
+                'conflict_count' => $conflictCount,
+            ],
+        ]);
+    }
+
+    /**
+     * Batch-create approved student accounts atomically with default password.
+     */
+    public function batchStoreStudents(Request $request)
+    {
+        $authUser = $this->ensureAdmin();
+
+        $validated = $request->validate([
+            'students' => ['required', 'array', 'min:1'],
+            'students.*.full_name' => ['required', 'string', 'max:191'],
+            'students.*.email' => ['required', 'email', 'max:191'],
+            'students.*.student_number' => ['required', 'regex:/^\d{11}$/'],
+            'students.*.course' => ['required', 'in:BSIT,BSCS,BSEMC'],
+            'students.*.section' => ['required', 'string', 'max:50'],
+            'default_password' => ['nullable', 'string', 'min:6'],
+        ]);
+
+        $defaultPassword = $validated['default_password'] ?: 'Student@2025';
+        $hashedPassword = Hash::make($defaultPassword);
+
+        $createdStudents = [];
+        $skippedStudents = [];
+
+        DB::transaction(function () use ($validated, $authUser, $hashedPassword, $defaultPassword, &$createdStudents, &$skippedStudents) {
+            foreach ($validated['students'] as $s) {
+                $email = strtolower(trim($s['email']));
+                $sn = trim($s['student_number']);
+
+                // Check for existing records
+                $emailExists = DB::table('users')->whereRaw('LOWER(email) = ?', [$email])->exists();
+                $snExists = DB::table('student_profiles')->where('student_number', $sn)->exists();
+
+                if ($emailExists || $snExists) {
+                    $skippedStudents[] = [
+                        'full_name' => $s['full_name'],
+                        'email' => $email,
+                        'student_number' => $sn,
+                        'reason' => $emailExists ? 'Email already exists' : 'Student number already exists',
+                    ];
+                    continue;
+                }
+
+                $userId = DB::table('users')->insertGetId([
+                    'email' => $email,
+                    'password' => $hashedPassword,
+                    'role' => 'student',
+                    'full_name' => $s['full_name'],
+                    'is_active' => 1,
+                    'created_by' => $authUser->id,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                $cleanSection = $s['section'] ?? '';
+                if ($cleanSection) {
+                    $cleanSection = preg_replace('/^(?:' . preg_quote($s['course'] ?? '', '/') . '|BSIT|BSCS|BSEMC|IT|CS|EMC)\s*[-_]?\s*/i', '', $cleanSection);
+                    $cleanSection = trim($cleanSection) ?: ($s['section'] ?? '');
+                }
+
+                DB::table('student_profiles')->insert([
+                    'user_id' => $userId,
+                    'student_number' => $sn,
+                    'course' => $s['course'],
+                    'year_level' => null,
+                    'section' => $cleanSection,
+                    'status' => 'active',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                $createdStudents[] = [
+                    'id' => $userId,
+                    'full_name' => $s['full_name'],
+                    'email' => $email,
+                    'student_number' => $sn,
+                    'course' => $s['course'],
+                    'section' => $cleanSection,
+                    'password' => $defaultPassword, // returned for immediate admin credential CSV download
+                ];
+            }
+        });
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'Processed ' . (count($createdStudents) + count($skippedStudents)) . ' students.',
+            'created_count' => count($createdStudents),
+            'skipped_count' => count($skippedStudents),
+            'created_students' => $createdStudents,
+            'skipped_students' => $skippedStudents,
+        ]);
     }
 }
 

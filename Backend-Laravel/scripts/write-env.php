@@ -278,6 +278,22 @@ if ($hasGmailSmtp) {
     $lines[] = 'EMAIL_TRY_BREVO_BEFORE_RESEND_ON_RAILWAY=false';
 }
 
+// AI Service API keys (Quiz generation, Batch registration parsing)
+$geminiKey = g('GEMINI_API_KEY', g('GOOGLE_API_KEY', g('VITE_GEMINI_API_KEY')));
+if ($geminiKey !== '') {
+    $lines[] = line('GEMINI_API_KEY', $geminiKey);
+    $lines[] = line('GEMINI_MODEL', g('GEMINI_MODEL', 'gemini-1.5-flash'));
+}
+$groqKey = g('GROQ_API_KEY');
+if ($groqKey !== '') {
+    $lines[] = line('GROQ_API_KEY', $groqKey);
+    $lines[] = line('GROQ_MODEL', g('GROQ_MODEL', 'llama-3.3-70b-versatile'));
+}
+
+// Multi-worker concurrency for PHP built-in server
+$cliWorkers = g('PHP_CLI_SERVER_WORKERS', '4');
+$lines[] = line('PHP_CLI_SERVER_WORKERS', $cliWorkers);
+
 file_put_contents(
     dirname(__DIR__) . DIRECTORY_SEPARATOR . '.env',
     implode("\n", $lines) . "\n"

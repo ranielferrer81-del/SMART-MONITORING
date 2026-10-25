@@ -26,6 +26,21 @@ let heartbeatInterval = null;
 // Merged into POST /browser-activity/heartbeat as JSON key "desktop" (not exposed to Chrome extension credential API)
 let desktopHeartbeatFields = {};
 
+// --- PC Lock state ---
+// Callback registered by main.ts to push IPC events to the renderer
+let lockStateCallback = null;
+// Track the last known lock state so we only fire the callback on changes
+let currentLockState = { isLocked: false, message: null };
+
+// --- Screen Share Presentation state ---
+let presentationStateCallback = null;
+let currentPresentationState = { isPresenting: false, sessionUuid: null, teacherName: null, subjectName: null };
+
+// --- Quiz state ---
+let quizStateCallback = null;
+let currentQuizState = { isActive: false, quizId: null };
+
+
 // Create Express server
 const server = express();
 server.use(cors());
@@ -102,7 +117,58 @@ async function sendDirectHeartbeat() {
         });
 
         if (response.ok) {
-            console.log('💓 Desktop heartbeat sent (computer:', computerName, 'gateway:', gatewayIp, ')');
+            const data = await response.json().catch(() => ({}));
+
+            // --- Handle PC lock state from heartbeat response ---
+            const isLocked = data.is_locked === true;
+            const lockMessage = data.lock_message || null;
+            if (isLocked !== currentLockState.isLocked || lockMessage !== currentLockState.message) {
+                currentLockState = { isLocked, message: lockMessage };
+                if (typeof lockStateCallback === 'function') {
+                    lockStateCallback(isLocked, lockMessage);
+                }
+            }
+
+            // --- Handle Live Presentation (Screen Share) state ---
+            const isPresenting = data.is_presenting === true;
+            const sessionUuid = data.presentation_session_uuid || null;
+            const teacherName = data.presentation_teacher_name || null;
+            const subjectName = data.presentation_subject_name || null;
+
+            if (
+                isPresenting !== currentPresentationState.isPresenting ||
+                sessionUuid !== currentPresentationState.sessionUuid
+            ) {
+                currentPresentationState = { isPresenting, sessionUuid, teacherName, subjectName };
+                if (typeof presentationStateCallback === 'function') {
+                    presentationStateCallback(isPresenting, {
+                        sessionUuid,
+                        teacherName,
+                        subjectName,
+                    });
+                }
+            }
+
+            // --- Handle active quiz (locks the student screen until submitted) ---
+            const quiz = data.is_quiz_active === true && data.active_quiz ? data.active_quiz : null;
+            const quizId = quiz ? Number(quiz.id) : null;
+            if (quizId !== currentQuizState.quizId) {
+                currentQuizState = { isActive: quizId !== null, quizId };
+                if (typeof quizStateCallback === 'function') {
+                    quizStateCallback(
+                        quizId !== null,
+                        quiz
+                            ? {
+                                quizId,
+                                title: String(quiz.title || 'Quiz'),
+                                subjectName: quiz.subject_name || null,
+                                timeLimitMinutes: Number(quiz.time_limit_minutes || 0),
+                                totalQuestions: Number(quiz.total_questions || 0),
+                            }
+                            : null
+                    );
+                }
+            }
         } else {
             console.error('❌ Desktop heartbeat failed:', response.status);
         }
@@ -114,8 +180,9 @@ async function sendDirectHeartbeat() {
 function startDirectHeartbeat() {
     stopDirectHeartbeat();
     sendDirectHeartbeat();
-    heartbeatInterval = setInterval(sendDirectHeartbeat, 30000);
-    console.log('💓 Desktop direct heartbeat started (every 30s)');
+    // Fast 5-second interval for responsive lock and presentation transitions
+    heartbeatInterval = setInterval(sendDirectHeartbeat, 5000);
+    console.log('💓 Desktop direct heartbeat started (every 5s)');
 }
 
 function stopDirectHeartbeat() {
@@ -189,6 +256,9 @@ function clearStudentCredentials() {
     currentStudentCredentials = null;
     logoutSignal++;
     resetDesktopHeartbeatFields();
+    currentPresentationState = { isPresenting: false, sessionUuid: null, teacherName: null, subjectName: null };
+    currentLockState = { isLocked: false, message: null };
+    currentQuizState = { isActive: false, quizId: null };
     stopDirectHeartbeat();
     stopScreenCaptureLoop();
     clearScreenCaptureContext();
@@ -215,6 +285,26 @@ function setApiBaseUrl(url) {
     console.log('🌐 API Base URL set:', apiBaseUrl);
 }
 
+function registerLockStateCallback(cb) {
+    lockStateCallback = typeof cb === 'function' ? cb : null;
+}
+
+function registerPresentationStateCallback(cb) {
+    presentationStateCallback = typeof cb === 'function' ? cb : null;
+}
+
+function registerQuizStateCallback(cb) {
+    quizStateCallback = typeof cb === 'function' ? cb : null;
+}
+
+/**
+ * Returns the currently logged-in student's auth token, or null if not logged in.
+ * Used by main.ts to inject the token into the renderer before the presentation overlay mounts.
+ */
+function getStudentToken() {
+    return currentStudentCredentials ? (currentStudentCredentials.token || null) : null;
+}
+
 module.exports = {
     startMonitoringServer,
     setStudentCredentials,
@@ -223,5 +313,9 @@ module.exports = {
     resetDesktopHeartbeatFields,
     setComputerName,
     setGatewayIp,
-    setApiBaseUrl
+    setApiBaseUrl,
+    registerLockStateCallback,
+    registerPresentationStateCallback,
+    registerQuizStateCallback,
+    getStudentToken,
 };

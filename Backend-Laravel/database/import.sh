@@ -33,6 +33,8 @@ sed \
   -e 's/DEFINER=`[^`]*`@`[^`]*`//g' \
   -e 's/SQL SECURITY DEFINER//g' \
   -e 's/ALGORITHM=UNDEFINED//g' \
+  -e '/^[[:space:]]*CREATE[[:space:]]\+DATABASE/Id' \
+  -e '/^[[:space:]]*USE[[:space:]]\+/Id' \
   "$SQL_FILE" > "$CLEAN_FILE"
 
 # Avoid -p on the command line (special characters in Railway passwords).

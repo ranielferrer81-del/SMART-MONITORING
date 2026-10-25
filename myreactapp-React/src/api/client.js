@@ -122,6 +122,32 @@ export async function createAccount(payload) {
   return res.data;
 }
 
+export async function aiParseRegistrarFile(formData) {
+  try {
+    const res = await api.post('/api/admin/accounts/ai-parse', formData);
+    return res.data;
+  } catch (error) {
+    return {
+      ok: false,
+      message: error.response?.data?.message || error.message || 'Failed to parse registrar file',
+      error: error.response?.data,
+    };
+  }
+}
+
+export async function batchStoreStudents(payload) {
+  try {
+    const res = await api.post('/api/admin/accounts/batch-store', payload);
+    return res.data;
+  } catch (error) {
+    return {
+      ok: false,
+      message: error.response?.data?.message || error.message || 'Failed to batch create students',
+      error: error.response?.data,
+    };
+  }
+}
+
 export async function fetchTeachers() {
   try {
     const res = await api.get('/api/admin/accounts/teachers');
@@ -476,3 +502,5 @@ export async function updateAdminProfile(data) {
     return { ok: false, error: message, raw: error.response?.data };
   }
 }
+
+export * from './labGateways';

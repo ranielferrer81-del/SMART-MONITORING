@@ -14,6 +14,8 @@ SET time_zone = "+00:00";
 --
 -- Database: `sia_app`
 --
+-- CREATE DATABASE IF NOT EXISTS `sia_app`;
+-- USE `sia_app`;
 
 DELIMITER $$
 --
@@ -37,7 +39,7 @@ CREATE DEFINER=`root`@`localhost` FUNCTION `generate_teacher_number` () RETURNS 
     RETURN CONCAT('T-', LPAD(next_num, 4, '0'));
 END$$
 
-CREATE DEFINER=`root`@`localhost` FUNCTION `user_dashboard_path` (`p_email` VARCHAR(191)) RETURNS VARCHAR(64) CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci DETERMINISTIC BEGIN
+CREATE DEFINER=`root`@`localhost` FUNCTION `user_dashboard_path` (`p_email` VARCHAR(191)) RETURNS VARCHAR(64) CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci DETERMINISTIC READS SQL DATA BEGIN
   DECLARE v_role VARCHAR(50);
   SELECT u.role INTO v_role
     FROM users u

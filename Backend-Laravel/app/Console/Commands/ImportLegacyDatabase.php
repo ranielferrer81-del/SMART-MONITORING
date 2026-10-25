@@ -81,6 +81,10 @@ class ImportLegacyDatabase extends Command
         $sql = preg_replace('/^\s*COMMIT\s*;?\s*$/im', '', $sql);
         $sql = preg_replace('/^\s*ROLLBACK\s*;?\s*$/im', '', $sql);
 
+        // 5. Strip CREATE DATABASE and USE statements (must use connected DB e.g. railway)
+        $sql = preg_replace('/^\s*CREATE\s+DATABASE\b[^;]*;?/im', '', $sql);
+        $sql = preg_replace('/^\s*USE\b[^;]*;?/im', '', $sql);
+
         // ---- Parse and execute ----
         $statements = $this->parseSql($sql);
         $total = count($statements);

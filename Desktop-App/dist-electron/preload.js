@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     studentLoggedOut: () => ipcRenderer.invoke('student-logged-out'),
     reportDesktopScreen: (screenName) => ipcRenderer.invoke('desktop-screen-changed', screenName),
     quitApp: () => ipcRenderer.invoke('quit-app'),
+    getStudentToken: () => ipcRenderer.invoke('get-student-token'),
     onLockScreenReset: (callback) => {
         const listener = () => callback();
         ipcRenderer.on('lock-screen-reset', listener);
@@ -18,4 +19,47 @@ contextBridge.exposeInMainWorld('electronAPI', {
             ipcRenderer.removeListener('lock-screen-reset', listener);
         };
     },
+    onPcLocked: (callback) => {
+        const listener = (_event, message) => callback(message);
+        ipcRenderer.on('pc-locked', listener);
+        return () => {
+            ipcRenderer.removeListener('pc-locked', listener);
+        };
+    },
+    onPcUnlocked: (callback) => {
+        const listener = () => callback();
+        ipcRenderer.on('pc-unlocked', listener);
+        return () => {
+            ipcRenderer.removeListener('pc-unlocked', listener);
+        };
+    },
+    onPresentationStart: (callback) => {
+        const listener = (_event, data) => callback(data);
+        ipcRenderer.on('presentation-start', listener);
+        return () => {
+            ipcRenderer.removeListener('presentation-start', listener);
+        };
+    },
+    onPresentationEnd: (callback) => {
+        const listener = () => callback();
+        ipcRenderer.on('presentation-end', listener);
+        return () => {
+            ipcRenderer.removeListener('presentation-end', listener);
+        };
+    },
+    onQuizStart: (callback) => {
+        const listener = (_event, data) => callback(data);
+        ipcRenderer.on('quiz-start', listener);
+        return () => {
+            ipcRenderer.removeListener('quiz-start', listener);
+        };
+    },
+    onQuizEnd: (callback) => {
+        const listener = () => callback();
+        ipcRenderer.on('quiz-end', listener);
+        return () => {
+            ipcRenderer.removeListener('quiz-end', listener);
+        };
+    },
+    quizDismiss: () => ipcRenderer.invoke('quiz-dismiss'),
 });

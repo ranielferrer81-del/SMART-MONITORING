@@ -60,6 +60,8 @@ Route::post('/resend-verification-code', [AuthController::class, 'resendVerifica
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/admin/accounts', [AdminAccountController::class, 'store']);
+    Route::post('/admin/accounts/ai-parse', [AdminAccountController::class, 'aiParseRegistrarFile']);
+    Route::post('/admin/accounts/batch-store', [AdminAccountController::class, 'batchStoreStudents']);
     Route::get('/admin/accounts/teachers', [AdminAccountController::class, 'indexTeachers']);
     Route::get('/admin/accounts/students', [AdminAccountController::class, 'indexAllStudents']);
     Route::get('/admin/accounts/students/{course}', [AdminAccountController::class, 'indexStudentsByCourse']);
@@ -157,6 +159,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Lab Gateway Management (gateway-to-room mapping)
     Route::get('/lab-gateways', [LabGatewayController::class, 'index']);
+    Route::get('/lab-gateways/rooms', [LabGatewayController::class, 'rooms']);
+    Route::get('/lab-gateways/unmapped', [LabGatewayController::class, 'unmapped']);
     Route::post('/lab-gateways', [LabGatewayController::class, 'store']);
     Route::patch('/lab-gateways/{id}', [LabGatewayController::class, 'update']);
     Route::delete('/lab-gateways/{id}', [LabGatewayController::class, 'destroy']);

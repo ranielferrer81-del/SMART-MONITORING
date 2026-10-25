@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { createAccount, fetchTeachers, fetchAllStudents, fetchStudentsByCourse, updateAccount, deleteAccount, listSubjects, getSubjectEnrolledStudents, enrollStudentToSubject, unenrollStudentFromSubject } from '../../api/client';
-import { getStudentBrowserActivity, getRealtimeBrowserActivity, getIncognitoAlerts, acknowledgeIncognitoAlert, startMonitoringSession, endMonitoringSession, getMonitoringSessions } from '../../api/browserMonitoring';
 import ThemeToggle from '../../components/ThemeToggle';
 import BrowserMonitoringDashboard from '../BrowserMonitoringDashboard';
 import ScreenMonitoringSection from '../ScreenMonitoringSection';
@@ -11,6 +10,7 @@ import AccountManagementSection from './sections/AccountManagementSection';
 import AddAccountSection from './sections/AddAccountSection';
 import SubjectCardsSection from './sections/SubjectCardsSection';
 import SubjectManagementSection from './sections/SubjectManagementSection';
+import LabManagementSection from './sections/LabManagementSection';
 import EditAccountModal from './modals/EditAccountModal';
 import StaffDashboardSettings from '../StaffDashboardSettings';
 import { EnrolledStudentsModal, AddStudentsModal } from './modals/SubjectManagementModals';
@@ -616,7 +616,11 @@ export default function AdminDashboard() {
       };
       if (form.role === 'student') {
         payload.course = form.course?.trim() || null;
-        payload.section = form.section?.trim() || null;
+        let cleanSec = form.section?.trim() || null;
+        if (cleanSec && payload.course) {
+          cleanSec = cleanSec.replace(new RegExp(`^(?:${payload.course}|BSIT|BSCS|BSEMC|IT|CS|EMC)\\s*[-_]?\\s*`, 'i'), '').trim() || cleanSec;
+        }
+        payload.section = cleanSec;
         payload.student_number = form.student_number?.trim() || null; // optional; server will generate if null
       }
       const res = await createAccount(payload);
@@ -703,6 +707,7 @@ export default function AdminDashboard() {
               { id: 'accounts',        label: 'Account Management', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z' },
               { id: 'add-account',     label: 'Add New Account',      icon: 'M12 6v6m0 0v6m0-6h6m-6 0H6' },
               { id: 'subjects',        label: 'Subject List',         icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 19.477 5.754 20 7.5 20s3.332-.477 4.5-1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 19.477 18.247 20 16.5 20c-1.746 0-3.332-.477-4.5-1.253' },
+              { id: 'labs',            label: 'Lab Management',       icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4' },
               { id: 'monitoring',      label: 'Browser Monitoring',   icon: 'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
               { id: 'screen-monitoring', label: 'Screen Monitoring',  icon: 'M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z' },
               { id: 'time-clock',      label: 'Students time-in / out', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
@@ -782,23 +787,26 @@ export default function AdminDashboard() {
                           ? 'Account Management'
                           : activeSection === 'add-account'
                             ? 'Add New Account'
-                            : activeSection === 'manage-subjects'
-                              ? 'Create Subject'
-                              : activeSection === 'monitoring'
-                                ? 'Browser Monitoring'
-                                : activeSection === 'screen-monitoring'
-                                  ? 'Screen Monitoring'
-                                : activeSection === 'time-clock'
-                                  ? 'Students time-in / time-out'
-                                  : activeSection === 'settings'
-                                    ? 'Settings'
-                                    : 'Subject List'}
+                            : activeSection === 'labs'
+                              ? 'Laboratory & Gateway Management'
+                              : activeSection === 'manage-subjects'
+                                ? 'Create Subject'
+                                : activeSection === 'monitoring'
+                                  ? 'Browser Monitoring'
+                                  : activeSection === 'screen-monitoring'
+                                    ? 'Screen Monitoring'
+                                  : activeSection === 'time-clock'
+                                    ? 'Students time-in / time-out'
+                                    : activeSection === 'settings'
+                                      ? 'Settings'
+                                      : 'Subject List'}
                       </h2>
                     </div>
                     <p className="mt-1 line-clamp-2 text-xs font-medium text-slate-700 dark:text-slate-200 lg:text-sm">
                       {activeSection === 'accounts' && 'Search, filter, and manage professor and student accounts in one place.'}
                       {activeSection === 'add-account' && 'Create a new user with the right role, credentials, and course details.'}
                       {activeSection === 'subjects' && 'View subjects, sections, enrolled students, and open monitoring context.'}
+                      {activeSection === 'labs' && 'Configure laboratory rooms and assign default gateway IPs for automatic PC detection.'}
                       {activeSection === 'manage-subjects' && 'Create subjects, assign professors, and set class schedule.'}
                       {activeSection === 'monitoring' && 'Pick a course and section to view live browser activity and sessions.'}
                       {activeSection === 'screen-monitoring' && 'View live desktop thumbnails from all online lab PCs (Desktop App).'}
@@ -893,6 +901,8 @@ export default function AdminDashboard() {
               formErrors={formErrors} setFormErrors={setFormErrors}
               creating={creating}
               submitCreateAccount={submitCreateAccount}
+              onBatchSuccess={loadAllLists}
+              setToast={setToast}
             />
           )}
 
@@ -905,6 +915,10 @@ export default function AdminDashboard() {
               setShowStudentsModal={setShowStudentsModal}
               setActiveSection={setActiveSection}
             />
+          )}
+
+          {activeSection === 'labs' && (
+            <LabManagementSection setToast={setToast} />
           )}
 
           {activeSection === 'time-clock' && <StudentsTimeClockSection />}
