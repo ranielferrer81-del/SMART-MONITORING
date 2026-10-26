@@ -188,10 +188,6 @@ fi
 # ---------------------------------------------------------------
 # 8. Start the server (with multi-worker concurrency)
 # ---------------------------------------------------------------
-# ============================================================================
-# ORIGINAL: export PHP_CLI_SERVER_WORKERS="${PHP_CLI_SERVER_WORKERS:-4}"
-# ============================================================================
-# OPTIMIZED (8 concurrent workers to handle simultaneous lab requests smoothly):
-export PHP_CLI_SERVER_WORKERS="${PHP_CLI_SERVER_WORKERS:-8}"
+export PHP_CLI_SERVER_WORKERS="${PHP_CLI_SERVER_WORKERS:-4}"
 echo "Starting Laravel server on port ${PORT:-8080} (PHP_CLI_SERVER_WORKERS=${PHP_CLI_SERVER_WORKERS})..."
 exec php artisan serve --host=0.0.0.0 --port=${PORT:-8080}
