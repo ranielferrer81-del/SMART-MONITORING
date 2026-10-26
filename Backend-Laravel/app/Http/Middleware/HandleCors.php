@@ -43,6 +43,10 @@ class HandleCors
             $response->headers->set($k, $v);
         }
 
+        // Release PHP CLI worker immediately so persistent browser keep-alive connections
+        // cannot monopolize worker threads and starve the Desktop App.
+        $response->headers->set('Connection', 'close');
+
         return $response;
     }
 }

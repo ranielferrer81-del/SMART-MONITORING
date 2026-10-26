@@ -85,9 +85,15 @@ export default function TeacherDashboard() {
   useEffect(() => {
     const fetchOnlineData = async () => {
       try {
-        const [studentsResp, alertsResp, activityResp] = await Promise.all([
-          getOnlineStudents(), getIncognitoAlerts(), getRealtimeBrowserActivity()
-        ]);
+        // ============================================================================
+        // ORIGINAL: const [studentsResp, alertsResp, activityResp] = await Promise.all([
+        //   getOnlineStudents(), getIncognitoAlerts(), getRealtimeBrowserActivity()
+        // ]);
+        // ============================================================================
+        // OPTIMIZED: Run sequentially to prevent locking 3 of 4 PHP workers simultaneously
+        const studentsResp = await getOnlineStudents();
+        const alertsResp = await getIncognitoAlerts();
+        const activityResp = await getRealtimeBrowserActivity();
         console.log('👥 Online students response:', studentsResp);
         console.log('🚨 Incognito alerts response:', alertsResp);
         console.log('📊 Real-time activity response:', activityResp);
@@ -140,7 +146,10 @@ export default function TeacherDashboard() {
       }
     };
     fetchOnlineData();
-    const interval = setInterval(fetchOnlineData, Math.max(5000, monitoringPollSec * 1000));
+    // ============================================================================
+    // ORIGINAL: const interval = setInterval(fetchOnlineData, Math.max(5000, monitoringPollSec * 1000));
+    // ============================================================================
+    const interval = setInterval(fetchOnlineData, Math.max(10000, monitoringPollSec * 1000));
     return () => clearInterval(interval);
   }, [monitoringPollSec]);
 
@@ -158,7 +167,10 @@ export default function TeacherDashboard() {
       } catch (_) {}
     };
     checkActivePresentation();
-    const interval = setInterval(checkActivePresentation, 3000);
+    // ============================================================================
+    // ORIGINAL: const interval = setInterval(checkActivePresentation, 3000);
+    // ============================================================================
+    const interval = setInterval(checkActivePresentation, 10000);
     return () => {
       mounted = false;
       clearInterval(interval);
