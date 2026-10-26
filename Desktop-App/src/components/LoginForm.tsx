@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Lock, Loader2, X, Globe, Laptop, RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react';
-import { emailLogin, verifyLaravelBackend, warmupBackend } from '../api/client';
+import { emailLogin, verifyLaravelBackend } from '../api/client';
 import { getServerMode, setServerMode, getApiBaseUrl, type ServerMode } from '../config/apiBase';
 import LockScreenShell from './LockScreenShell';
 
@@ -28,17 +28,21 @@ export default function LoginForm({ onVerificationSent, onCancel }: LoginFormPro
   const [, setActiveBaseUrl] = useState<string>(() => getApiBaseUrl());
   const [serverStatus, setServerStatus] = useState<'connected' | 'error' | 'checking'>('checking');
 
-  const checkConnection = useCallback(async () => {
+  const checkConnection = useCallback(async (retryCount = 0) => {
     setIsWarmingUp(true);
     setServerStatus('checking');
     setBackendWarning(null);
     try {
-      await warmupBackend();
       const r = await verifyLaravelBackend();
       if (r.ok) {
         setServerStatus('connected');
         setBackendWarning(null);
       } else {
+        if (serverMode === 'cloud' && retryCount < 1 && r.message.toLowerCase().includes('waking up')) {
+          setBackendWarning('Waking up cloud server (Render cold start)... please wait a moment.');
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+          return await checkConnection(retryCount + 1);
+        }
         setServerStatus('error');
         setBackendWarning(r.message);
       }
@@ -48,7 +52,7 @@ export default function LoginForm({ onVerificationSent, onCancel }: LoginFormPro
     } finally {
       setIsWarmingUp(false);
     }
-  }, []);
+  }, [serverMode]);
 
   useEffect(() => {
     let cancelled = false;
@@ -277,18 +281,13 @@ export default function LoginForm({ onVerificationSent, onCancel }: LoginFormPro
 
           <button
             type="submit"
-            disabled={isLoading || isWarmingUp}
+            disabled={isLoading}
             className="w-full px-10 py-3.5 bg-red-600 text-white font-semibold rounded-full border border-white/30 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
           >
             {isLoading ? (
               <span className="flex items-center justify-center gap-2">
                 <Loader2 className="h-5 w-5 animate-spin" />
                 Sending code...
-              </span>
-            ) : isWarmingUp ? (
-              <span className="flex items-center justify-center gap-2">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                Connecting...
               </span>
             ) : (
               'Sign In'

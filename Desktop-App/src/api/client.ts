@@ -331,8 +331,8 @@ export async function warmupBackend(): Promise<void> {
 
 export type BackendCheckResult = { ok: true } | { ok: false; message: string };
 
-/** Background health probe on login screen — fail fast so UI is not blocked for a minute. */
-const BACKEND_HEALTH_CHECK_TIMEOUT_MS = 20_000;
+/** Background health probe on login screen — allow up to 45s for Render cloud wake-up. */
+const BACKEND_HEALTH_CHECK_TIMEOUT_MS = 45_000;
 
 const parseEmailSent = (value: unknown): boolean =>
   value === true || value === 1 || value === '1' || value === 'true';
@@ -362,9 +362,13 @@ export async function verifyLaravelBackend(): Promise<BackendCheckResult> {
         `Server responded, but is not reporting healthy at ${currentBase}.`,
     };
   } catch (e) {
+    const msg = extractErrorMessage(e);
+    const isTimeout = msg.toLowerCase().includes('timeout') || (axios.isAxiosError(e) && e.code === 'ECONNABORTED');
     return {
       ok: false,
-      message: `Cannot reach backend at ${currentBase}: ${extractErrorMessage(e)}.`,
+      message: isTimeout
+        ? `Backend at ${currentBase} is still waking up from idle (Render cold start). Click the refresh button or sign in below.`
+        : `Cannot reach backend at ${currentBase}: ${msg}.`,
     };
   }
 }
