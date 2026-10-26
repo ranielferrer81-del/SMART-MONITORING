@@ -5,7 +5,12 @@ import {
 } from '../api/screenMonitoring';
 import { lockStudentPc, unlockStudentPc } from '../api/browserMonitoring';
 
-const POLL_MS = 3000;
+// ============================================================================
+// ORIGINAL CONFIGURATION (Restore when upgraded to paid hosting):
+// const POLL_MS = 3000;
+// ============================================================================
+// OPTIMIZED CONFIGURATION (6s reduces server load by 50% for free cloud):
+const POLL_MS = 6000;
 
 function LockPromptModal({ target, onClose, onSuccess }) {
   const [message, setMessage] = useState('This PC has been locked by your instructor.');

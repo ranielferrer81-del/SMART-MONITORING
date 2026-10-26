@@ -3,7 +3,13 @@
  */
 const { desktopCapturer } = require('electron');
 
-const CAPTURE_INTERVAL_MS = 3000;
+// ============================================================================
+// ORIGINAL CONFIGURATION (Restore when upgraded to paid hosting):
+// const CAPTURE_INTERVAL_MS = 3000;
+// ============================================================================
+// OPTIMIZED CONFIGURATION (For Render Free Tier / Multi-PC Lab Presentation):
+// 8 seconds interval avoids choking the 512MB RAM server with 30-50 lab PCs.
+const CAPTURE_INTERVAL_MS = 8000;
 
 let captureInterval = null;
 let uploadInFlight = false;
@@ -47,9 +53,18 @@ function clearScreenCaptureContext() {
 }
 
 async function capturePrimaryDisplayJpeg() {
+  // ============================================================================
+  // ORIGINAL CONFIGURATION (Restore when upgraded to paid hosting):
+  // const sources = await desktopCapturer.getSources({
+  //   types: ['screen'],
+  //   thumbnailSize: { width: 960, height: 540 },
+  // });
+  // const jpeg = primary.thumbnail.toJPEG(72);
+  // ============================================================================
+  // OPTIMIZED CONFIGURATION: 480x270 thumbnail at quality 40 (~25KB vs ~300KB)
   const sources = await desktopCapturer.getSources({
     types: ['screen'],
-    thumbnailSize: { width: 960, height: 540 },
+    thumbnailSize: { width: 480, height: 270 },
   });
 
   if (!sources || sources.length === 0) {
@@ -64,7 +79,7 @@ async function capturePrimaryDisplayJpeg() {
     return null;
   }
 
-  const jpeg = primary.thumbnail.toJPEG(72);
+  const jpeg = primary.thumbnail.toJPEG(40);
   const size = primary.thumbnail.getSize();
 
   return {

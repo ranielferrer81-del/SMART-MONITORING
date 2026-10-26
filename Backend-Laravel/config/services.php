@@ -49,8 +49,8 @@ return [
     */
     'brevo' => [
         'key' => env('BREVO_API_KEY'),
-        /** Optional: verified sender email for Brevo when MAIL_FROM_ADDRESS is wrong in .env */
-        'sender_email' => env('BREVO_SENDER_EMAIL'),
+        /** Verified sender email for Brevo (rmferrer5900val@student.fatima.edu.ph) */
+        'sender_email' => env('BREVO_SENDER_EMAIL', 'rmferrer5900val@student.fatima.edu.ph'),
         /** smtp-relay.brevo.com login (often your Brevo account email); optional if same as sender */
         'smtp_login' => env('BREVO_SMTP_LOGIN'),
         /** Brevo "SMTP key" from dashboard (can differ from REST API key) */
