@@ -191,7 +191,7 @@ export function getApiBase() {
           'Then redeploy. Check deploy logs for [patch-api-base] and open /api-base.json in the browser — it must show {"apiBase":"https://..."}.',
       );
     }
-    return 'https://smart-backend-gwym.onrender.com';
+    return 'https://smart-monitoring-production.up.railway.app';
   }
   return 'http://127.0.0.1:8000';
 }

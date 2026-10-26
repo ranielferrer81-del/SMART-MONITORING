@@ -1,6 +1,6 @@
 // Configuration
 // Default API URL (used when Desktop App is not running or hasn't provided one)
-const DEFAULT_API_BASE_URL = 'https://smart-backend-gwym.onrender.com/api';
+const DEFAULT_API_BASE_URL = 'https://smart-monitoring-production.up.railway.app/api';
 const LOCAL_API_BASE_URL = 'http://127.0.0.1:8000/api';
 const DESKTOP_APP_URL = 'http://localhost:9876';
 

@@ -2,15 +2,15 @@
   "rewrites": [
     {
       "source": "/api/:match*",
-      "destination": "https://smart-backend-gwym.onrender.com/api/:match*"
+      "destination": "https://smart-monitoring-production.up.railway.app/api/:match*"
     },
     {
       "source": "/sanctum/:match*",
-      "destination": "https://smart-backend-gwym.onrender.com/sanctum/:match*"
+      "destination": "https://smart-monitoring-production.up.railway.app/sanctum/:match*"
     },
     {
       "source": "/storage/:match*",
-      "destination": "https://smart-backend-gwym.onrender.com/storage/:match*"
+      "destination": "https://smart-monitoring-production.up.railway.app/storage/:match*"
     },
     {
       "source": "/(.*)",

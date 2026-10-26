@@ -60,10 +60,10 @@ return [
             'engine' => null,
             // Force MySQL session timezone to UTC so NOW() matches
             // Laravel's UTC-stored timestamps (fixes XAMPP local-time mismatch).
-            'timezone' => '+00:00',
             'options' => extension_loaded('pdo_mysql') ? array_filter([
-                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA', file_exists('/etc/ssl/certs/ca-certificates.crt') ? '/etc/ssl/certs/ca-certificates.crt' : null),
-            ]) : [],
+                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+                PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => false,
+            ], fn ($val) => $val !== null && $val !== '') : [],
         ],
 
 

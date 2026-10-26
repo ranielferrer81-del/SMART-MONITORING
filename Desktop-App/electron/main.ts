@@ -52,7 +52,7 @@ function readApiBaseFromBuildConfig(): string | null {
   }
 }
 
-const DEFAULT_API_BASE_URL = 'https://smart-backend-gwym.onrender.com';
+const DEFAULT_API_BASE_URL = 'https://smart-monitoring-production.up.railway.app';
 const LOCAL_API_URL = 'http://127.0.0.1:8000';
 
 /** Packaged builds use build-config.json from CI; dev prefers .env or cloud */

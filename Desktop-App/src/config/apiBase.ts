@@ -1,9 +1,9 @@
 /**
  * Laravel API origin (no trailing slash, no /api suffix).
- * Online Cloud default: https://smart-backend-gwym.onrender.com
+ * Online Cloud default: https://smart-monitoring-production.up.railway.app
  * Localhost default: http://127.0.0.1:8000
  */
-export const CLOUD_API_DEFAULT = 'https://smart-backend-gwym.onrender.com';
+export const CLOUD_API_DEFAULT = 'https://smart-monitoring-production.up.railway.app';
 export const LOCAL_API_DEFAULT = 'http://127.0.0.1:8000';
 
 export type ServerMode = 'cloud' | 'local' | 'custom';
