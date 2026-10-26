@@ -114,6 +114,34 @@ class ImportLegacyDatabase extends Command
             $sql
         );
 
+        // 9. In standard MySQL, any column with AUTO_INCREMENT MUST be defined as a KEY in CREATE TABLE.
+        // If PRIMARY KEY is missing inside CREATE TABLE for tables with AUTO_INCREMENT, inline it.
+        $sql = preg_replace_callback(
+            '/(CREATE TABLE\s+`?([a-zA-Z0-9_]+)`?\s*\([^;]+?AUTO_INCREMENT[^;]+?)(\s*\)\s*ENGINE)/is',
+            function ($matches) {
+                $fullCreate = $matches[1];
+                $enginePart = $matches[3];
+                if (stripos($fullCreate, 'PRIMARY KEY') === false) {
+                    return rtrim($fullCreate, " \t\n\r,") . ",\n  PRIMARY KEY (`id`)\n" . $enginePart;
+                }
+                return $matches[0];
+            },
+            $sql
+        );
+
+        // 10. Strip duplicate ALTER TABLE ... ADD PRIMARY KEY (`id`) when PRIMARY KEY (`id`) is already inline
+        $sql = preg_replace_callback(
+            '/ALTER TABLE\s+`?([a-zA-Z0-9_]+)`?\s+ADD\s+PRIMARY\s+KEY\s*\(`?id`?\)[^;]*;/is',
+            function ($matches) use (&$sql) {
+                $tableName = $matches[1];
+                if (preg_match('/CREATE TABLE\s+`?' . $tableName . '`?[^;]+?PRIMARY KEY\s*\(`?id`?\)/is', $sql)) {
+                    return '';
+                }
+                return $matches[0];
+            },
+            $sql
+        );
+
         // ---- Parse and execute ----
         $statements = $this->parseSql($sql);
         $total = count($statements);
