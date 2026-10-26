@@ -131,9 +131,9 @@ return [
 
     'auth_login_code_fallback' => filter_var(env('AUTH_LOGIN_CODE_FALLBACK', true), FILTER_VALIDATE_BOOLEAN),
 
-    'verification_email_sync' => filter_var(env('VERIFICATION_EMAIL_SYNC', true), FILTER_VALIDATE_BOOLEAN),
+    'verification_email_sync' => filter_var(env('VERIFICATION_EMAIL_SYNC', false), FILTER_VALIDATE_BOOLEAN),
 
-    'verification_resend_sync' => filter_var(env('VERIFICATION_RESEND_SYNC', true), FILTER_VALIDATE_BOOLEAN),
+    'verification_resend_sync' => filter_var(env('VERIFICATION_RESEND_SYNC', false), FILTER_VALIDATE_BOOLEAN),
 
     'mail_diagnostics_in_response' => filter_var(env('MAIL_DIAGNOSTICS_IN_RESPONSE', false), FILTER_VALIDATE_BOOLEAN),
 
@@ -149,8 +149,8 @@ return [
         ? filter_var(env('EMAIL_OTP_TRY_SMTP_FIRST'), FILTER_VALIDATE_BOOLEAN)
         : str_contains(strtolower((string) env('MAIL_HOST', '')), 'gmail'),
 
-    /** On Railway, skip Laravel's SMTP mailer for OTP unless EMAIL_OTP_TRY_SMTP_FIRST=true (587 often blocked/hangs). */
-    'email_railway_skip_laravel_smtp' => filter_var(env('EMAIL_RAILWAY_SKIP_LARAVEL_SMTP', false), FILTER_VALIDATE_BOOLEAN),
+    /** On Railway/Render, skip Laravel's SMTP mailer for OTP unless EMAIL_OTP_TRY_SMTP_FIRST=true (587 blocked on cloud). */
+    'email_railway_skip_laravel_smtp' => filter_var(env('EMAIL_RAILWAY_SKIP_LARAVEL_SMTP', true), FILTER_VALIDATE_BOOLEAN),
 
     /** On Railway, attempt Brevo REST (HTTPS) before Resend when BREVO_API_KEY is set (no SMTP required). */
     'email_try_brevo_before_resend_on_railway' => filter_var(env('EMAIL_TRY_BREVO_BEFORE_RESEND_ON_RAILWAY', true), FILTER_VALIDATE_BOOLEAN),

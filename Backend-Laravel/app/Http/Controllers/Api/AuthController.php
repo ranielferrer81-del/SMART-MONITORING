@@ -731,7 +731,7 @@ class AuthController extends Controller
         // Resend: wait for the real SMTP/Brevo result so the client can show email_sent=false
         // and an error when mail actually fails (async/optimistic path would always say "sent").
         // Set VERIFICATION_RESEND_SYNC=false only if your host HTTP limit is shorter than mail connect time.
-        $resendSync = (bool) config('app.verification_resend_sync', true);
+        $resendSync = (bool) config('app.verification_resend_sync', false);
         if ($resendSync) {
             try {
                 return $this->jsonAfterVerificationSendSync(
@@ -803,7 +803,7 @@ class AuthController extends Controller
         string $failMessage,
         bool $includeEmailField = true
     ) {
-        $sync = (bool) config('app.verification_email_sync', true);
+        $sync = (bool) config('app.verification_email_sync', false);
 
         if ($sync) {
             return $this->jsonAfterVerificationSendSync(

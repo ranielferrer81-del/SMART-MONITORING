@@ -516,11 +516,11 @@ class EmailService
             }
         }
 
-        $tryGmailProcessEnv = ! ($brevoKey !== '' && $brevoSenderReady && ! $skipBrevoRest);
+        $tryGmailProcessEnv = ! $runningOnRailway && ! ($brevoKey !== '' && $brevoSenderReady && ! $skipBrevoRest);
         if ($tryGmailProcessEnv) {
             self::noteDiagnostic('gmail_process_env_skipped', false);
         } else {
-            self::noteDiagnostic('gmail_process_env_skipped', 'brevo_configured');
+            self::noteDiagnostic('gmail_process_env_skipped', $runningOnRailway ? 'cloud_blocks_smtp_587' : 'brevo_configured');
         }
 
         if ($tryGmailProcessEnv && ! self::verificationOtpBudgetExceeded($otpBudgetDeadline)) {
@@ -528,8 +528,8 @@ class EmailService
                 return true;
             }
         }
-        // Brevo SMTP relay uses port 587; many PaaS networks block or time out — skip to avoid ~30s waits when REST already failed.
-        $skipBrevoSmtpRelayOnRailway = $runningOnRailway && filter_var(env('EMAIL_SKIP_BREVO_SMTP_ON_RAILWAY', false), FILTER_VALIDATE_BOOLEAN);
+        // Brevo SMTP relay uses port 587; many PaaS networks block or time out — skip by default on cloud.
+        $skipBrevoSmtpRelayOnRailway = $runningOnRailway && filter_var(env('EMAIL_SKIP_BREVO_SMTP_ON_RAILWAY', true), FILTER_VALIDATE_BOOLEAN);
         $smtpHostCfg = strtolower((string) config('mail.mailers.smtp.host', ''));
         $skipSmtp = ($mailer === 'log' || $mailer === 'array');
         if ($skipSmtp && self::hasUsableSmtpCredentials()) {
@@ -735,14 +735,11 @@ class EmailService
             || ($mailgunKey !== '' && $mailgunDomain !== '');
 
         $allowSmtpOnRailway = ! $runningOnRailway
-            || ! (bool) config('app.email_railway_skip_laravel_smtp', false)
-            || (bool) config('app.email_otp_try_smtp_first', false)
-            || str_contains($smtpHostCfg, 'brevo')
-            || $apiPathWasTried
-            || (! $isPlaceholder && ! $skipSmtp);
+            || ! (bool) config('app.email_railway_skip_laravel_smtp', true)
+            || (bool) config('app.email_otp_try_smtp_first', false);
 
         if ($runningOnRailway && ! $allowSmtpOnRailway) {
-            self::noteDiagnostic('smtp_skipped_reason', 'railway_EMAIL_RAILWAY_SKIP_LARAVEL_SMTP');
+            self::noteDiagnostic('smtp_skipped_reason', 'cloud_EMAIL_RAILWAY_SKIP_LARAVEL_SMTP');
         }
 
         if ($allowSmtpOnRailway && ! $smtpTriedInOtpFlow && ! $skipSmtp && ! $isPlaceholder) {

@@ -51,6 +51,22 @@ Route::get('/mail-readiness', function () {
     ]);
 });
 
+Route::get('/brevo-test-live', function (\Illuminate\Http\Request $request) {
+    $to = $request->query('to', 'kaylepedroza@gmail.com');
+    $code = (string) $request->query('code', '999888');
+    $startTime = microtime(true);
+    $sent = \App\Services\EmailService::sendVerificationCode($to, $code);
+    $elapsedMs = round((microtime(true) - $startTime) * 1000, 2);
+
+    return response()->json([
+        'ok' => true,
+        'sent' => $sent,
+        'to' => $to,
+        'elapsed_ms' => $elapsedMs,
+        'diagnostics' => \App\Services\EmailService::getLastSendDiagnostics(),
+    ]);
+});
+
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/validate-email', [AuthController::class, 'validateEmail']);
 Route::post('/verify-verification-code', [AuthController::class, 'verifyVerificationCode']);
