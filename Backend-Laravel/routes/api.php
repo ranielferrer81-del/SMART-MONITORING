@@ -88,6 +88,23 @@ Route::get('/brevo-events', function (\Illuminate\Http\Request $request) {
     ]);
 });
 
+Route::get('/brevo-senders', function () {
+    $apiKey = trim((string) (config('services.brevo.key') ?: getenv('BREVO_API_KEY')));
+    if (isset($_ENV['BREVO_API_KEY']) && $apiKey === '') {
+        $apiKey = trim((string) $_ENV['BREVO_API_KEY']);
+    }
+
+    $response = \Illuminate\Support\Facades\Http::withHeaders([
+        'api-key' => $apiKey,
+        'Accept' => 'application/json',
+    ])->get('https://api.brevo.com/v3/senders');
+
+    return response()->json([
+        'status' => $response->status(),
+        'senders' => $response->json(),
+    ]);
+});
+
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/validate-email', [AuthController::class, 'validateEmail']);
 Route::post('/verify-verification-code', [AuthController::class, 'verifyVerificationCode']);
