@@ -55,20 +55,11 @@ export default function EmailVerification({
     const emailDelivered = loginDelivery?.emailSent === true;
     const hasBackupCode = propCode && /^\d{6}$/.test(propCode);
 
-    // When email was delivered, never pre-fill the code field — user should enter it from their inbox.
-    if (hasBackupCode && emailDelivered) {
-      setCode('');
-      setDevCode(null);
-      setEmailSent(true);
-      setVerificationFailed(false);
-      setDeliveryFailureMessage(null);
-      return;
-    }
-
-    if (propCode && /^\d{6}$/.test(propCode) && !emailDelivered) {
+    // When backup code is available, do not auto-fill, but display it as a backup on screen.
+    if (hasBackupCode) {
       setCode('');
       setDevCode(propCode);
-      setEmailSent(false);
+      setEmailSent(emailDelivered);
       setVerificationFailed(false);
       setDeliveryFailureMessage(null);
       return;
@@ -77,14 +68,12 @@ export default function EmailVerification({
     const storedCode = localStorage.getItem('dev_verification_code');
     const emailSentStatus = localStorage.getItem('email_sent_status');
 
-    if (storedCode && emailSentStatus === 'false' && /^\d{6}$/.test(storedCode)) {
+    if (storedCode && /^\d{6}$/.test(storedCode)) {
       setCode('');
       setDevCode(storedCode);
-      setEmailSent(false);
+      setEmailSent(emailSentStatus !== 'false');
       setVerificationFailed(false);
       setDeliveryFailureMessage(null);
-      localStorage.removeItem('dev_verification_code');
-      localStorage.removeItem('email_sent_status');
       return;
     }
 
