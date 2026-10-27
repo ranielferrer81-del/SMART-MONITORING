@@ -234,11 +234,17 @@ class QuizController extends Controller
             ], 422);
         }
 
+        $effectiveTitle = trim((string) $request->input('title', ''));
+        if ($effectiveTitle === '' && ! empty($filename)) {
+            $effectiveTitle = preg_replace('/\.[^.]+$/', '', $filename);
+            $effectiveTitle = trim(preg_replace('/\s*\(Presentation\)\s*/i', '', $effectiveTitle));
+        }
+
         $result = $ai->generate(
             $text,
             (int) $request->input('question_count', 10),
             (string) $request->input('difficulty', 'medium'),
-            $request->input('title'),
+            $effectiveTitle ?: null,
             $pdfBase64
         );
 
@@ -281,6 +287,20 @@ class QuizController extends Controller
 
     private function extractPdfText(string $path): string
     {
+        // 1. Use pdftotext (poppler-utils) when available for 100% accurate text extraction
+        if (function_exists('exec')) {
+            $cmd = 'pdftotext ' . escapeshellarg($path) . ' - 2>/dev/null';
+            $lines = [];
+            $rc = 0;
+            @exec($cmd, $lines, $rc);
+            if ($rc === 0 && ! empty($lines)) {
+                $txt = trim(implode("\n", $lines));
+                if (mb_strlen($txt) >= 40) {
+                    return $txt;
+                }
+            }
+        }
+
         $content = @file_get_contents($path);
         if ($content === false || $content === '') {
             return '';

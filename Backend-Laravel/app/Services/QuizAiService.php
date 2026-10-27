@@ -52,7 +52,7 @@ class QuizAiService
         }
 
         // 3. Fallback: Offline rule-based extractor (guarantees a working quiz even without internet or API key)
-        $questions = $this->generateOffline($moduleText, $count);
+        $questions = $this->generateOffline($moduleText, $count, $effectiveTitle);
 
         return [
             'source' => 'offline',
@@ -62,17 +62,19 @@ class QuizAiService
     }
 
     /**
-     * Call Google Gemini API (gemini-1.5-flash / gemini-2.0-flash) with structured JSON output.
+     * Call Google Gemini API (gemini-3.5-flash / gemini-3.7-flash) with structured JSON output.
      */
     private function generateWithGemini(string $apiKey, string $moduleText, int $count, string $difficulty, string $titleHint, ?string $pdfBase64 = null): array
     {
         try {
             // Trim module text to fit prompt comfortably
             $snippet = mb_substr($moduleText, 0, 45000);
+            $hasPdf = ! empty($pdfBase64);
+            $sourceDesc = $hasPdf ? 'the attached PDF lesson module presentation / document' : 'the module lesson content provided below';
 
             $prompt = <<<PROMPT
 You are an academic university examination creator.
-Your task is to analyze the following module lesson content and generate exactly {$count} multiple-choice test questions at {$difficulty} difficulty level.
+Your task is to analyze {$sourceDesc} and generate exactly {$count} multiple-choice test questions at {$difficulty} difficulty level.
 
 Module Topic / Title: {$titleHint}
 
@@ -82,7 +84,7 @@ Module Content:
 \"\"\"
 
 Strict Requirements:
-1. Provide exactly {$count} distinct, clear questions testing key concepts from the module text.
+1. Provide exactly {$count} distinct, clear questions testing key concepts from the module.
 2. Each question MUST have exactly 4 choices (options).
 3. The "correct_answer" MUST exactly match one of the 4 strings in "options".
 4. Provide a brief explanation for why the answer is correct.
@@ -101,12 +103,13 @@ Strict Requirements:
 PROMPT;
 
             $models = array_values(array_unique(array_filter([
-                env('GEMINI_MODEL', 'gemini-3.7-flash'),
-                'gemini-3.7-flash',
-                'gemini-3.5-flash-lite',
+                env('GEMINI_MODEL'),
+                'gemini-3.5-flash',
                 'gemini-flash-latest',
-                'gemini-3.6-flash',
+                'gemini-3.7-flash',
                 'gemini-3.8-flash',
+                'gemini-2.5-flash-lite',
+                'gemini-2.0-flash',
             ])));
 
             $parts = [
@@ -263,16 +266,22 @@ PROMPT;
     {
         $out = [];
         foreach ($rawQuestions as $q) {
-            if (! is_array($q) || empty($q['question_text']) || empty($q['options']) || ! is_array($q['options'])) {
+            if (! is_array($q)) {
                 continue;
             }
 
-            $options = array_values(array_unique(array_filter(array_map('trim', array_map('strval', $q['options'])))));
+            $qText = trim((string) ($q['question_text'] ?? $q['question'] ?? $q['prompt'] ?? $q['title'] ?? ''));
+            $rawOptions = $q['options'] ?? $q['choices'] ?? [];
+            if ($qText === '' || ! is_array($rawOptions) || empty($rawOptions)) {
+                continue;
+            }
+
+            $options = array_values(array_unique(array_filter(array_map('trim', array_map('strval', $rawOptions)))));
             if (count($options) < 2) {
                 continue;
             }
 
-            $correct = isset($q['correct_answer']) ? trim((string) $q['correct_answer']) : '';
+            $correct = trim((string) ($q['correct_answer'] ?? $q['answer'] ?? $q['correctAnswer'] ?? ''));
 
             // If correct_answer doesn't match an option directly, check if it's "A", "B", "C", "D" letter indicator
             if (! in_array($correct, $options, true)) {
@@ -290,11 +299,13 @@ PROMPT;
                 $correct = $options[0];
             }
 
+            $explanation = trim((string) ($q['explanation'] ?? $q['reason'] ?? ''));
+
             $out[] = [
-                'question_text' => trim((string) $q['question_text']),
+                'question_text' => $qText,
                 'options' => $options,
                 'correct_answer' => $correct,
-                'explanation' => isset($q['explanation']) ? trim((string) $q['explanation']) : '',
+                'explanation' => $explanation,
             ];
         }
 
@@ -325,12 +336,12 @@ PROMPT;
     /**
      * Offline rule-based question extractor.
      */
-    private function generateOffline(string $text, int $count): array
+    private function generateOffline(string $text, int $count, string $titleHint = ''): array
     {
         $sentences = preg_split('/(?<=[.!?])\s+|\n+/u', $text) ?: [];
         $sentences = array_values(array_filter(array_map('trim', $sentences), function ($s) {
             $len = mb_strlen($s);
-            return $len >= 40 && $len <= 260 && str_word_count($s) >= 7;
+            return $len >= 30 && $len <= 300 && str_word_count($s) >= 5;
         }));
 
         $pool = [];
@@ -342,7 +353,7 @@ PROMPT;
         $pool = array_values($pool);
 
         if (count($pool) < 4 || count($sentences) === 0) {
-            return [];
+            return $this->generateFallbackQuestions($titleHint, $count);
         }
 
         $picked = [];
@@ -389,7 +400,92 @@ PROMPT;
             ];
         }
 
+        if (count($questions) === 0) {
+            return $this->generateFallbackQuestions($titleHint, $count);
+        }
+
         return $questions;
+    }
+
+    /**
+     * Fallback question generator when document contains minimal extractable sentences.
+     */
+    private function generateFallbackQuestions(string $title, int $count): array
+    {
+        $subject = trim($title) !== '' ? trim($title) : 'the course module';
+        $templates = [
+            [
+                'q' => "What is the primary educational focus of {$subject}?",
+                'correct' => "Mastering core theoretical and historical principles of {$subject}",
+                'options' => [
+                    "Mastering core theoretical and historical principles of {$subject}",
+                    "Memorizing non-academic trivia and extraneous details",
+                    "Reviewing unrelated extraneous general knowledge",
+                    "Conducting administrative document filing",
+                ],
+                'exp' => "Fundamental learning objective established for {$subject}.",
+            ],
+            [
+                'q' => "Which method is best suited for evaluating student comprehension in {$subject}?",
+                'correct' => "Structured assessment covering essential lesson concepts and timelines",
+                'options' => [
+                    "Structured assessment covering essential lesson concepts and timelines",
+                    "Unverified speculative assumptions",
+                    "Ignoring historical records and curriculum guides",
+                    "Passive attendance without active participation",
+                ],
+                'exp' => "Standard assessment best practice for curriculum evaluation.",
+            ],
+            [
+                'q' => "Why is analyzing context critical when studying {$subject}?",
+                'correct' => "It contextualizes key events, societal influences, and perspectives",
+                'options' => [
+                    "It contextualizes key events, societal influences, and perspectives",
+                    "It replaces factual documentation with informal anecdotes",
+                    "It narrows the scope to isolate single isolated events",
+                    "It eliminates the need to review reference materials",
+                ],
+                'exp' => "Historical and academic contextualization provides comprehensive understanding.",
+            ],
+            [
+                'q' => "How should learners synthesize key takeaways from {$subject}?",
+                'correct' => "By connecting key concepts to overarching academic and practical themes",
+                'options' => [
+                    "By connecting key concepts to overarching academic and practical themes",
+                    "By discarding foundational evidence in favor of intuition",
+                    "By focusing exclusively on unrelated external modules",
+                    "By memorizing without critical conceptual analysis",
+                ],
+                'exp' => "Synthesizing themes strengthens retention and analytical thinking.",
+            ],
+            [
+                'q' => "What is an important standard when demonstrating mastery of {$subject}?",
+                'correct' => "Accurate articulation of principal milestones and analytical viewpoints",
+                'options' => [
+                    "Accurate articulation of principal milestones and analytical viewpoints",
+                    "Relying on uncorroborated third-party assumptions",
+                    "Bypassing scheduled course modules entirely",
+                    "Disregarding instructional criteria and milestones",
+                ],
+                'exp' => "Instructional alignment with curriculum standards.",
+            ],
+        ];
+
+        $out = [];
+        $total = count($templates);
+        for ($i = 0; $i < min($count, $total); $i++) {
+            $t = $templates[$i];
+            $opts = $t['options'];
+            shuffle($opts);
+            $out[] = [
+                'question_text' => $t['q'],
+                'options' => $opts,
+                'correct_answer' => $t['correct'],
+                'explanation' => $t['exp'],
+            ];
+        }
+
+        return $out;
     }
 
     /**

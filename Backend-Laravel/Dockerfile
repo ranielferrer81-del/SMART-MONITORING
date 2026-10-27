@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y \
     openssl \
     ca-certificates \
     dos2unix \
+    poppler-utils \
     && docker-php-ext-install pdo pdo_mysql zip \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 

@@ -282,7 +282,7 @@ if ($hasGmailSmtp) {
 $geminiKey = g('GEMINI_API_KEY', g('GOOGLE_API_KEY', g('VITE_GEMINI_API_KEY')));
 if ($geminiKey !== '') {
     $lines[] = line('GEMINI_API_KEY', $geminiKey);
-    $lines[] = line('GEMINI_MODEL', g('GEMINI_MODEL', 'gemini-1.5-flash'));
+    $lines[] = line('GEMINI_MODEL', g('GEMINI_MODEL', 'gemini-3.5-flash'));
 }
 $groqKey = g('GROQ_API_KEY');
 if ($groqKey !== '') {
