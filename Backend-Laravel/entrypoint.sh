@@ -190,4 +190,4 @@ fi
 # ---------------------------------------------------------------
 export PHP_CLI_SERVER_WORKERS="${PHP_CLI_SERVER_WORKERS:-4}"
 echo "Starting Laravel server on port ${PORT:-8080} (PHP_CLI_SERVER_WORKERS=${PHP_CLI_SERVER_WORKERS})..."
-exec php artisan serve --host=0.0.0.0 --port=${PORT:-8080}
+exec php -d upload_max_filesize=64M -d post_max_size=64M -d memory_limit=256M artisan serve --host=0.0.0.0 --port=${PORT:-8080}

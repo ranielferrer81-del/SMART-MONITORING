@@ -195,6 +195,10 @@ class QuizController extends Controller
             'question_count' => ['nullable', 'integer', 'min:1', 'max:30'],
             'difficulty' => ['nullable', 'in:easy,medium,hard'],
             'title' => ['nullable', 'string', 'max:255'],
+        ], [
+            'module_file.uploaded' => 'The module file could not be uploaded. If the file is larger than 50MB, please choose a smaller file or copy and paste the lesson text directly into the "Paste Notes / Text" tab.',
+            'module_file.max' => 'The module file must not exceed 50MB.',
+            'module_file.file' => 'The uploaded module must be a valid file.',
         ]);
 
         $text = trim((string) $request->input('module_text', ''));

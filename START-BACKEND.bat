@@ -11,5 +11,5 @@ echo.
 
 cd /d "%LARAVEL%"
 "%PHP%" artisan config:clear
-"%PHP%" artisan serve --host=127.0.0.1 --port=8000
+"%PHP%" -d upload_max_filesize=64M -d post_max_size=64M -d memory_limit=256M artisan serve --host=127.0.0.1 --port=8000
 pause
