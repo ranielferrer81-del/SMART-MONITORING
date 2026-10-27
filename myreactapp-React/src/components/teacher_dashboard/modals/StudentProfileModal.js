@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { getSubjectEnrolledStudents, markStudentAttendance, getStudentAttendanceHistory } from '../../../api/client';
 
 const StudentProfileModal = ({
@@ -18,16 +19,16 @@ const StudentProfileModal = ({
 }) => {
     if (!showStudentProfile || !selectedStudent) return null;
 
-    return (
+    return createPortal(
         <div
-            className="fixed inset-0 bg-slate-900/10 dark:bg-slate-950/10 overflow-y-auto h-full w-full z-[100] flex items-start justify-center p-2 sm:p-4 transition-opacity duration-300 pt-8 sm:pt-32"
+            className="fixed inset-0 bg-slate-950/75 backdrop-blur-md overflow-y-auto h-full w-full z-[100] flex items-center justify-center p-3 sm:p-6 transition-all duration-300"
             onClick={() => {
                 setShowStudentProfile(false);
                 setSelectedStudent(null);
             }}
         >
             <div
-                className="relative bg-white/20 backdrop-blur-xl rounded-2xl shadow-2xl w-11/12 max-w-2xl mx-auto max-h-[90vh] flex flex-col transform transition-all duration-300 scale-100 border border-white/20 dark:bg-slate-900/40 dark:border-white/10"
+                className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col transform transition-all duration-300 scale-100 border border-slate-200 dark:border-slate-800 overflow-hidden text-slate-800 dark:text-slate-100"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Modal Header */}
@@ -359,7 +360,8 @@ const StudentProfileModal = ({
                     </div>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 

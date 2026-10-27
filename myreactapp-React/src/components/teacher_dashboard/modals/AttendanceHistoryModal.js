@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 
 const AttendanceHistoryModal = ({
     showHistoryModal,
@@ -12,15 +13,15 @@ const AttendanceHistoryModal = ({
 }) => {
     if (!showHistoryModal || !selectedSubject || !selectedStudent) return null;
 
-    return (
+    return createPortal(
         <div
-            className="fixed inset-0 bg-slate-900/50 dark:bg-slate-950/60 overflow-y-auto h-full w-full z-[100] flex items-start justify-center p-4 transition-opacity duration-300 pt-32"
+            className="fixed inset-0 bg-slate-950/75 backdrop-blur-md overflow-y-auto h-full w-full z-[100] flex items-center justify-center p-3 sm:p-6 transition-all duration-300"
             onClick={() => {
                 setShowHistoryModal(false);
             }}
         >
             <div
-                className="relative bg-white/10 backdrop-blur-sm rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col transform transition-all duration-300 scale-100 border border-slate-200/60 dark:bg-slate-900/10 dark:border-slate-800/70"
+                className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col transform transition-all duration-300 scale-100 border border-slate-200 dark:border-slate-800 overflow-hidden text-slate-800 dark:text-slate-100"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Modal Header */}
@@ -133,7 +134,8 @@ const AttendanceHistoryModal = ({
                     )}
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 

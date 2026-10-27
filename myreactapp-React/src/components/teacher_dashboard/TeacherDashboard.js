@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { listSubjects, getSubjectEnrolledStudents, fetchMe, uploadTeacherProfilePicture, deleteTeacherProfilePicture, getStudentAttendanceHistory, fetchAllStudentsForTeacher, enrollStudentToSubject, saveSubjectSchedules, markStudentAttendance } from '../../api/client';
 import { getOnlineStudents, getIncognitoAlerts, getRealtimeBrowserActivity } from '../../api/browserMonitoring';
 import { presentationTeacherActive, presentationEnd } from '../../api/presentations';
@@ -1025,60 +1026,82 @@ export default function TeacherDashboard() {
             )}
 
             {/* Enrolled Students Modal */}
-            {showStudentsModal && selectedSubject && (
-              <div className="fixed inset-0 bg-slate-900/10 dark:bg-slate-950/10 overflow-y-auto h-full w-full z-[100] flex items-center justify-center px-2 py-4 sm:p-4 transition-opacity duration-300" onClick={() => { setShowStudentsModal(false); setSelectedSubject(null); setEnrolledStudents([]); }}>
-                <div className="relative bg-white/20 backdrop-blur-xl rounded-2xl shadow-2xl w-11/12 max-w-full sm:max-w-6xl mx-auto max-h-[90vh] flex flex-col transform transition-all duration-300 scale-100 border border-white/20 dark:bg-slate-900/40 dark:border-white/10" onClick={(e) => e.stopPropagation()}>
-                  <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-800">
+            {showStudentsModal && selectedSubject && createPortal(
+              <div
+                className="fixed inset-0 bg-slate-950/75 backdrop-blur-md overflow-y-auto h-full w-full z-[100] flex items-center justify-center p-3 sm:p-6 transition-all duration-300"
+                onClick={() => { setShowStudentsModal(false); setSelectedSubject(null); setEnrolledStudents([]); }}
+              >
+                <div
+                  className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col transform transition-all duration-300 scale-100 border border-slate-200 dark:border-slate-800 overflow-hidden text-slate-800 dark:text-slate-100"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-4 p-5 sm:p-6 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/90 backdrop-blur shrink-0">
                     <div>
-                      <h3 className="text-2xl font-bold bg-gradient-to-r from-rose-600 to-red-600 bg-clip-text text-transparent dark:from-rose-400 dark:to-red-400">Enrolled Students</h3>
-                      <p className="text-sm text-slate-600 mt-1 dark:text-slate-400">Subject: {selectedSubject.name} ({selectedSubject.code}) - {selectedSubject.course} {selectedSubject.section}</p>
+                      <h3 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-rose-600 to-red-600 bg-clip-text text-transparent dark:from-rose-400 dark:to-red-400">
+                        Enrolled Students
+                      </h3>
+                      <p className="text-xs sm:text-sm text-slate-600 mt-1 dark:text-slate-400">
+                        Subject: <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedSubject.name}</span> ({selectedSubject.code}) — {selectedSubject.course} {selectedSubject.section}
+                      </p>
                     </div>
-                    <div className="flex items-center space-x-4">
-                      <button onClick={() => loadAvailableStudentsForSubject(selectedSubject.id)} className="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-2">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <button
+                        onClick={() => loadAvailableStudentsForSubject(selectedSubject.id)}
+                        className="bg-rose-600 hover:bg-rose-700 active:scale-95 text-white px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-md hover:shadow-rose-600/20 flex items-center gap-1.5"
+                      >
+                        <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
                         <span>Add Students</span>
                       </button>
-                      <button onClick={() => { setShowStudentsModal(false); setActiveSection('schedule'); }} className="bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
+                      <button
+                        onClick={() => { setShowStudentsModal(false); setActiveSection('schedule'); }}
+                        className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all border border-slate-300 dark:border-slate-700"
+                      >
                         Open Schedule
                       </button>
-                      <span className="text-sm text-rose-100 bg-gradient-to-r from-rose-500 to-red-600 px-4 py-2 rounded-full font-semibold shadow-inner dark:text-rose-200">{enrolledStudents.length} {enrolledStudents.length === 1 ? 'Student' : 'Students'}</span>
-                      <button onClick={() => { setShowStudentsModal(false); setSelectedSubject(null); setEnrolledStudents([]); }} className="text-rose-500 hover:text-red-600 transition-colors duration-300 p-2 hover:bg-rose-50 rounded-lg dark:hover:bg-rose-900/30">
+                      <span className="text-xs sm:text-sm text-rose-700 dark:text-rose-200 bg-rose-100 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900 px-3 py-1.5 rounded-full font-semibold">
+                        {enrolledStudents.length} {enrolledStudents.length === 1 ? 'Student' : 'Students'}
+                      </span>
+                      <button
+                        onClick={() => { setShowStudentsModal(false); setSelectedSubject(null); setEnrolledStudents([]); }}
+                        className="text-slate-400 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-200 transition-colors p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
+                        title="Close (Esc)"
+                      >
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                       </button>
                     </div>
                   </div>
-                  <div className="flex-1 overflow-y-auto p-6">
+                  <div className="flex-1 overflow-y-auto p-5 sm:p-6">
                     {subjectSchedules.length > 0 && (
-                      <div className="mb-4 rounded-lg border border-red-200 bg-slate-50/80 p-3 text-xs text-red-800 dark:border-red-700 dark:bg-slate-900/30 dark:text-red-200">
+                      <div className="mb-4 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs font-medium text-rose-700 dark:text-rose-300">
                         Active Schedules: {subjectSchedules.map((s) => `D${s.day_of_week} ${String(s.start_time).slice(0, 5)}-${String(s.end_time).slice(0, 5)} (grace ${s.late_grace_minutes}m)`).join(' | ')}
                       </div>
                     )}
                     {loadingStudents ? (
-                      <div className="text-center py-12 text-slate-600 dark:text-slate-400">Loading students...</div>
+                      <div className="text-center py-12 text-slate-500 dark:text-slate-400">Loading students...</div>
                     ) : enrolledStudents.length > 0 ? (
-                      <div className="overflow-x-auto border border-slate-200 rounded-lg dark:border-slate-800">
-                        <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
-                          <thead className="bg-slate-50/10 backdrop-blur-sm sticky top-0 dark:bg-slate-800/10">
+                      <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                        <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
+                          <thead className="bg-slate-50 dark:bg-slate-800/70">
                             <tr>
-                              <th className="px-6 py-4 text-left text-xs font-medium text-slate-700 uppercase tracking-wider dark:text-slate-300">Photo</th>
-                              <th className="px-6 py-4 text-left text-xs font-medium text-slate-700 uppercase tracking-wider dark:text-slate-300">Student Number</th>
-                              <th className="px-6 py-4 text-left text-xs font-medium text-slate-700 uppercase tracking-wider dark:text-slate-300">Full Name</th>
-                              <th className="px-6 py-4 text-left text-xs font-medium text-slate-700 uppercase tracking-wider dark:text-slate-300">Email</th>
+                              <th className="px-5 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider dark:text-slate-300">Photo</th>
+                              <th className="px-5 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider dark:text-slate-300">Student Number</th>
+                              <th className="px-5 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider dark:text-slate-300">Full Name</th>
+                              <th className="px-5 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider dark:text-slate-300">Email</th>
                             </tr>
                           </thead>
-                          <tbody className="bg-white/10 backdrop-blur-sm divide-y divide-slate-200/50 dark:bg-slate-900/10 dark:divide-slate-700/50">
+                          <tbody className="divide-y divide-slate-200 dark:divide-slate-800 bg-white dark:bg-slate-900">
                             {enrolledStudents.map((student, idx) => {
                               const profilePicUrl = getProfilePictureUrl(student.profile_picture);
                               return (
-                                <tr key={idx} onClick={() => { setSelectedStudent(student); setShowStudentProfile(true); }} className="hover:bg-slate-50/10 backdrop-blur-sm transition-colors duration-150 dark:hover:bg-slate-800/10 cursor-pointer">
-                                  <td className="px-6 py-4 whitespace-nowrap">
+                                <tr key={idx} onClick={() => { setSelectedStudent(student); setShowStudentProfile(true); }} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer">
+                                  <td className="px-5 py-3.5 whitespace-nowrap">
                                     <div className="flex-shrink-0 h-10 w-10">
                                       {profilePicUrl ? (<img className="h-10 w-10 rounded-full object-cover border-2 border-rose-200 dark:border-rose-700 shadow-sm" src={profilePicUrl} alt={student.full_name || 'Student'} onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />) : (<div className="h-10 w-10 rounded-full bg-gradient-to-br from-rose-100 to-red-100 dark:from-rose-900/30 dark:to-red-900/30 border-2 border-rose-200 dark:border-rose-700 flex items-center justify-center shadow-sm"><svg className="h-6 w-6 text-rose-600 dark:text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg></div>)}
                                     </div>
                                   </td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-800 font-medium dark:text-slate-100">{student.student_number || '-'}</td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-800 dark:text-slate-100">{student.full_name || '-'}</td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-800 dark:text-slate-100 font-semibold">{student.email || '-'}</td>
+                                  <td className="px-5 py-3.5 whitespace-nowrap text-sm font-medium text-slate-800 dark:text-slate-200">{student.student_number || '-'}</td>
+                                  <td className="px-5 py-3.5 whitespace-nowrap text-sm text-slate-900 dark:text-slate-100 font-semibold">{student.full_name || '-'}</td>
+                                  <td className="px-5 py-3.5 whitespace-nowrap text-sm text-slate-600 dark:text-slate-400">{student.email || '-'}</td>
                                 </tr>
                               );
                             })}
@@ -1086,15 +1109,16 @@ export default function TeacherDashboard() {
                         </table>
                       </div>
                     ) : (
-                      <div className="p-12 text-center border border-slate-200/60 rounded-2xl bg-white/10 backdrop-blur-sm dark:bg-slate-900/10 dark:border-slate-800/70">
-                        <svg className="w-16 h-16 text-slate-300 mx-auto mb-4 dark:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 11a4 4 0 100-8 4 4 0 000 8z" /></svg>
-                        <div className="text-slate-400 text-base font-medium mb-2 dark:text-slate-500">No students enrolled</div>
-                        <div className="text-slate-300 text-sm dark:text-slate-500">No students are currently enrolled in this subject</div>
+                      <div className="p-12 text-center border border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50/50 dark:bg-slate-900/30">
+                        <svg className="w-16 h-16 text-slate-400 mx-auto mb-4 dark:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 11a4 4 0 100-8 4 4 0 000 8z" /></svg>
+                        <div className="text-slate-700 text-base font-semibold mb-1 dark:text-slate-300">No students enrolled</div>
+                        <div className="text-slate-500 text-sm dark:text-slate-500">No students are currently enrolled in this subject. Click "Add Students" to enroll.</div>
                       </div>
                     )}
                   </div>
                 </div>
-              </div>
+              </div>,
+              document.body
             )}
 
             {/* Extracted Modals */}

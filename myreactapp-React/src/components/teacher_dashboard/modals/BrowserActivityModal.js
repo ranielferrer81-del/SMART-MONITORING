@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { forceCloseStudentBrowser } from '../../../api/browserMonitoring';
 
 const BrowserActivityModal = ({
@@ -10,9 +11,9 @@ const BrowserActivityModal = ({
 }) => {
     if (!activityModalOpen || !currentViewStudent) return null;
 
-    return (
-        <div className="fixed inset-0 z-[100] flex items-start justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm pt-8 sm:pt-32">
-            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] sm:max-h-[85vh] overflow-hidden flex flex-col border border-slate-200 dark:border-slate-700">
+    return createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 bg-slate-950/75 backdrop-blur-md overflow-y-auto">
+            <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[85vh] overflow-hidden flex flex-col border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100">
                 <div className="p-4 sm:p-6 border-b border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:justify-between sm:items-center bg-slate-50 dark:bg-slate-900/50 gap-4 sm:gap-0">
                     <h3 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-slate-50">
                         Browser Activity for {currentViewStudent.full_name}
@@ -132,7 +133,8 @@ const BrowserActivityModal = ({
                     </div>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 
