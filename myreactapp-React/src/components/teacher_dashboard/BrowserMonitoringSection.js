@@ -101,7 +101,7 @@ const BrowserMonitoringSection = ({ subjects, loadingSubjects, isStudentOnline, 
             {/* Students Monitoring Modal */}
             {showStudentsModal && selectedSubject && createPortal(
                 <div
-                    className="fixed inset-0 bg-slate-900/10 dark:bg-slate-950/10 overflow-y-auto h-full w-full z-[100] flex items-center justify-center px-2 py-4 sm:p-4 transition-opacity duration-300"
+                    className="fixed inset-0 bg-slate-950/75 backdrop-blur-md overflow-y-auto h-full w-full z-[100] flex items-center justify-center p-3 sm:p-6 transition-all duration-300"
                     onClick={() => {
                         setShowStudentsModal(false);
                         setSelectedSubject(null);
@@ -109,7 +109,7 @@ const BrowserMonitoringSection = ({ subjects, loadingSubjects, isStudentOnline, 
                     }}
                 >
                     <div
-                        className="relative bg-white/20 backdrop-blur-xl rounded-2xl shadow-2xl w-11/12 max-w-full sm:max-w-6xl mx-auto max-h-[90vh] flex flex-col transform transition-all duration-300 scale-100 border border-white/20 dark:bg-slate-900/40 dark:border-white/10"
+                        className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl w-full max-w-6xl mx-auto max-h-[90vh] flex flex-col transform transition-all duration-300 scale-100"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Modal Header */}
@@ -151,7 +151,7 @@ const BrowserMonitoringSection = ({ subjects, loadingSubjects, isStudentOnline, 
                                         <div
                                             key={student.id}
                                             onClick={() => handleViewActivity(student)}
-                                            className="group bg-white/40 backdrop-blur-md overflow-hidden shadow-lg rounded-2xl hover:shadow-2xl hover:shadow-red-500/20 transition-all duration-300 transform hover:-translate-y-1 cursor-pointer border border-white/20 hover:border-red-300 dark:bg-slate-800/40 dark:border-white/5"
+                                            className="group bg-slate-50 dark:bg-slate-800/80 overflow-hidden shadow-md rounded-2xl hover:shadow-xl hover:shadow-red-500/10 transition-all duration-300 transform hover:-translate-y-1 cursor-pointer border border-slate-200 dark:border-slate-700 hover:border-rose-300 dark:hover:border-rose-600"
                                         >
                                             <div className="p-6">
                                                 <div className="flex items-center space-x-4 mb-4">

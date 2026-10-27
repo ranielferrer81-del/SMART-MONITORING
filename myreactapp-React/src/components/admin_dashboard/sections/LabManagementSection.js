@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import {
   fetchLabGateways,
   fetchLabRooms,
@@ -771,9 +772,9 @@ export default function LabManagementSection({ setToast }) {
       </div>
 
       {/* Edit Laboratory Modal */}
-      {editingGateway && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-lg overflow-hidden rounded-3xl border border-white/40 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900">
+      {editingGateway && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md animate-fadeIn">
+          <div className="w-full max-w-lg overflow-hidden rounded-3xl border border-slate-200 dark:border-slate-800 bg-white p-6 shadow-2xl dark:bg-slate-900">
             <div className="flex items-center justify-between border-b border-slate-200/80 pb-4 dark:border-slate-800">
               <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">
                 Edit Laboratory Mapping
@@ -879,7 +880,8 @@ export default function LabManagementSection({ setToast }) {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

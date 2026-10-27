@@ -355,16 +355,16 @@ export default function StudentsTimeClockSection() {
       {historyStudent &&
         createPortal(
           <div
-            className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/40 p-3 backdrop-blur-sm"
+            className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/75 p-3 sm:p-6 backdrop-blur-md"
             role="dialog"
             aria-modal="true"
             onClick={() => setHistoryStudent(null)}
           >
             <div
-              className="max-h-[90vh] w-full max-w-3xl overflow-hidden rounded-2xl border border-white/20 bg-white/95 shadow-2xl dark:border-slate-600 dark:bg-slate-900/95"
+              className="max-h-[90vh] w-full max-w-3xl overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-start justify-between gap-3 border-b border-slate-200/80 px-5 py-4 dark:border-slate-700">
+              <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4 dark:border-slate-800">
                 <div>
                   <h3 className="text-lg font-bold text-slate-900 dark:text-slate-50">
                     Time-in / time-out history

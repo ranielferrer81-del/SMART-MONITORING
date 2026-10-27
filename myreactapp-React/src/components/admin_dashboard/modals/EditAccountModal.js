@@ -1,11 +1,12 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 
 const EditAccountModal = ({ editUser, setEditUser, saveEdit, loading }) => {
     if (!editUser) return null;
 
-    return (
-        <div className="fixed inset-0 z-50 flex max-h-[100dvh] items-end justify-center overflow-y-auto overscroll-contain bg-slate-900/50 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] transition-opacity duration-300 sm:items-center sm:p-4" onClick={() => setEditUser(null)}>
-            <div className="relative flex max-h-[min(90vh,100dvh-1.5rem)] w-full max-w-2xl min-h-0 flex-col overflow-hidden rounded-xl bg-white shadow-2xl dark:border dark:border-slate-800 dark:bg-slate-900 sm:max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+    return createPortal(
+        <div className="fixed inset-0 z-[100] flex max-h-[100dvh] items-center justify-center overflow-y-auto overscroll-contain bg-slate-950/75 backdrop-blur-md p-3 transition-opacity duration-300 sm:p-4" onClick={() => setEditUser(null)}>
+            <div className="relative flex max-h-[min(90vh,100dvh-1.5rem)] w-full max-w-2xl min-h-0 flex-col overflow-hidden rounded-2xl bg-white shadow-2xl border border-slate-200 dark:border-slate-800 dark:bg-slate-900 sm:max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
                 <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-800">
                     <div>
                         <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Edit Account</h3>
@@ -21,11 +22,11 @@ const EditAccountModal = ({ editUser, setEditUser, saveEdit, loading }) => {
                     <form onSubmit={(e) => { e.preventDefault(); saveEdit(); }} className="space-y-6">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-slate-300">Full Name <span className="text-red-500">*</span></label>
-                            <input type="text" value={editUser.full_name || ''} onChange={(e) => setEditUser({ ...editUser, full_name: e.target.value })} className="w-full border border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 py-2 px-3 dark:bg-slate-900/30 dark:border-slate-700/50 dark:text-slate-100" required />
+                            <input type="text" value={editUser.full_name || ''} onChange={(e) => setEditUser({ ...editUser, full_name: e.target.value })} className="w-full border border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 py-2 px-3 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100" required />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-slate-300">Email <span className="text-red-500">*</span></label>
-                            <input type="email" value={editUser.email || ''} onChange={(e) => setEditUser({ ...editUser, email: e.target.value })} className="w-full border border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 py-2 px-3 dark:bg-slate-900/30 dark:border-slate-700/50 dark:text-slate-100" required />
+                            <input type="email" value={editUser.email || ''} onChange={(e) => setEditUser({ ...editUser, email: e.target.value })} className="w-full border border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 py-2 px-3 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100" required />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-slate-300">Account Status</label>
@@ -39,18 +40,18 @@ const EditAccountModal = ({ editUser, setEditUser, saveEdit, loading }) => {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-slate-300">Course <span className="text-red-500">*</span></label>
-                                        <select value={editUser.course || ''} onChange={(e) => setEditUser({ ...editUser, course: e.target.value })} className="w-full border border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 py-2 px-3 dark:bg-slate-900/30 dark:border-slate-700/50 dark:text-slate-100" required>
+                                        <select value={editUser.course || ''} onChange={(e) => setEditUser({ ...editUser, course: e.target.value })} className="w-full border border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 py-2 px-3 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100" required>
                                             <option value="">Select course</option><option value="BSIT">BSIT</option><option value="BSCS">BSCS</option><option value="BSEMC">BSEMC</option>
                                         </select>
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-slate-300">Section <span className="text-red-500">*</span></label>
-                                        <input type="text" value={editUser.section || ''} onChange={(e) => setEditUser({ ...editUser, section: e.target.value })} className="w-full border border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 py-2 px-3 dark:bg-slate-900/30 dark:border-slate-700/50 dark:text-slate-100" placeholder="Enter section (e.g., 3-Y1-1)" required />
+                                        <input type="text" value={editUser.section || ''} onChange={(e) => setEditUser({ ...editUser, section: e.target.value })} className="w-full border border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 py-2 px-3 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100" placeholder="Enter section (e.g., 3-Y1-1)" required />
                                     </div>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-slate-300">Student Number</label>
-                                    <input type="text" value={editUser.student_number || ''} onChange={(e) => setEditUser({ ...editUser, student_number: e.target.value })} className="w-full border border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 py-2 px-3 dark:bg-slate-900/30 dark:border-slate-700/50 dark:text-slate-100" placeholder="Enter student number" />
+                                    <input type="text" value={editUser.student_number || ''} onChange={(e) => setEditUser({ ...editUser, student_number: e.target.value })} className="w-full border border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 py-2 px-3 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100" placeholder="Enter student number" />
                                 </div>
                             </>
                         )}
@@ -58,11 +59,11 @@ const EditAccountModal = ({ editUser, setEditUser, saveEdit, loading }) => {
                             <>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-slate-300">Department</label>
-                                    <input type="text" value={editUser.department || ''} onChange={(e) => setEditUser({ ...editUser, department: e.target.value })} className="w-full border border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 py-2 px-3 dark:bg-slate-900/30 dark:border-slate-700/50 dark:text-slate-100" placeholder="Enter department" />
+                                    <input type="text" value={editUser.department || ''} onChange={(e) => setEditUser({ ...editUser, department: e.target.value })} className="w-full border border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 py-2 px-3 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100" placeholder="Enter department" />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-slate-300">Specialization</label>
-                                    <input type="text" value={editUser.specialization || ''} onChange={(e) => setEditUser({ ...editUser, specialization: e.target.value })} className="w-full border border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 py-2 px-3 dark:bg-slate-900/30 dark:border-slate-700/50 dark:text-slate-100" placeholder="Enter specialization" />
+                                    <input type="text" value={editUser.specialization || ''} onChange={(e) => setEditUser({ ...editUser, specialization: e.target.value })} className="w-full border border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 py-2 px-3 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100" placeholder="Enter specialization" />
                                 </div>
                             </>
                         )}
@@ -73,7 +74,8 @@ const EditAccountModal = ({ editUser, setEditUser, saveEdit, loading }) => {
                     </form>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 

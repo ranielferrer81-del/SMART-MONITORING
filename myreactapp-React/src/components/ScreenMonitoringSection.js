@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   fetchScreenMonitorFrameBlobUrl,
   getScreenMonitorGrid,
@@ -42,14 +43,14 @@ function LockPromptModal({ target, onClose, onSuccess }) {
     }
   };
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn"
+      className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md animate-fadeIn"
       onClick={onClose}
       role="presentation"
     >
       <div
-        className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-700 relative text-left"
+        className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800 relative text-left"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-3 mb-4">
@@ -141,7 +142,8 @@ function LockPromptModal({ target, onClose, onSuccess }) {
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -368,17 +370,17 @@ function ScreenMonitorModal({ student, onClose, onLockRequest, onUnlockRequest, 
 
   if (!student) return null;
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md"
       onClick={onClose}
       role="presentation"
     >
       <div
-        className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] flex flex-col border border-slate-200 dark:border-slate-700"
+        className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] flex flex-col border border-slate-200 dark:border-slate-800"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
+        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800">
           <div className="space-y-1.5">
             <div className="flex items-center gap-2">
               <h3 className="text-lg font-bold text-slate-900 dark:text-slate-50">{student.full_name}</h3>
@@ -470,7 +472,8 @@ function ScreenMonitorModal({ student, onClose, onLockRequest, onUnlockRequest, 
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

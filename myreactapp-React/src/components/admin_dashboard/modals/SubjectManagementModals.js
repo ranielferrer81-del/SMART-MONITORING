@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { enrollAllStudentsToSubject } from '../../../api/client';
 
 // ── Enrolled Students Modal ──
@@ -11,13 +12,13 @@ export const EnrolledStudentsModal = ({
     const selectedSubject = subjects.find(s => s.id === showStudentsModal);
     if (!selectedSubject) return null;
 
-    return (
+    return createPortal(
         <div
-            className="fixed inset-0 bg-slate-900 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4 transition-opacity duration-300"
+            className="fixed inset-0 bg-slate-950/75 backdrop-blur-md overflow-y-auto h-full w-full z-[100] flex items-center justify-center p-3 sm:p-6 transition-all duration-300"
             onClick={() => setShowStudentsModal(null)}
         >
             <div
-                className="relative bg-white/40 backdrop-blur-xl rounded-xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col transform transition-all duration-300 scale-100 dark:bg-slate-900/40 dark:border dark:border-slate-800/50"
+                className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col transform transition-all duration-300 scale-100"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Modal Header */}
@@ -57,18 +58,18 @@ export const EnrolledStudentsModal = ({
                     {enrolledStudents[selectedSubject.id]?.length > 0 ? (
                         <div className="overflow-x-auto border border-slate-200 rounded-lg dark:border-slate-800">
                             <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
-                                <thead className="bg-slate-50/40 backdrop-blur-sm sticky top-0 dark:bg-slate-800/40">
+                                <thead className="bg-slate-100 dark:bg-slate-800 sticky top-0">
                                     <tr>
-                                        <th className="px-6 py-4 text-left text-xs font-medium text-slate-700 uppercase tracking-wider dark:text-slate-300">Student Number</th>
-                                        <th className="px-6 py-4 text-left text-xs font-medium text-slate-700 uppercase tracking-wider dark:text-slate-300">Full Name</th>
-                                        <th className="px-6 py-4 text-left text-xs font-medium text-slate-700 uppercase tracking-wider dark:text-slate-300">Email</th>
-                                        <th className="px-6 py-4 text-left text-xs font-medium text-slate-700 uppercase tracking-wider dark:text-slate-300">Status</th>
-                                        <th className="px-6 py-4 text-right text-xs font-medium text-slate-700 uppercase tracking-wider dark:text-slate-300">Actions</th>
+                                        <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider dark:text-slate-300">Student Number</th>
+                                        <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider dark:text-slate-300">Full Name</th>
+                                        <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider dark:text-slate-300">Email</th>
+                                        <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider dark:text-slate-300">Status</th>
+                                        <th className="px-6 py-4 text-right text-xs font-semibold text-slate-700 uppercase tracking-wider dark:text-slate-300">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody className="bg-white/30 backdrop-blur-sm divide-y divide-slate-200/50 dark:bg-slate-900/30 dark:divide-slate-700/50">
+                                <tbody className="bg-white divide-y divide-slate-200 dark:bg-slate-900 dark:divide-slate-800">
                                     {enrolledStudents[selectedSubject.id].map((student, idx) => (
-                                        <tr key={idx} className="hover:bg-slate-50/40 backdrop-blur-sm transition-colors duration-150 dark:hover:bg-slate-800/40">
+                                        <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors duration-150">
                                             <td className="px-3 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm text-slate-800 font-medium dark:text-slate-100">
                                                 {student.student_number || '-'}
                                             </td>
@@ -111,7 +112,8 @@ export const EnrolledStudentsModal = ({
                     )}
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 
@@ -130,16 +132,16 @@ export const AddStudentsModal = ({
     const selectedSubject = subjects.find(s => s.id === showStudentsModal);
     if (!selectedSubject) return null;
 
-    return (
+    return createPortal(
         <div
-            className="fixed inset-0 bg-slate-900/30 dark:bg-slate-950/40 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4 transition-opacity duration-300"
+            className="fixed inset-0 bg-slate-950/75 backdrop-blur-md overflow-y-auto h-full w-full z-[100] flex items-center justify-center p-3 sm:p-6 transition-all duration-300"
             onClick={() => {
                 setShowAddStudentsModal(false);
                 setAddStudentsSearchTerm('');
             }}
         >
             <div
-                className="relative bg-white/40 backdrop-blur-xl dark:bg-slate-900/40 rounded-xl shadow-2xl w-full max-w-4xl max-h-[80vh] flex flex-col transform transition-all duration-300 scale-100 border border-slate-200/50 dark:border-slate-800/50"
+                className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col transform transition-all duration-300 scale-100"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Modal Header */}
@@ -302,29 +304,29 @@ export const AddStudentsModal = ({
                         return (
                             <div className="space-y-6">
                                 {Object.entries(groupedBySection).map(([section, students]) => (
-                                    <div key={section} className="bg-white shadow-lg rounded-lg border border-gray-200 dark:bg-slate-900/30 dark:border-slate-700/50">
-                                        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 dark:bg-slate-800 dark:border-slate-700">
-                                            <h3 className="text-lg font-semibold text-gray-800 dark:text-slate-100">
+                                    <div key={section} className="bg-white shadow-md rounded-xl border border-slate-200 dark:bg-slate-900 dark:border-slate-800 overflow-hidden">
+                                        <div className="px-6 py-4 border-b border-slate-200 bg-slate-50 dark:bg-slate-800/60 dark:border-slate-800">
+                                            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
                                                 {selectedCourse} - {section} ({students.length} student{students.length !== 1 ? 's' : ''})
                                             </h3>
                                         </div>
                                         <div className="overflow-x-auto">
-                                            <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
-                                                <thead className="bg-gray-50/40 backdrop-blur-sm dark:bg-slate-800/40">
+                                            <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
+                                                <thead className="bg-slate-100 dark:bg-slate-800">
                                                     <tr>
-                                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-300">Photo</th>
-                                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-300">Name</th>
-                                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-300">Email</th>
-                                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-300">Student #</th>
-                                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-300">Status</th>
-                                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-300">Actions</th>
+                                                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider dark:text-slate-300">Photo</th>
+                                                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider dark:text-slate-300">Name</th>
+                                                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider dark:text-slate-300">Email</th>
+                                                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider dark:text-slate-300">Student #</th>
+                                                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider dark:text-slate-300">Status</th>
+                                                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider dark:text-slate-300">Actions</th>
                                                     </tr>
                                                 </thead>
-                                                <tbody className="bg-white/30 backdrop-blur-sm divide-y divide-gray-200/50 dark:bg-slate-900/30 dark:divide-slate-700/50">
+                                                <tbody className="bg-white divide-y divide-slate-200 dark:bg-slate-900 dark:divide-slate-800">
                                                     {students.map((student) => {
                                                         const profilePicUrl = getProfilePictureUrl(student.profile_picture);
                                                         return (
-                                                            <tr key={student.id}>
+                                                            <tr key={student.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors duration-150">
                                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                                     <div className="flex-shrink-0 h-10 w-10">
                                                                         {profilePicUrl ? (
@@ -350,7 +352,7 @@ export const AddStudentsModal = ({
                                                                 <td className="px-6 py-4 whitespace-nowrap text-slate-800 dark:text-slate-100">
                                                                     {student.full_name || '-'}
                                                                 </td>
-                                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-slate-300">
+                                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300">
                                                                     {student.email || '-'}
                                                                 </td>
                                                                 <td className="px-6 py-4 whitespace-nowrap text-slate-800 dark:text-slate-100">
@@ -387,7 +389,8 @@ export const AddStudentsModal = ({
                     })()}
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 

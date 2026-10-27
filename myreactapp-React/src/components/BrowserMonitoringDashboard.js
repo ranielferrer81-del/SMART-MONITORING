@@ -505,9 +505,9 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
             )}
 
             {activityModalOpen && currentViewStudent && createPortal(
-                <div className="fixed inset-0 z-[100] flex items-start justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm pt-8 sm:pt-20">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] sm:max-h-[85vh] overflow-hidden flex flex-col border border-slate-200 dark:border-slate-700">
-                        <div className="p-4 sm:p-6 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-900/50 gap-2">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 bg-slate-950/75 backdrop-blur-md overflow-y-auto">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] sm:max-h-[85vh] overflow-hidden flex flex-col border border-slate-200 dark:border-slate-800">
+                        <div className="p-4 sm:p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900/50 gap-2">
                             <div className="flex items-center gap-2 min-w-0">
                                 <h3 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-slate-50 truncate">
                                     Activity for {currentViewStudent.full_name}
@@ -688,9 +688,9 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
             )}
 
             {tabCloseConfirm && createPortal(
-                <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div className="w-full max-w-lg rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl">
-                        <div className="p-5 border-b border-slate-200 dark:border-slate-700">
+                <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/75 backdrop-blur-md p-4">
+                    <div className="w-full max-w-lg rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl">
+                        <div className="p-5 border-b border-slate-200 dark:border-slate-800">
                             <h4 className="text-lg font-bold text-slate-900 dark:text-slate-100">
                                 Close This Tab?
                             </h4>
@@ -730,12 +730,12 @@ const BrowserMonitoringDashboard = ({ userRole, enrolledStudents = [] }) => {
             {/* Lock PC Modal Portal */}
             {lockModalTarget && createPortal(
                 <div
-                    className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn"
+                    className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md animate-fadeIn"
                     onClick={() => setLockModalTarget(null)}
                     role="presentation"
                 >
                     <div
-                        className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-700 relative text-left"
+                        className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800 relative text-left"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="flex items-center gap-3 mb-4">
