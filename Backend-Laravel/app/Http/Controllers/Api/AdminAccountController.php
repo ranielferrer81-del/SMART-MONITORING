@@ -32,7 +32,7 @@ class AdminAccountController extends Controller
             // student optional extras
             'course' => ['required_if:role,student', 'string', 'max:100', 'in:BSIT,BSCS,BSEMC'],
             'section' => ['required_if:role,student', 'string', 'max:50'],
-            'student_number' => ['required_if:role,student', 'regex:/^\d{11}$/'],
+            'student_number' => ['required_if:role,student', 'string', 'max:50'],
         ]);
 
         $exists = DB::table('users')->whereRaw('LOWER(email) = ?', [strtolower($data['email'])])->exists();
@@ -54,8 +54,9 @@ class AdminAccountController extends Controller
             ]);
 
             if ($data['role'] === 'student') {
+                $studentNumber = trim((string) ($data['student_number'] ?? ''));
                 // Ensure student_number is unique
-                $existsSn = DB::table('student_profiles')->where('student_number', $data['student_number'])->exists();
+                $existsSn = DB::table('student_profiles')->where('student_number', $studentNumber)->exists();
                 if ($existsSn) {
                     abort(response()->json(['ok' => false, 'message' => 'Student number already exists'], 422));
                 }
@@ -66,7 +67,7 @@ class AdminAccountController extends Controller
                 }
                 DB::table('student_profiles')->insert([
                     'user_id' => $userId,
-                    'student_number' => $data['student_number'],
+                    'student_number' => $studentNumber,
                     'course' => $data['course'] ?? null,
                     'year_level' => null,
                     'section' => $cleanSection,
@@ -176,7 +177,7 @@ class AdminAccountController extends Controller
                 }
             ],
             'section' => ['sometimes', 'string', 'max:50'],
-            'student_number' => ['sometimes', 'regex:/^\d{11}$/'],
+            'student_number' => ['sometimes', 'nullable', 'string', 'max:50'],
             // teacher fields
             'department' => ['sometimes', 'string', 'max:100'],
             'specialization' => ['sometimes', 'string', 'max:255'],
@@ -207,14 +208,17 @@ class AdminAccountController extends Controller
                 if (array_key_exists('section', $data))
                     $updateSp['section'] = $data['section'];
                 if (array_key_exists('student_number', $data)) {
-                    // ensure unique
-                    $existsSn = DB::table('student_profiles')
-                        ->where('student_number', $data['student_number'])
-                        ->where('user_id', '!=', $userId)
-                        ->exists();
-                    if ($existsSn)
-                        abort(response()->json(['ok' => false, 'message' => 'Student number already exists'], 422));
-                    $updateSp['student_number'] = $data['student_number'];
+                    $sn = trim((string) ($data['student_number'] ?? ''));
+                    if ($sn !== '') {
+                        // ensure unique
+                        $existsSn = DB::table('student_profiles')
+                            ->where('student_number', $sn)
+                            ->where('user_id', '!=', $userId)
+                            ->exists();
+                        if ($existsSn)
+                            abort(response()->json(['ok' => false, 'message' => 'Student number already exists'], 422));
+                        $updateSp['student_number'] = $sn;
+                    }
                 }
                 if (!empty($updateSp)) {
                     $updateSp['updated_at'] = now();
@@ -420,7 +424,7 @@ class AdminAccountController extends Controller
             'students' => ['required', 'array', 'min:1'],
             'students.*.full_name' => ['required', 'string', 'max:191'],
             'students.*.email' => ['required', 'email', 'max:191'],
-            'students.*.student_number' => ['required', 'regex:/^\d{11}$/'],
+            'students.*.student_number' => ['required', 'string', 'max:50'],
             'students.*.course' => ['required', 'in:BSIT,BSCS,BSEMC'],
             'students.*.section' => ['required', 'string', 'max:50'],
             'default_password' => ['nullable', 'string', 'min:6'],

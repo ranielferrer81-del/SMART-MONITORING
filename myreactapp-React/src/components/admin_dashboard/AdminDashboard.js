@@ -595,9 +595,11 @@ export default function AdminDashboard() {
       } else if (form.section.length > 50) {
         errs.section = 'Max 50 chars';
       }
-      // Student number must be exactly 11 digits
-      if (!form.student_number || !/^\d{11}$/.test(form.student_number)) {
-        errs.student_number = 'Student number must be 11 digits';
+      // Student number (supports any format, e.g. with hyphens, letters, or custom digits)
+      if (!form.student_number || !form.student_number.trim()) {
+        errs.student_number = 'Student number is required';
+      } else if (form.student_number.trim().length > 50) {
+        errs.student_number = 'Max 50 characters';
       }
     }
     setFormErrors(errs);

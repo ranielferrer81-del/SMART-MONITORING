@@ -459,8 +459,8 @@ class BrowserActivityController extends Controller
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
-        // Students active in the last 20 seconds (matches screen monitoring threshold)
-        $threshold = now()->subSeconds(20);
+        // Students active in the last 90 seconds (matches screen monitoring threshold)
+        $threshold = now()->subSeconds(90);
 
         $query = MonitoringSession::where('is_active', true)
             ->where('updated_at', '>=', $threshold)
@@ -543,7 +543,7 @@ class BrowserActivityController extends Controller
         return response()->json([
             'is_active' => $session ? true : false,
             'last_heartbeat' => $session ? $session->updated_at : null,
-            'is_extension_connected' => $session && $session->updated_at >= now()->subSeconds(20)
+            'is_extension_connected' => $session && $session->updated_at >= now()->subSeconds(90)
         ]);
     }
 

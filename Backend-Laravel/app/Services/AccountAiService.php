@@ -94,7 +94,7 @@ Extract every student record into a clean JSON array of objects.
 
 Strict Requirements:
 1. "full_name": Student's clean Title Case name (e.g., "Fatima Perez", "Mark Santos", "Juan M. Dela Cruz"). Remove numbering or stray symbols.
-2. "student_number": Exactly 11 numeric digits (matching regex ^\d{11}$). If the student ID in the text has fewer digits, pad it with leading zeros or year prefix (e.g., 20240001001) to make it exactly 11 digits.
+2. "student_number": Student ID or student number as found in the text (e.g. "2024-00101", "20240001001", "19-12345", "C20-0012"). Preserve any hyphens or alphanumeric formatting as given in the roster.
 3. "course": Normalize strictly to one of: "BSIT", "BSCS", "BSEMC". (e.g., "Information Technology" -> "BSIT", "Computer Science" -> "BSCS", "EMC" -> "BSEMC"). If missing in the row, use: "{$defaultCourse}".
 4. "section": Clean pure section code WITHOUT repeating the course (e.g. "3-Y2-2", "3-A", "1-B"). Do NOT include the course code in the section (e.g., use "3-Y2-2", NOT "BSIT 3-Y2-2") because course is already stored separately. If missing in the row, use: "{$defaultSection}".
 5. "email": Valid lowercase email. If an email is listed, clean and use it. If missing, generate one in the format: {student_number}@{$emailDomain}
@@ -105,7 +105,7 @@ Return ONLY valid JSON matching this schema:
   "students": [
     {
       "full_name": "Fatima Perez",
-      "student_number": "20240001001",
+      "student_number": "2024-00101",
       "course": "BSIT",
       "section": "3-Y2-2",
       "email": "fatima.perez@student.edu"
@@ -202,7 +202,7 @@ PROMPT;
         try {
             $snippet = mb_substr($rawText, 0, 30000);
             $prompt = <<<PROMPT
-Extract student enrollment records into a JSON object: {"students": [{"full_name": "...", "student_number": "11 digits", "course": "BSIT|BSCS|BSEMC", "section": "...", "email": "..."}]}.
+Extract student enrollment records into a JSON object: {"students": [{"full_name": "...", "student_number": "...", "course": "BSIT|BSCS|BSEMC", "section": "...", "email": "..."}]}.
 Course fallback: {$defaultCourse}. Section fallback: {$defaultSection}.
 Content:
 {$snippet}
@@ -311,8 +311,8 @@ PROMPT;
                     continue;
                 }
 
-                // Check if student number (between 7 and 11 digits)
-                if (preg_match('/^\d{7,11}$/', $token)) {
+                // Check if student number (e.g. 2024-00123, 20240001001, 19-1234, or numeric sequence)
+                if ((preg_match('/^[A-Za-z0-9\-]{4,30}$/', $token) && preg_match('/\d/', $token) && ! $courseMatch) || preg_match('/^\d{5,15}$/', $token)) {
                     $extractedStudentNumber = $token;
                     continue;
                 }
@@ -357,11 +357,11 @@ PROMPT;
                 continue;
             }
 
-            // Normalize student number to 11 digits
+            // Normalize student number (preserve original format, or generate sequential fallback)
             if (! $extractedStudentNumber) {
                 $extractedStudentNumber = $currentYear . str_pad((string) $counter, 7, '0', STR_PAD_LEFT);
             } else {
-                $extractedStudentNumber = str_pad(substr($extractedStudentNumber, -11), 11, '0', STR_PAD_LEFT);
+                $extractedStudentNumber = trim((string) $extractedStudentNumber);
             }
 
             $course = $extractedCourse ?: $defaultCourse;
@@ -408,11 +408,9 @@ PROMPT;
                 continue;
             }
 
-            $snRaw = preg_replace('/[^\d]/', '', (string) ($item['student_number'] ?? $item['student_id'] ?? ''));
-            if (strlen($snRaw) === 11) {
-                $sn = $snRaw;
-            } elseif (strlen($snRaw) > 0) {
-                $sn = str_pad(substr($snRaw, -11), 11, '0', STR_PAD_LEFT);
+            $snRaw = trim((string) ($item['student_number'] ?? $item['student_id'] ?? ''));
+            if ($snRaw !== '') {
+                $sn = mb_substr($snRaw, 0, 50);
             } else {
                 $sn = $currentYear . str_pad((string) $counter, 7, '0', STR_PAD_LEFT);
             }

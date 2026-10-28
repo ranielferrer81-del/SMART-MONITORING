@@ -13,9 +13,9 @@ use Illuminate\Support\Facades\Storage;
 
 class ScreenMonitorController extends Controller
 {
-    private const ONLINE_SECONDS = 20;
+    private const ONLINE_SECONDS = 90;
 
-    private const STALE_SECONDS = 12;
+    private const STALE_SECONDS = 30;
 
     private const MAX_IMAGE_BYTES = 2_000_000;
 
@@ -158,6 +158,9 @@ class ScreenMonitorController extends Controller
 
         $sessions = $query->get();
 
+        // Deduplicate by student_user_id so each student only has ONE active card (the most recent session)
+        $sessions = $sessions->sortByDesc('updated_at')->unique('student_user_id')->values();
+
         $studentIds = $sessions->pluck('student_user_id')->filter()->unique()->values();
         $frames = ScreenMonitorFrame::whereIn('student_user_id', $studentIds)
             ->get()
@@ -223,7 +226,9 @@ class ScreenMonitorController extends Controller
 
         usort($items, static function ($a, $b) {
             return strcmp((string) ($a['laboratory_room'] ?? ''), (string) ($b['laboratory_room'] ?? ''))
-                ?: strcmp((string) ($a['full_name'] ?? ''), (string) ($b['full_name'] ?? ''));
+                ?: strcmp((string) ($a['full_name'] ?? ''), (string) ($b['full_name'] ?? ''))
+                ?: strcmp((string) ($a['computer_name'] ?? ''), (string) ($b['computer_name'] ?? ''))
+                ?: ((int) ($a['student_id'] ?? 0) <=> (int) ($b['student_id'] ?? 0));
         });
 
         return response()->json([

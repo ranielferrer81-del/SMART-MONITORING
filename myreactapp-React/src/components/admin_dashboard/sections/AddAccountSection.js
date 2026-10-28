@@ -367,7 +367,7 @@ const AddAccountSection = ({
                                     </div>
                                     <div>
                                         <label className="block text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300">Student Number</label>
-                                        <input type="text" value={form.student_number} onChange={(e) => setForm((f) => ({ ...f, student_number: e.target.value }))} className={`${inputBase} ${formErrors.student_number ? 'border-red-400 bg-red-50' : 'border-slate-300/90 bg-white/85 dark:border-slate-600'}`} placeholder="11 digits" />
+                                        <input type="text" value={form.student_number} onChange={(e) => setForm((f) => ({ ...f, student_number: e.target.value }))} className={`${inputBase} ${formErrors.student_number ? 'border-red-400 bg-red-50' : 'border-slate-300/90 bg-white/85 dark:border-slate-600'}`} placeholder="e.g. 2024-00123 or 20240001001" />
                                         {formErrors.student_number && <p className="mt-1 text-xs text-red-600">{formErrors.student_number}</p>}
                                     </div>
                                 </>
@@ -400,7 +400,7 @@ const AddAccountSection = ({
                                     </h3>
                                 </div>
                                 <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
-                                    Upload the registrar's roster file or paste student list text. The AI extracts names, 11-digit IDs, courses, sections, and emails, checks for duplicates, and auto-registers them with your default password.
+                                    Upload the registrar's roster file or paste student list text. The AI extracts names, student IDs, courses, sections, and emails, checks for duplicates, and auto-registers them with your default password.
                                 </p>
                             </div>
 
