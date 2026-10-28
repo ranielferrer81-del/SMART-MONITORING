@@ -39,7 +39,7 @@ export default function PcLockOverlay({ message }: PcLockOverlayProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center text-white overflow-hidden"
+      className="fixed inset-0 z-[100] flex flex-col items-center justify-center text-white overflow-hidden"
       style={{
         opacity: visible ? 1 : 0,
         transition: 'opacity 0.4s ease',

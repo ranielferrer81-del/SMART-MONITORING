@@ -191,6 +191,17 @@ function App() {
     return () => unsubscribe?.();
   }, [isOverlay]);
 
+  // Fail-safe: If mainWindow is in 'logged-in' state and no overlays (lock, presentation, quiz) are active,
+  // ensure mainWindow is hidden and profile overlay is shown so the student is never stuck on a black screen.
+  useEffect(() => {
+    if (!isOverlay && screen === 'logged-in') {
+      if (!isPcLocked && !presentationSession && !activeQuizSession) {
+        window.electronAPI?.minimizeMainWindow?.();
+        window.electronAPI?.showProfileOverlay?.();
+      }
+    }
+  }, [screen, isOverlay, isPcLocked, presentationSession, activeQuizSession]);
+
   // Extend browser token to monitoring (no PIN yet — monitoring_ready_at set only after PIN)
   const notifyElectronLogin = (session: LoginResult) => {
     const electronAPI = window.electronAPI;
@@ -332,11 +343,12 @@ function App() {
   const renderOverlays = () => (
     <>
       {isPcLocked && <PcLockOverlay message={lockMessage} />}
-      {presentationSession && (
+      {!isPcLocked && presentationSession && (
         <PresentationOverlay
           sessionUuid={presentationSession.sessionUuid}
           teacherName={presentationSession.teacherName}
           subjectName={presentationSession.subjectName}
+          onEnded={() => setPresentationSession(null)}
         />
       )}
       {activeQuizSession && (

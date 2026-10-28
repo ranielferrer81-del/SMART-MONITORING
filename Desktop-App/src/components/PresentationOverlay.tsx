@@ -13,12 +13,14 @@ type PresentationOverlayProps = {
   sessionUuid: string;
   teacherName?: string | null;
   subjectName?: string | null;
+  onEnded?: () => void;
 };
 
 export default function PresentationOverlay({
   sessionUuid,
   teacherName,
   subjectName,
+  onEnded,
 }: PresentationOverlayProps) {
   const [status, setStatus] = useState<'connecting' | 'connected' | 'ended' | 'error'>('connecting');
   const [statusMessage, setStatusMessage] = useState('Connecting to instructor stream…');
@@ -144,6 +146,9 @@ export default function PresentationOverlay({
               closePc();
               setStatus('ended');
               setStatusMessage('The presentation has ended.');
+              setTimeout(() => {
+                if (!cancelled) onEnded?.();
+              }, 800);
               return;
             }
 
@@ -156,6 +161,9 @@ export default function PresentationOverlay({
                 closePc();
                 setStatus('ended');
                 setStatusMessage('The instructor stopped screen sharing.');
+                setTimeout(() => {
+                  if (!cancelled) onEnded?.();
+                }, 800);
                 return;
               }
               

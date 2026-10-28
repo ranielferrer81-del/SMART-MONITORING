@@ -51,7 +51,7 @@ function readApiBaseFromBuildConfig() {
         return null;
     }
 }
-const DEFAULT_API_BASE_URL = 'https://smart-backend-gwym.onrender.com';
+const DEFAULT_API_BASE_URL = 'https://smart-monitoring-production.up.railway.app';
 const LOCAL_API_URL = 'http://127.0.0.1:8000';
 /** Packaged builds use build-config.json from CI; dev prefers .env or cloud */
 function resolveApiBaseUrl() {
@@ -370,6 +370,7 @@ ipcMain.handle('student-logged-in', async (_event, studentData) => {
         studentData.monitoringReady === true;
     if (monitoringReady) {
         studentSessionActive = true;
+        lockScreenEnforced = false;
         if (!monitoringReadyStickyIso) {
             monitoringReadyStickyIso = new Date().toISOString();
         }
@@ -451,22 +452,26 @@ app.on('ready', async () => {
             return;
         if (isLocked) {
             console.log('🔒 PC locked remotely — showing lock overlay');
-            // If main window was hidden (student in session), bring it back so overlay is visible
-            if (!mainWindow.isVisible()) {
-                mainWindow.show();
-                mainWindow.focus();
+            // Ensure window is on top and focused so lock overlay is fully visible
+            mainWindow.setAlwaysOnTop(true, 'screen-saver');
+            mainWindow.show();
+            mainWindow.focus();
+            // Hide profile window so it does not float over the lock screen
+            if (profileWindow && !profileWindow.isDestroyed()) {
+                profileWindow.hide();
             }
             mainWindow.webContents.send('pc-locked', message ?? 'This PC has been locked by your instructor.');
-            // Also notify profile overlay so it can dim/disable itself
-            if (profileWindow && !profileWindow.isDestroyed()) {
-                profileWindow.webContents.send('pc-locked', message ?? 'This PC has been locked by your instructor.');
-            }
         }
         else {
             console.log('🔓 PC unlocked remotely — hiding lock overlay');
+            mainWindow.setAlwaysOnTop(false);
             mainWindow.webContents.send('pc-unlocked');
-            if (profileWindow && !profileWindow.isDestroyed()) {
-                profileWindow.webContents.send('pc-unlocked');
+            if (!quizActive && !presentationActive && profileWindow && !profileWindow.isDestroyed()) {
+                profileWindow.show();
+            }
+            // Return student to desktop if they are in an active session
+            if (!quizActive && !presentationActive && studentSessionActive && !mainWindow.isDestroyed()) {
+                mainWindow.hide();
             }
         }
     });
@@ -493,12 +498,12 @@ app.on('ready', async () => {
         else {
             console.log('📡 Live presentation ended remotely');
             mainWindow.webContents.send('presentation-end');
-            // Restore the profile overlay window after the presentation ends (unless a quiz owns the screen)
-            if (!quizActive && profileWindow && !profileWindow.isDestroyed()) {
+            // Restore the profile overlay window after presentation ends (unless a quiz or lock owns the screen)
+            if (!quizActive && !remoteLockActive && profileWindow && !profileWindow.isDestroyed()) {
                 profileWindow.show();
             }
-            // If student is logged in and not locked, hide the main window so they return to their normal desktop
-            if (!quizActive && studentSessionActive && !lockScreenEnforced && !mainWindow.isDestroyed()) {
+            // If student is logged in and not remotely locked, hide the main window so they return to their normal desktop
+            if (!quizActive && studentSessionActive && !remoteLockActive && !mainWindow.isDestroyed()) {
                 mainWindow.hide();
             }
         }
