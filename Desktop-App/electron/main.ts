@@ -257,10 +257,16 @@ const createWindow = () => {
     ? path.join(__dirname, '../dist-electron/preload.js')
     : path.join(__dirname, 'preload.js');
 
+  const iconFilename = process.platform === 'win32' ? 'icon.ico' : 'icon.png';
+  const windowIconPath = isDevBuild
+    ? path.join(__dirname, '../public', iconFilename)
+    : path.join(__dirname, '../dist', iconFilename);
+
   // Create the browser window - frameless, fullscreen for lock screen (unless dev)
   mainWindow = new BrowserWindow({
     width: 1920,
     height: 1080,
+    icon: fs.existsSync(windowIconPath) ? windowIconPath : undefined,
     fullscreen: shouldEnforceLockScreen,
     frame: !shouldEnforceLockScreen, // Show window controls in dev
     kiosk: shouldEnforceLockScreen,
