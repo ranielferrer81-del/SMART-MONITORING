@@ -252,12 +252,12 @@ export default function QuizLockOverlay({ quizId, title, subjectName, serverEnde
             <section className="flex min-w-0 flex-1 flex-col overflow-y-auto px-6 py-8 md:px-12">
               <div className="mx-auto w-full max-w-3xl">
                 {session?.quiz.description && index === 0 && (
-                  <p className="mb-5 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/70">{session.quiz.description}</p>
+                  <p className="mb-5 rounded-xl border border-white/10 bg-white/5 px-5 py-3.5 text-base text-white/80">{session.quiz.description}</p>
                 )}
-                <p className="mb-2 text-xs font-bold uppercase tracking-widest text-red-300">Question {index + 1}</p>
-                <h2 className="mb-6 whitespace-pre-wrap text-2xl font-bold leading-snug">{current.question_text}</h2>
+                <p className="mb-2 text-sm font-bold uppercase tracking-widest text-red-300">Question {index + 1}</p>
+                <h2 className="mb-6 whitespace-pre-wrap text-2xl sm:text-3xl font-bold leading-snug">{current.question_text}</h2>
 
-                <div className="space-y-3">
+                <div className="space-y-3.5">
                   {current.options.map((opt, oi) => {
                     const selected = answers[current.id] === opt;
                     return (
@@ -269,10 +269,10 @@ export default function QuizLockOverlay({ quizId, title, subjectName, serverEnde
                           ? 'border-emerald-400 bg-emerald-600/25 shadow-[0_0_0_1px_rgba(52,211,153,0.6)]'
                           : 'border-white/15 bg-white/5 hover:border-white/40 hover:bg-white/10'}`}
                       >
-                        <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-extrabold ${selected ? 'bg-emerald-500 text-white' : 'bg-white/10 text-white/70'}`}>
+                        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-base font-extrabold ${selected ? 'bg-emerald-500 text-white' : 'bg-white/10 text-white/75'}`}>
                           {LETTERS[oi] ?? oi + 1}
                         </span>
-                        <span className="text-base font-medium">{opt}</span>
+                        <span className="text-lg sm:text-xl font-medium">{opt}</span>
                       </button>
                     );
                   })}
@@ -283,24 +283,24 @@ export default function QuizLockOverlay({ quizId, title, subjectName, serverEnde
                     type="button"
                     onClick={() => setIndex((i) => Math.max(0, i - 1))}
                     disabled={index === 0}
-                    className="inline-flex items-center gap-1 rounded-xl border border-white/20 px-4 py-2.5 text-sm font-bold hover:bg-white/10 disabled:opacity-30"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-white/20 px-5 py-3 text-base font-bold hover:bg-white/10 disabled:opacity-30"
                   >
-                    <ChevronLeft className="h-4 w-4" /> Previous
+                    <ChevronLeft className="h-5 w-5" /> Previous
                   </button>
 
                   {index < questions.length - 1 ? (
                     <button
                       type="button"
                       onClick={() => setIndex((i) => Math.min(questions.length - 1, i + 1))}
-                      className="inline-flex items-center gap-1 rounded-xl bg-white/15 px-5 py-2.5 text-sm font-bold hover:bg-white/25"
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-white/15 px-6 py-3 text-base font-bold hover:bg-white/25"
                     >
-                      Next <ChevronRight className="h-4 w-4" />
+                      Next <ChevronRight className="h-5 w-5" />
                     </button>
                   ) : (
                     <button
                       type="button"
                       onClick={() => setConfirming(true)}
-                      className="rounded-xl bg-emerald-600 px-6 py-2.5 text-sm font-extrabold hover:bg-emerald-500"
+                      className="rounded-xl bg-emerald-600 px-7 py-3 text-base font-extrabold hover:bg-emerald-500"
                     >
                       Submit quiz
                     </button>

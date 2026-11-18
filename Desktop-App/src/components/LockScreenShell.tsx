@@ -19,7 +19,7 @@ export default function LockScreenShell({ children, showExit = true }: LockScree
         <button
           type="button"
           onClick={() => void window.electronAPI?.quitApp?.()}
-          className="absolute top-4 left-4 z-20 inline-flex items-center gap-2 rounded-lg border border-white/25 bg-black/40 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-white/90 backdrop-blur-md hover:bg-red-900/60 hover:border-red-400/50 transition-colors"
+          className="absolute top-4 left-4 z-20 inline-flex items-center gap-2 rounded-xl border border-white/25 bg-black/50 px-4 py-2.5 text-sm font-bold uppercase tracking-wider text-white/90 backdrop-blur-md hover:bg-red-900/60 hover:border-red-400/50 transition-colors"
           title="Close application (staff)"
         >
           <Power className="h-4 w-4" />

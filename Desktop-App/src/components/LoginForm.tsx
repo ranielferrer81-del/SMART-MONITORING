@@ -118,75 +118,75 @@ export default function LoginForm({ onVerificationSent, onCancel }: LoginFormPro
   return (
     <LockScreenShell>
       <motion.div
-        className="relative bg-white/10 border border-white/20 backdrop-blur-xl rounded-3xl p-10 shadow-2xl max-w-md w-full flex flex-col items-center gap-5"
+        className="relative bg-white/10 border border-white/20 backdrop-blur-xl rounded-3xl p-10 sm:p-12 shadow-2xl max-w-xl w-full flex flex-col items-center gap-6"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
       >
         <motion.div
-          className="w-16 h-16 rounded-full bg-gradient-to-br from-red-600 to-red-400 flex items-center justify-center shadow-xl"
+          className="w-20 h-20 rounded-full bg-gradient-to-br from-red-600 to-red-400 flex items-center justify-center shadow-xl"
           animate={{ scale: [1, 1.05, 1], rotate: [0, 2, -2, 0] }}
           transition={{ duration: 3, repeat: Infinity }}
         >
-          <Mail className="w-8 h-8 text-white" />
+          <Mail className="w-10 h-10 text-white" />
         </motion.div>
 
-        <div className="space-y-1 w-full text-center">
-          <p className="text-xs uppercase tracking-[0.4em] text-red-200">
+        <div className="space-y-2 w-full text-center">
+          <p className="text-sm sm:text-base font-semibold uppercase tracking-[0.35em] text-red-200">
             Enter Credentials
           </p>
-          <h2 className="text-2xl font-extrabold text-white drop-shadow-lg">
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-white drop-shadow-lg">
             Student Login
           </h2>
         </div>
 
         {/* Server Selector Bar */}
-        <div className="w-full flex flex-col items-center gap-2">
-          <div className="flex items-center bg-black/40 p-1 rounded-2xl border border-white/10 backdrop-blur-md w-full">
+        <div className="w-full flex flex-col items-center gap-2.5">
+          <div className="flex items-center bg-black/40 p-1.5 rounded-2xl border border-white/10 backdrop-blur-md w-full">
             <button
               type="button"
               onClick={() => handleModeSwitch('cloud')}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-semibold transition-all duration-200 ${
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-semibold transition-all duration-200 ${
                 serverMode === 'cloud'
                   ? 'bg-gradient-to-r from-red-600 to-red-500 text-white shadow-md'
                   : 'text-white/60 hover:text-white hover:bg-white/5'
               }`}
             >
-              <Globe className="w-3.5 h-3.5" />
+              <Globe className="w-4 h-4" />
               <span>Online (Cloud)</span>
             </button>
             <button
               type="button"
               onClick={() => handleModeSwitch('local')}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-semibold transition-all duration-200 ${
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-semibold transition-all duration-200 ${
                 serverMode === 'local'
                   ? 'bg-gradient-to-r from-red-600 to-red-500 text-white shadow-md'
                   : 'text-white/60 hover:text-white hover:bg-white/5'
               }`}
             >
-              <Laptop className="w-3.5 h-3.5" />
+              <Laptop className="w-4 h-4" />
               <span>Localhost (127.0.0.1)</span>
             </button>
           </div>
 
           {/* Connection status badge */}
-          <div className="flex items-center justify-between w-full px-1 text-xs">
-            <div className="flex items-center gap-1.5 text-white/70">
+          <div className="flex items-center justify-between w-full px-1 text-sm">
+            <div className="flex items-center gap-2 text-white/80">
               {serverStatus === 'checking' && (
                 <>
-                  <Loader2 className="w-3 h-3 text-amber-300 animate-spin" />
+                  <Loader2 className="w-4 h-4 text-amber-300 animate-spin" />
                   <span className="text-amber-200/90">Connecting to {serverMode === 'cloud' ? 'Render Cloud' : 'Localhost'}...</span>
                 </>
               )}
               {serverStatus === 'connected' && (
                 <>
-                  <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                   <span className="text-emerald-300">Connected to {serverMode === 'cloud' ? 'Render Cloud' : 'Localhost'}</span>
                 </>
               )}
               {serverStatus === 'error' && (
                 <>
-                  <AlertCircle className="w-3 h-3 text-red-400" />
+                  <AlertCircle className="w-4 h-4 text-red-400" />
                   <span className="text-red-300">Offline / Unreachable</span>
                 </>
               )}
@@ -196,19 +196,19 @@ export default function LoginForm({ onVerificationSent, onCancel }: LoginFormPro
               onClick={() => checkConnection()}
               disabled={isWarmingUp}
               title="Test connection"
-              className="p-1 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors disabled:opacity-40"
+              className="p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors disabled:opacity-40"
             >
-              <RefreshCw className={`w-3 h-3 ${isWarmingUp ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 ${isWarmingUp ? 'animate-spin' : ''}`} />
             </button>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="w-full space-y-5">
+        <form onSubmit={handleSubmit} className="w-full space-y-6">
           {backendWarning && (
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="rounded-xl bg-amber-900/50 border border-amber-500/50 px-4 py-3 text-xs text-amber-100 backdrop-blur-sm text-left"
+              className="rounded-xl bg-amber-900/50 border border-amber-500/50 px-4 py-3.5 text-sm sm:text-base text-amber-100 backdrop-blur-sm text-left"
             >
               {backendWarning}
             </motion.div>
@@ -218,7 +218,7 @@ export default function LoginForm({ onVerificationSent, onCancel }: LoginFormPro
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="rounded-xl bg-red-900/50 border border-red-500/50 px-4 py-3 text-sm text-red-100 backdrop-blur-sm"
+              className="rounded-xl bg-red-900/50 border border-red-500/50 px-4 py-3.5 text-base text-red-100 backdrop-blur-sm"
             >
               {error}
             </motion.div>
@@ -228,7 +228,7 @@ export default function LoginForm({ onVerificationSent, onCancel }: LoginFormPro
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className={`rounded-xl px-4 py-3 text-sm backdrop-blur-sm ${
+              className={`rounded-xl px-4 py-3.5 text-base backdrop-blur-sm ${
                 emailStatus.sent
                   ? 'bg-green-900/50 border border-green-500/50 text-green-100'
                   : 'bg-yellow-900/50 border border-yellow-500/50 text-yellow-100'
@@ -238,20 +238,20 @@ export default function LoginForm({ onVerificationSent, onCancel }: LoginFormPro
             </motion.div>
           )}
 
-          <div className="space-y-1.5">
-            <label htmlFor="email" className="block text-xs uppercase tracking-[0.3em] text-red-200 text-left">
+          <div className="space-y-2">
+            <label htmlFor="email" className="block text-sm sm:text-base font-semibold uppercase tracking-[0.25em] text-red-200 text-left">
               Email Address
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Mail className="h-5 w-5 text-red-300" />
+                <Mail className="h-6 w-6 text-red-300" />
               </div>
               <input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="block w-full pl-12 pr-4 py-3.5 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-red-200/60 focus:ring-2 focus:ring-red-500 focus:border-red-500/50 transition-all duration-200 outline-none backdrop-blur-sm"
+                className="block w-full pl-14 pr-4 py-4 text-lg bg-white/10 border border-white/25 rounded-2xl text-white placeholder-red-200/60 focus:ring-2 focus:ring-red-500 focus:border-red-500/50 transition-all duration-200 outline-none backdrop-blur-sm"
                 placeholder="Enter your email address"
                 required
                 autoFocus
@@ -259,20 +259,20 @@ export default function LoginForm({ onVerificationSent, onCancel }: LoginFormPro
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <label htmlFor="password" className="block text-xs uppercase tracking-[0.3em] text-red-200 text-left">
+          <div className="space-y-2">
+            <label htmlFor="password" className="block text-sm sm:text-base font-semibold uppercase tracking-[0.25em] text-red-200 text-left">
               Password
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Lock className="h-5 w-5 text-red-300" />
+                <Lock className="h-6 w-6 text-red-300" />
               </div>
               <input
                 id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="block w-full pl-12 pr-4 py-3.5 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-red-200/60 focus:ring-2 focus:ring-red-500 focus:border-red-500/50 transition-all duration-200 outline-none backdrop-blur-sm"
+                className="block w-full pl-14 pr-4 py-4 text-lg bg-white/10 border border-white/25 rounded-2xl text-white placeholder-red-200/60 focus:ring-2 focus:ring-red-500 focus:border-red-500/50 transition-all duration-200 outline-none backdrop-blur-sm"
                 placeholder="Enter your password"
                 required
               />
@@ -282,11 +282,11 @@ export default function LoginForm({ onVerificationSent, onCancel }: LoginFormPro
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full px-10 py-3.5 bg-red-600 text-white font-semibold rounded-full border border-white/30 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+            className="w-full px-10 py-4 text-lg bg-red-600 text-white font-bold rounded-full border border-white/30 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
           >
             {isLoading ? (
               <span className="flex items-center justify-center gap-2">
-                <Loader2 className="h-5 w-5 animate-spin" />
+                <Loader2 className="h-6 w-6 animate-spin" />
                 Sending code...
               </span>
             ) : (
@@ -298,9 +298,9 @@ export default function LoginForm({ onVerificationSent, onCancel }: LoginFormPro
             <button
               type="button"
               onClick={onCancel}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-full border border-white/30 px-4 py-2 text-sm font-medium text-white/90 hover:bg-white/10 transition-colors backdrop-blur-sm"
+              className="w-full inline-flex items-center justify-center gap-2 rounded-full border border-white/30 px-5 py-3 text-base font-semibold text-white/90 hover:bg-white/10 transition-colors backdrop-blur-sm"
             >
-              <X className="h-4 w-4" />
+              <X className="h-5 w-5" />
               Cancel
             </button>
           )}

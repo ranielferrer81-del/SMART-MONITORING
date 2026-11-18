@@ -4,7 +4,20 @@ import {
   fetchScreenMonitorFrameBlobUrl,
   getScreenMonitorGrid,
 } from '../api/screenMonitoring';
-import { lockStudentPc, unlockStudentPc } from '../api/browserMonitoring';
+import {
+  lockStudentPc,
+  unlockStudentPc,
+  getStudentBrowserActivity,
+} from '../api/browserMonitoring';
+import BrowserActivityModal from './teacher_dashboard/modals/BrowserActivityModal';
+
+const VIEW_SIZE_STORAGE_KEY = 'smart_screen_monitor_view_size';
+const VIEW_SIZE_OPTIONS = [
+  { id: 'compact', label: 'S', title: 'Compact (4 per row)', gridClass: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4' },
+  { id: 'medium', label: 'M', title: 'Normal (3 per row)', gridClass: 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3' },
+  { id: 'large', label: 'L', title: 'Large (2 per row)', gridClass: 'grid-cols-1 lg:grid-cols-2' },
+  { id: 'full', label: 'Full', title: 'Theater (1 per row)', gridClass: 'grid-cols-1 max-w-5xl mx-auto' },
+];
 
 // ============================================================================
 // ORIGINAL CONFIGURATION (Restore when upgraded to paid hosting):
@@ -147,7 +160,15 @@ function LockPromptModal({ target, onClose, onSuccess }) {
   );
 }
 
-function ScreenCard({ item, onSelect, selected, onLockRequest, onUnlockRequest, actionLoading }) {
+function ScreenCard({
+  item,
+  onSelect,
+  selected,
+  onLockRequest,
+  onUnlockRequest,
+  onViewHistoryRequest,
+  actionLoading,
+}) {
   const [thumbUrl, setThumbUrl] = useState('');
   const blobRef = useRef('');
 
@@ -287,10 +308,25 @@ function ScreenCard({ item, onSelect, selected, onLockRequest, onUnlockRequest, 
         </div>
       </button>
 
-      {/* Action Footer: Lock / Unlock button */}
-      {item.computer_name && (
-        <div className="px-3 pb-3 pt-1 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between gap-2">
-          {item.is_locked ? (
+      {/* Action Footer: Browser History + Lock / Unlock button */}
+      <div className="px-3 pb-3 pt-1.5 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between gap-2">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onViewHistoryRequest(item);
+          }}
+          className="flex-1 py-1.5 px-2.5 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-700 border border-slate-200 hover:border-rose-200 dark:bg-slate-800 dark:hover:bg-rose-950/40 dark:text-slate-200 dark:hover:text-rose-300 dark:border-slate-700 transition-colors flex items-center justify-center gap-1.5"
+          title="View student's browser history directly"
+        >
+          <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span className="truncate">Browser History</span>
+        </button>
+
+        {item.computer_name && (
+          item.is_locked ? (
             <button
               type="button"
               disabled={actionLoading === item.computer_name}
@@ -298,12 +334,12 @@ function ScreenCard({ item, onSelect, selected, onLockRequest, onUnlockRequest, 
                 e.stopPropagation();
                 onUnlockRequest(item.computer_name);
               }}
-              className="w-full py-1.5 px-3 text-xs font-semibold rounded-lg bg-red-50 hover:bg-red-100 text-red-700 border border-red-300 dark:bg-red-950/40 dark:text-red-300 dark:border-red-700 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
+              className="flex-1 py-1.5 px-2.5 text-xs font-semibold rounded-lg bg-red-50 hover:bg-red-100 text-red-700 border border-red-300 dark:bg-red-950/40 dark:text-red-300 dark:border-red-700 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
               </svg>
-              {actionLoading === item.computer_name ? 'Unlocking…' : 'Unlock PC'}
+              <span className="truncate">{actionLoading === item.computer_name ? 'Unlocking…' : 'Unlock PC'}</span>
             </button>
           ) : (
             <button
@@ -313,23 +349,34 @@ function ScreenCard({ item, onSelect, selected, onLockRequest, onUnlockRequest, 
                 e.stopPropagation();
                 onLockRequest(item);
               }}
-              className="w-full py-1.5 px-3 text-xs font-semibold rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
+              className="flex-1 py-1.5 px-2.5 text-xs font-semibold rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
-              Lock PC
+              <span className="truncate">Lock PC</span>
             </button>
-          )}
-        </div>
-      )}
+          )
+        )}
+      </div>
     </div>
   );
 }
 
-function ScreenMonitorModal({ student, onClose, onLockRequest, onUnlockRequest, actionLoading }) {
+function ScreenMonitorModal({
+  student,
+  onClose,
+  onLockRequest,
+  onUnlockRequest,
+  onViewHistoryRequest,
+  actionLoading,
+}) {
   const [largeUrl, setLargeUrl] = useState('');
+  const [zoomPercent, setZoomPercent] = useState(100);
+  const [fitMode, setFitMode] = useState('fit'); // 'fit' | 'fill'
+  const [isExpandedModal, setIsExpandedModal] = useState(false);
   const blobRef = useRef('');
+  const viewerContainerRef = useRef(null);
 
   useEffect(() => {
     if (!student) return undefined;
@@ -370,17 +417,30 @@ function ScreenMonitorModal({ student, onClose, onLockRequest, onUnlockRequest, 
 
   if (!student) return null;
 
+  const handleToggleFullscreen = () => {
+    const el = viewerContainerRef.current;
+    if (!el) return;
+    if (document.fullscreenElement) {
+      document.exitFullscreen?.().catch(() => {});
+    } else {
+      el.requestFullscreen?.().catch(() => {});
+    }
+  };
+
   return createPortal(
     <div
-      className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md"
+      className="fixed inset-0 z-[110] flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-md"
       onClick={onClose}
       role="presentation"
     >
       <div
-        className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] flex flex-col border border-slate-200 dark:border-slate-800"
+        ref={viewerContainerRef}
+        className={`bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full flex flex-col border border-slate-200 dark:border-slate-800 transition-all duration-200 ${
+          isExpandedModal ? 'max-w-[98vw] h-[95vh] max-h-[95vh]' : 'max-w-6xl max-h-[90vh]'
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800">
+        <div className="flex flex-wrap items-center justify-between gap-3 p-4 border-b border-slate-200 dark:border-slate-800">
           <div className="space-y-1.5">
             <div className="flex items-center gap-2">
               <h3 className="text-lg font-bold text-slate-900 dark:text-slate-50">{student.full_name}</h3>
@@ -415,7 +475,85 @@ function ScreenMonitorModal({ student, onClose, onLockRequest, onUnlockRequest, 
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Screen Viewing / Zoom Adjuster Controls */}
+            <div className="inline-flex items-center rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 p-1 gap-1">
+              <button
+                type="button"
+                onClick={() => setZoomPercent((z) => Math.max(50, z - 25))}
+                disabled={zoomPercent <= 50}
+                className="px-2 py-1 text-xs font-bold rounded-lg text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 disabled:opacity-40"
+                title="Zoom Out"
+              >
+                −
+              </button>
+              <button
+                type="button"
+                onClick={() => setZoomPercent(100)}
+                className="px-2 py-1 text-xs font-mono font-bold rounded-lg text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 min-w-[48px] text-center"
+                title="Reset Zoom to 100%"
+              >
+                {zoomPercent}%
+              </button>
+              <button
+                type="button"
+                onClick={() => setZoomPercent((z) => Math.min(250, z + 25))}
+                disabled={zoomPercent >= 250}
+                className="px-2 py-1 text-xs font-bold rounded-lg text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 disabled:opacity-40"
+                title="Zoom In"
+              >
+                +
+              </button>
+              <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-0.5" />
+              <button
+                type="button"
+                onClick={() => setFitMode((m) => (m === 'fit' ? 'fill' : 'fit'))}
+                className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-colors ${
+                  fitMode === 'fill'
+                    ? 'bg-rose-600 text-white'
+                    : 'text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700'
+                }`}
+                title="Toggle Fit to Window vs Fill Width"
+              >
+                {fitMode === 'fit' ? 'Fit' : 'Fill'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsExpandedModal((v) => !v)}
+                className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-colors ${
+                  isExpandedModal
+                    ? 'bg-rose-600 text-white'
+                    : 'text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700'
+                }`}
+                title="Toggle Expanded Screen Size"
+              >
+                {isExpandedModal ? 'Compact' : 'Expand'}
+              </button>
+              <button
+                type="button"
+                onClick={handleToggleFullscreen}
+                className="px-2 py-1 text-xs font-semibold rounded-lg text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700"
+                title="Toggle Fullscreen"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Direct Jump to Student's Browser History */}
+            <button
+              type="button"
+              onClick={() => onViewHistoryRequest(student)}
+              className="px-3.5 py-2 text-xs font-semibold rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-800 hover:text-rose-700 border border-slate-200 hover:border-rose-300 dark:bg-slate-800 dark:hover:bg-rose-950/50 dark:text-slate-100 dark:hover:text-rose-300 dark:border-slate-700 shadow-sm transition-colors flex items-center gap-1.5"
+              title="Open this student's browser history"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Browser History
+            </button>
+
             {student.computer_name && (
               student.is_locked ? (
                 <button
@@ -454,9 +592,23 @@ function ScreenMonitorModal({ student, onClose, onLockRequest, onUnlockRequest, 
             </button>
           </div>
         </div>
-        <div className="flex-1 min-h-0 p-4 bg-slate-950 flex items-center justify-center relative">
+        <div className="flex-1 min-h-0 p-4 bg-slate-950 flex items-center justify-center relative overflow-auto">
           {largeUrl ? (
-            <img src={largeUrl} alt="Student screen" className="max-w-full max-h-[70vh] object-contain" />
+            <img
+              src={largeUrl}
+              alt="Student screen"
+              style={{
+                width: zoomPercent === 100 && fitMode === 'fit' ? undefined : `${zoomPercent}%`,
+                maxWidth: zoomPercent === 100 && fitMode === 'fit' ? '100%' : 'none',
+                maxHeight:
+                  zoomPercent === 100 && fitMode === 'fit'
+                    ? isExpandedModal
+                      ? '82vh'
+                      : '70vh'
+                    : 'none',
+              }}
+              className="object-contain transition-all duration-150"
+            />
           ) : (
             <p className="text-slate-400 text-sm">No screen capture available for this student yet.</p>
           )}
@@ -492,6 +644,72 @@ export default function ScreenMonitoringSection({
   const [selected, setSelected] = useState(null);
   const [lockTarget, setLockTarget] = useState(null);
   const [actionLoading, setActionLoading] = useState('');
+  const [viewSize, setViewSize] = useState(() => {
+    try {
+      const saved = localStorage.getItem(VIEW_SIZE_STORAGE_KEY);
+      if (saved && VIEW_SIZE_OPTIONS.some((o) => o.id === saved)) return saved;
+    } catch (_) {}
+    return 'compact';
+  });
+
+  // Direct Browser History Modal state
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [historyStudent, setHistoryStudent] = useState(null);
+  const [historyLogs, setHistoryLogs] = useState([]);
+  const [loadingHistoryLogs, setLoadingHistoryLogs] = useState(false);
+
+  const handleChangeViewSize = (nextSize) => {
+    setViewSize(nextSize);
+    try {
+      localStorage.setItem(VIEW_SIZE_STORAGE_KEY, nextSize);
+    } catch (_) {}
+  };
+
+  const stepViewSize = (delta) => {
+    const idx = VIEW_SIZE_OPTIONS.findIndex((o) => o.id === viewSize);
+    const nextIdx = Math.min(Math.max(0, (idx === -1 ? 0 : idx) + delta), VIEW_SIZE_OPTIONS.length - 1);
+    handleChangeViewSize(VIEW_SIZE_OPTIONS[nextIdx].id);
+  };
+
+  const fetchStudentHistory = useCallback(async (studentObj) => {
+    if (!studentObj) return;
+    const sid = studentObj.student_id ?? studentObj.id;
+    if (!sid) return;
+    setLoadingHistoryLogs(true);
+    try {
+      const resp = await getStudentBrowserActivity(sid, { per_page: 50 });
+      if (resp.ok && resp.data) {
+        setHistoryLogs(resp.data.data || (Array.isArray(resp.data) ? resp.data : []));
+      } else {
+        setHistoryLogs([]);
+      }
+    } catch (err) {
+      console.error('Failed to fetch student browser history:', err);
+      setHistoryLogs([]);
+    } finally {
+      setLoadingHistoryLogs(false);
+    }
+  }, []);
+
+  const handleOpenBrowserHistory = useCallback(
+    (studentItem) => {
+      if (!studentItem) return;
+      const normalized = {
+        ...studentItem,
+        id: studentItem.student_id ?? studentItem.id,
+        student_id: studentItem.student_id ?? studentItem.id,
+        full_name: studentItem.full_name || 'Student',
+      };
+      setHistoryStudent(normalized);
+      setHistoryLogs([]);
+      setHistoryModalOpen(true);
+      void fetchStudentHistory(normalized);
+    },
+    [fetchStudentHistory]
+  );
+
+  const currentViewOption =
+    VIEW_SIZE_OPTIONS.find((o) => o.id === viewSize) || VIEW_SIZE_OPTIONS[0];
 
   const allowedSet = useMemo(() => {
     if (!Array.isArray(allowedStudentIds)) return null;
@@ -634,6 +852,49 @@ export default function ScreenMonitoringSection({
               </option>
             ))}
           </select>
+
+          {/* Screen Viewing Size Adjuster */}
+          <div
+            className="inline-flex items-center gap-1 rounded-xl border border-slate-200 dark:border-slate-600 bg-white/80 dark:bg-slate-800 p-1 shadow-sm"
+            title="Adjust screen viewing size"
+          >
+            <span className="px-2 text-xs font-semibold text-slate-500 dark:text-slate-400 hidden sm:inline">
+              Screen Size:
+            </span>
+            <button
+              type="button"
+              onClick={() => stepViewSize(-1)}
+              disabled={viewSize === VIEW_SIZE_OPTIONS[0].id}
+              className="px-2 py-1 text-xs font-bold rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40"
+              title="Smaller screens (more columns)"
+            >
+              −
+            </button>
+            {VIEW_SIZE_OPTIONS.map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => handleChangeViewSize(opt.id)}
+                title={opt.title}
+                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-colors ${
+                  viewSize === opt.id
+                    ? 'bg-gradient-to-r from-rose-600 to-red-600 text-white shadow-sm'
+                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => stepViewSize(1)}
+              disabled={viewSize === VIEW_SIZE_OPTIONS[VIEW_SIZE_OPTIONS.length - 1].id}
+              className="px-2 py-1 text-xs font-bold rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40"
+              title="Larger screens (fewer columns)"
+            >
+              +
+            </button>
+          </div>
         </div>
       </div>
 
@@ -659,7 +920,7 @@ export default function ScreenMonitoringSection({
           No online students with screen monitoring right now. Students must be logged in on the Desktop App.
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+        <div className={`grid ${currentViewOption.gridClass} gap-4 transition-all duration-200`}>
           {filtered.map((item) => (
             <ScreenCard
               key={item.student_id}
@@ -668,6 +929,7 @@ export default function ScreenMonitoringSection({
               onSelect={setSelected}
               onLockRequest={setLockTarget}
               onUnlockRequest={handleUnlock}
+              onViewHistoryRequest={handleOpenBrowserHistory}
               actionLoading={actionLoading}
             />
           ))}
@@ -680,6 +942,7 @@ export default function ScreenMonitoringSection({
           onClose={() => setSelected(null)}
           onLockRequest={setLockTarget}
           onUnlockRequest={handleUnlock}
+          onViewHistoryRequest={handleOpenBrowserHistory}
           actionLoading={actionLoading}
         />
       )}
@@ -691,6 +954,16 @@ export default function ScreenMonitoringSection({
           onSuccess={handleLockSuccess}
         />
       )}
+
+      <BrowserActivityModal
+        activityModalOpen={historyModalOpen}
+        currentViewStudent={historyStudent}
+        studentActivity={historyLogs}
+        setActivityModalOpen={setHistoryModalOpen}
+        setStudentActivity={setHistoryLogs}
+        loadingActivity={loadingHistoryLogs}
+        onRefreshActivity={() => fetchStudentHistory(historyStudent)}
+      />
     </div>
   );
 }

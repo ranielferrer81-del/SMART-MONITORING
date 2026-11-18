@@ -117,16 +117,16 @@ export default function StudentCredential({ onContinue, onLogout, user }: Studen
         </motion.div>
 
         <div className="space-y-4 text-center">
-          <p className="text-sm uppercase tracking-[0.4em] text-red-200">
+          <p className="text-base sm:text-lg font-semibold uppercase tracking-[0.4em] text-red-200">
             Welcome
           </p>
-          <h2 className="text-4xl font-extrabold text-white drop-shadow-lg">
+          <h2 className="text-4xl sm:text-5xl font-extrabold text-white drop-shadow-lg">
             {credentials?.full_name ?? profile?.fullName ?? 'Student'}
           </h2>
-          <p className="text-2xl font-semibold text-white/90">
+          <p className="text-2xl sm:text-3xl font-bold text-white/90">
             {credentials?.course ?? profile?.course ?? '—'}
           </p>
-          <p className="text-red-100 text-lg">
+          <p className="text-red-100 text-xl">
             {isLoading
               ? 'Fetching your record...'
               : error ?? 'Here are the credentials pulled from the backend.'}
@@ -137,14 +137,14 @@ export default function StudentCredential({ onContinue, onLogout, user }: Studen
           <button
             onClick={onContinue}
             disabled={isLoading || Boolean(error)}
-            className="px-10 py-3 bg-red-600 text-white font-semibold rounded-full border border-white/30 hover:bg-red-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed w-full sm:w-auto"
+            className="px-12 py-4 text-lg bg-red-600 text-white font-bold rounded-full border border-white/30 hover:bg-red-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed w-full sm:w-auto"
           >
             Continue
           </button>
           {onLogout && (
             <button
               onClick={onLogout}
-              className="px-6 py-3 bg-transparent text-red-200 font-semibold rounded-full border border-red-500/30 hover:bg-white/5 transition-colors text-sm w-full sm:w-auto"
+              className="px-8 py-4 bg-transparent text-red-200 font-semibold rounded-full border border-red-500/30 hover:bg-white/5 transition-colors text-base w-full sm:w-auto"
             >
               Switch Account
             </button>

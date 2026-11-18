@@ -6,6 +6,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
   minimizeMainWindow: () => ipcRenderer.invoke('minimize-main-window'),
   showProfileOverlay: () => ipcRenderer.invoke('show-profile-overlay'),
   hideProfileOverlay: () => ipcRenderer.invoke('hide-profile-overlay'),
+  setProfileOverlayExpanded: (expanded: boolean) =>
+    ipcRenderer.invoke('set-profile-overlay-expanded', expanded),
+  moveProfileOverlay: (deltaX: number, deltaY: number) =>
+    ipcRenderer.invoke('move-profile-overlay', deltaX, deltaY),
+  onProfileOverlayBlur: (callback: () => void) => {
+    const listener = () => callback();
+    ipcRenderer.on('profile-overlay-blur', listener);
+    return () => {
+      ipcRenderer.removeListener('profile-overlay-blur', listener);
+    };
+  },
   setIgnoreMouseEvents: (ignore: boolean, options?: { forward: boolean }) =>
     ipcRenderer.invoke('set-ignore-mouse-events', ignore, options),
   logout: () => ipcRenderer.invoke('logout'),

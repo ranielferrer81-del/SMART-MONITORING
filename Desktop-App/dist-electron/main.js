@@ -186,6 +186,14 @@ function applyLockScreenMode(win) {
     win.setFullScreen(true);
     win.focus();
 }
+function releaseLockScreenMode(win) {
+    if (!win || win.isDestroyed())
+        return;
+    lockScreenEnforced = false;
+    win.setKiosk(false);
+    win.setFullScreen(false);
+    win.setAlwaysOnTop(false);
+}
 function attachLockScreenInputGuards(win) {
     win.webContents.on('before-input-event', (event, input) => {
         if (!shouldBlockSystemShortcuts())
@@ -272,25 +280,25 @@ const createWindow = () => {
     }
     attachWindowCloseGuard(mainWindow, isDevBuild);
 };
+const PROFILE_COLLAPSED_WIDTH = 92;
+const PROFILE_COLLAPSED_HEIGHT = 92;
+const PROFILE_EXPANDED_WIDTH = 348;
+const PROFILE_EXPANDED_HEIGHT = 380;
 const createProfileWindow = () => {
     const isDevBuild = process.env.NODE_ENV === 'development' || !app.isPackaged;
     const preloadPath = isDevBuild
         ? path.join(__dirname, '../dist-electron/preload.js')
         : path.join(__dirname, 'preload.js');
-    // Get primary display dimensions
-    const { screen } = require('electron');
-    const primaryDisplay = screen.getPrimaryDisplay();
-    const { width, height } = primaryDisplay.workAreaSize;
-    // Create full-screen transparent overlay for draggable widget
+    // Compact floating widget window (does NOT cover the whole screen so mouse never bugs out)
     profileWindow = new BrowserWindow({
-        width: width,
-        height: height,
-        x: 0,
-        y: 0,
-        frame: false, // No window controls
-        transparent: true, // Transparent background
-        alwaysOnTop: true, // Always on top so it stays visible
-        skipTaskbar: true, // Don't show in taskbar
+        width: PROFILE_COLLAPSED_WIDTH,
+        height: PROFILE_COLLAPSED_HEIGHT,
+        x: 80,
+        y: 80,
+        frame: false,
+        transparent: true,
+        alwaysOnTop: true,
+        skipTaskbar: true,
         resizable: false,
         webPreferences: {
             preload: preloadPath,
@@ -298,12 +306,10 @@ const createProfileWindow = () => {
             contextIsolation: true,
             sandbox: false,
         },
-        backgroundColor: '#00000000', // Transparent
-        focusable: false, // Don't steal focus from other apps
-        hasShadow: false, // No shadow for cleaner look
+        backgroundColor: '#00000000',
+        focusable: true,
+        hasShadow: false,
     });
-    // Make window click-through by default (allows clicking desktop behind it)
-    profileWindow.setIgnoreMouseEvents(true, { forward: true });
     // Load profile overlay page with overlay parameter
     if (isDevBuild) {
         profileWindow.loadURL('http://localhost:5173/?overlay=profile');
@@ -314,6 +320,11 @@ const createProfileWindow = () => {
     profileWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
         console.log(`[Renderer Profile] ${message}`);
     });
+    profileWindow.on('blur', () => {
+        if (profileWindow && !profileWindow.isDestroyed()) {
+            profileWindow.webContents.send('profile-overlay-blur');
+        }
+    });
     profileWindow.setMenuBarVisibility(false);
     attachLockScreenInputGuards(profileWindow);
     attachWindowCloseGuard(profileWindow, isDevBuild);
@@ -322,23 +333,59 @@ const createProfileWindow = () => {
 ipcMain.handle('minimize-main-window', () => {
     if (quizActive)
         return; // cannot leave the screen during a quiz
-    if (mainWindow) {
-        // Keep kiosk/lock flags; only hide so students cannot "unlock" by PIN.
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        releaseLockScreenMode(mainWindow);
         mainWindow.hide();
     }
 });
 ipcMain.handle('show-profile-overlay', () => {
-    if (!profileWindow) {
+    if (!profileWindow || profileWindow.isDestroyed()) {
         createProfileWindow();
     }
     else {
-        profileWindow.show();
+        profileWindow.showInactive();
     }
 });
-// IPC handler for draggable widget mouse events
-ipcMain.handle('set-ignore-mouse-events', (event, ignore, options) => {
-    if (profileWindow) {
-        profileWindow.setIgnoreMouseEvents(ignore, options);
+ipcMain.handle('set-profile-overlay-expanded', (_event, expanded) => {
+    if (!profileWindow || profileWindow.isDestroyed())
+        return;
+    const { screen } = require('electron');
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const workArea = primaryDisplay.workArea;
+    const bounds = profileWindow.getBounds();
+    const targetWidth = expanded ? PROFILE_EXPANDED_WIDTH : PROFILE_COLLAPSED_WIDTH;
+    const targetHeight = expanded ? PROFILE_EXPANDED_HEIGHT : PROFILE_COLLAPSED_HEIGHT;
+    let nextX = bounds.x;
+    let nextY = bounds.y;
+    if (nextX + targetWidth > workArea.x + workArea.width) {
+        nextX = Math.max(workArea.x, workArea.x + workArea.width - targetWidth);
+    }
+    if (nextY + targetHeight > workArea.y + workArea.height) {
+        nextY = Math.max(workArea.y, workArea.y + workArea.height - targetHeight);
+    }
+    profileWindow.setBounds({
+        x: nextX,
+        y: nextY,
+        width: targetWidth,
+        height: targetHeight,
+    });
+});
+ipcMain.handle('move-profile-overlay', (_event, deltaX, deltaY) => {
+    if (!profileWindow || profileWindow.isDestroyed())
+        return;
+    if (typeof deltaX !== 'number' || typeof deltaY !== 'number')
+        return;
+    const { screen } = require('electron');
+    const workArea = screen.getPrimaryDisplay().workArea;
+    const bounds = profileWindow.getBounds();
+    const nextX = Math.min(Math.max(workArea.x, Math.round(bounds.x + deltaX)), workArea.x + workArea.width - bounds.width);
+    const nextY = Math.min(Math.max(workArea.y, Math.round(bounds.y + deltaY)), workArea.y + workArea.height - bounds.height);
+    profileWindow.setPosition(nextX, nextY);
+});
+// Legacy IPC handler kept as safe no-op so full-screen click-through toggling cannot freeze the desktop
+ipcMain.handle('set-ignore-mouse-events', () => {
+    if (profileWindow && !profileWindow.isDestroyed()) {
+        profileWindow.setIgnoreMouseEvents(false);
     }
 });
 ipcMain.handle('hide-profile-overlay', () => {
@@ -421,9 +468,10 @@ ipcMain.handle('quiz-dismiss', () => {
     if (presentationActive || remoteLockActive)
         return; // other overlays still own the screen
     if (profileWindow && !profileWindow.isDestroyed()) {
-        profileWindow.show();
+        profileWindow.showInactive();
     }
     if (mainWindow && !mainWindow.isDestroyed()) {
+        releaseLockScreenMode(mainWindow);
         mainWindow.hide();
     }
 });
@@ -458,7 +506,7 @@ app.on('ready', async () => {
         if (isLocked) {
             console.log('🔒 PC locked remotely — showing lock overlay');
             // Ensure window is on top and focused so lock overlay is fully visible
-            mainWindow.setAlwaysOnTop(true, 'screen-saver');
+            applyLockScreenMode(mainWindow);
             mainWindow.show();
             mainWindow.focus();
             // Hide profile window so it does not float over the lock screen
@@ -469,14 +517,17 @@ app.on('ready', async () => {
         }
         else {
             console.log('🔓 PC unlocked remotely — hiding lock overlay');
-            mainWindow.setAlwaysOnTop(false);
             mainWindow.webContents.send('pc-unlocked');
             if (!quizActive && !presentationActive && profileWindow && !profileWindow.isDestroyed()) {
-                profileWindow.show();
+                profileWindow.showInactive();
             }
             // Return student to desktop if they are in an active session
             if (!quizActive && !presentationActive && studentSessionActive && !mainWindow.isDestroyed()) {
+                releaseLockScreenMode(mainWindow);
                 mainWindow.hide();
+            }
+            else if (!quizActive && !presentationActive && !studentSessionActive && !mainWindow.isDestroyed()) {
+                applyLockScreenMode(mainWindow);
             }
         }
     });
@@ -487,11 +538,12 @@ app.on('ready', async () => {
             return;
         if (isPresenting && data?.sessionUuid) {
             console.log('📡 Live presentation started remotely:', data.sessionUuid, 'by', data.teacherName);
+            applyLockScreenMode(mainWindow);
             // If main window was hidden (student in session), bring it back so presentation overlay is visible
             if (!mainWindow.isVisible()) {
                 mainWindow.show();
-                mainWindow.focus();
             }
+            mainWindow.focus();
             // Hide the profile overlay window so it doesn't float on top of the presentation
             if (profileWindow && !profileWindow.isDestroyed()) {
                 profileWindow.hide();
@@ -505,10 +557,11 @@ app.on('ready', async () => {
             mainWindow.webContents.send('presentation-end');
             // Restore the profile overlay window after presentation ends (unless a quiz or lock owns the screen)
             if (!quizActive && !remoteLockActive && profileWindow && !profileWindow.isDestroyed()) {
-                profileWindow.show();
+                profileWindow.showInactive();
             }
             // If student is logged in and not remotely locked, hide the main window so they return to their normal desktop
             if (!quizActive && studentSessionActive && !remoteLockActive && !mainWindow.isDestroyed()) {
+                releaseLockScreenMode(mainWindow);
                 mainWindow.hide();
             }
         }

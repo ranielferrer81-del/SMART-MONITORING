@@ -5,6 +5,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     minimizeMainWindow: () => ipcRenderer.invoke('minimize-main-window'),
     showProfileOverlay: () => ipcRenderer.invoke('show-profile-overlay'),
     hideProfileOverlay: () => ipcRenderer.invoke('hide-profile-overlay'),
+    setProfileOverlayExpanded: (expanded) => ipcRenderer.invoke('set-profile-overlay-expanded', expanded),
+    moveProfileOverlay: (deltaX, deltaY) => ipcRenderer.invoke('move-profile-overlay', deltaX, deltaY),
+    onProfileOverlayBlur: (callback) => {
+        const listener = () => callback();
+        ipcRenderer.on('profile-overlay-blur', listener);
+        return () => {
+            ipcRenderer.removeListener('profile-overlay-blur', listener);
+        };
+    },
     setIgnoreMouseEvents: (ignore, options) => ipcRenderer.invoke('set-ignore-mouse-events', ignore, options),
     logout: () => ipcRenderer.invoke('logout'),
     studentLoggedIn: (data) => ipcRenderer.invoke('student-logged-in', data),

@@ -5,6 +5,9 @@ interface Window {
     minimizeMainWindow: () => Promise<void>;
     showProfileOverlay: () => Promise<void>;
     hideProfileOverlay: () => Promise<void>;
+    setProfileOverlayExpanded?: (expanded: boolean) => Promise<void>;
+    moveProfileOverlay?: (deltaX: number, deltaY: number) => Promise<void>;
+    onProfileOverlayBlur?: (callback: () => void) => () => void;
     expandProfileWindow?: () => Promise<void>;
     collapseProfileWindow?: () => Promise<void>;
     setIgnoreMouseEvents: (ignore: boolean, options?: { forward: boolean }) => Promise<void>;

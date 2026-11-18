@@ -15,12 +15,35 @@ export default function ProfileWidget({ user, onLogout }: ProfileWidgetProps) {
     const [dropdownImageError, setDropdownImageError] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
-    // Dragging state
+    const isOverlay =
+        typeof window !== 'undefined' &&
+        (window.location.search.includes('overlay=profile') ||
+            window.location.hash.includes('overlay=profile'));
+
+    // Dragging state (fallback local coordinates if rendered inside main window, or screen coordinates in compact overlay window)
     const [position, setPosition] = useState({ x: 100, y: 100 });
     const [isDragging, setIsDragging] = useState(false);
     const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+    const lastScreenPosRef = useRef<{ x: number; y: number } | null>(null);
+    const dragStartScreenPosRef = useRef<{ x: number; y: number } | null>(null);
+    const hasMovedDuringDragRef = useRef(false);
 
     const [monitoringStatus, setMonitoringStatus] = useState<{ is_active: boolean; is_extension_connected: boolean }>({ is_active: false, is_extension_connected: false });
+
+    // Sync compact overlay window size with dropdown open/close state
+    useEffect(() => {
+        if (!isOverlay) return;
+        void window.electronAPI?.setProfileOverlayExpanded?.(isOpen);
+    }, [isOpen, isOverlay]);
+
+    // Collapse dropdown automatically when the compact overlay window loses focus (student clicks desktop)
+    useEffect(() => {
+        if (!isOverlay) return;
+        const unsub = window.electronAPI?.onProfileOverlayBlur?.(() => {
+            setIsOpen(false);
+        });
+        return () => unsub?.();
+    }, [isOverlay]);
 
     // Check monitoring status when dropdown is open
     useEffect(() => {
@@ -45,60 +68,63 @@ export default function ProfileWidget({ user, onLogout }: ProfileWidgetProps) {
         setDropdownImageError(false);
     }, [profilePictureUrl]);
 
-    // Handle mouse enter - enable mouse events
-    const handleMouseEnter = () => {
-        const electronAPI = (window as any).electronAPI;
-        if (electronAPI) {
-            electronAPI.setIgnoreMouseEvents(false);
-        }
-    };
-
-    // Handle mouse leave - disable mouse events (click-through)
-    const handleMouseLeave = () => {
-        if (!isDragging && !isOpen) {
-            const electronAPI = (window as any).electronAPI;
-            if (electronAPI) {
-                electronAPI.setIgnoreMouseEvents(true, { forward: true });
-            }
-        }
-    };
-
     // Drag handlers
     const handleMouseDown = (e: React.MouseEvent) => {
         // Only start drag if clicking on the button itself, not the dropdown
         if (isOpen) return;
 
         setIsDragging(true);
+        hasMovedDuringDragRef.current = false;
+        lastScreenPosRef.current = { x: e.screenX, y: e.screenY };
+        dragStartScreenPosRef.current = { x: e.screenX, y: e.screenY };
         setDragOffset({
             x: e.clientX - position.x,
             y: e.clientY - position.y
         });
     };
 
-    const handleMouseMove = (e: MouseEvent) => {
-        if (isDragging) {
-            setPosition({
-                x: e.clientX - dragOffset.x,
-                y: e.clientY - dragOffset.y
-            });
-        }
-    };
-
-    const handleMouseUp = () => {
-        setIsDragging(false);
-    };
-
     // Add global mouse move and mouse up listeners when dragging
     useEffect(() => {
-        if (isDragging) {
-            window.addEventListener('mousemove', handleMouseMove);
-            window.addEventListener('mouseup', handleMouseUp);
-            return () => {
-                window.removeEventListener('mousemove', handleMouseMove);
-                window.removeEventListener('mouseup', handleMouseUp);
-            };
-        }
-    }, [isDragging, dragOffset]);
+        if (!isDragging) return;
+
+        const handleMouseMove = (e: MouseEvent) => {
+            if (dragStartScreenPosRef.current) {
+                const totalDist = Math.hypot(
+                    e.screenX - dragStartScreenPosRef.current.x,
+                    e.screenY - dragStartScreenPosRef.current.y
+                );
+                if (totalDist > 4) {
+                    hasMovedDuringDragRef.current = true;
+                }
+            }
+
+            if (isOverlay && window.electronAPI?.moveProfileOverlay && lastScreenPosRef.current) {
+                const dx = e.screenX - lastScreenPosRef.current.x;
+                const dy = e.screenY - lastScreenPosRef.current.y;
+                if (dx !== 0 || dy !== 0) {
+                    lastScreenPosRef.current = { x: e.screenX, y: e.screenY };
+                    void window.electronAPI.moveProfileOverlay(dx, dy);
+                }
+            } else {
+                setPosition({
+                    x: e.clientX - dragOffset.x,
+                    y: e.clientY - dragOffset.y
+                });
+            }
+        };
+
+        const handleMouseUp = () => {
+            setIsDragging(false);
+            lastScreenPosRef.current = null;
+        };
+
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [isDragging, dragOffset, isOverlay]);
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -120,23 +146,31 @@ export default function ProfileWidget({ user, onLogout }: ProfileWidgetProps) {
     return (
         <div
             className="fixed"
-            style={{
-                left: `${position.x}px`,
-                top: `${position.y}px`,
-                zIndex: 1000,
-                pointerEvents: 'auto'
-            }}
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
+            style={
+                isOverlay
+                    ? {
+                          left: '12px',
+                          top: '12px',
+                          zIndex: 1000,
+                          pointerEvents: 'auto',
+                      }
+                    : {
+                          left: `${position.x}px`,
+                          top: `${position.y}px`,
+                          zIndex: 1000,
+                          pointerEvents: 'auto',
+                      }
+            }
             ref={dropdownRef}
         >
             <button
                 onMouseDown={handleMouseDown}
                 onClick={() => {
-                    // Only toggle dropdown if not dragging
-                    if (!isDragging) {
-                        setIsOpen(!isOpen);
+                    if (hasMovedDuringDragRef.current) {
+                        hasMovedDuringDragRef.current = false;
+                        return;
                     }
+                    setIsOpen((prev) => !prev);
                 }}
                 className="w-16 h-16 bg-gradient-to-r from-red-800 to-red-900 text-white font-bold rounded-full shadow-2xl hover:from-red-900 hover:to-red-950 transition-all duration-300 flex items-center justify-center border-2 border-white/20"
                 style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
@@ -155,7 +189,9 @@ export default function ProfileWidget({ user, onLogout }: ProfileWidgetProps) {
 
             {isOpen && (
                 <div
-                    className="absolute top-full left-1/2 transform -translate-x-1/2 mt-3 w-80 bg-white/95 backdrop-blur-xl rounded-xl shadow-2xl border border-red-200 z-[100]"
+                    className={`absolute top-full mt-3 w-80 bg-white/95 backdrop-blur-xl rounded-xl shadow-2xl border border-red-200 z-[100] ${
+                        isOverlay ? 'left-0' : 'left-1/2 transform -translate-x-1/2'
+                    }`}
                     style={{
                         position: 'absolute',
                         minWidth: '320px',

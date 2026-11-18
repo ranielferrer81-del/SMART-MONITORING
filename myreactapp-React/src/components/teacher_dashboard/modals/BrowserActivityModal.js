@@ -8,24 +8,57 @@ const BrowserActivityModal = ({
     studentActivity,
     setActivityModalOpen,
     setStudentActivity,
+    loadingActivity = false,
+    onRefreshActivity = null,
 }) => {
     if (!activityModalOpen || !currentViewStudent) return null;
 
+    const studentId = currentViewStudent.id ?? currentViewStudent.student_id;
+
     return createPortal(
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 bg-slate-950/75 backdrop-blur-md overflow-y-auto">
-            <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[85vh] overflow-hidden flex flex-col border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100">
+        <div
+            className="fixed inset-0 z-[130] flex items-center justify-center p-3 sm:p-6 bg-slate-950/75 backdrop-blur-md overflow-y-auto"
+            onClick={() => setActivityModalOpen(false)}
+        >
+            <div
+                className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[85vh] overflow-hidden flex flex-col border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100"
+                onClick={(e) => e.stopPropagation()}
+            >
                 <div className="p-4 sm:p-6 border-b border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:justify-between sm:items-center bg-slate-50 dark:bg-slate-900/50 gap-4 sm:gap-0">
-                    <h3 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-slate-50">
-                        Browser Activity for {currentViewStudent.full_name}
-                    </h3>
+                    <div>
+                        <h3 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-slate-50">
+                            Browser History — {currentViewStudent.full_name}
+                        </h3>
+                        {(currentViewStudent.computer_name || currentViewStudent.laboratory_room) && (
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                {currentViewStudent.computer_name ? `PC: ${currentViewStudent.computer_name}` : ''}
+                                {currentViewStudent.computer_name && currentViewStudent.laboratory_room ? ' · ' : ''}
+                                {currentViewStudent.laboratory_room ? `Lab: ${currentViewStudent.laboratory_room}` : ''}
+                            </p>
+                        )}
+                    </div>
                     <div className="flex items-center space-x-2 sm:space-x-3 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
+                        {onRefreshActivity && (
+                            <button
+                                type="button"
+                                onClick={onRefreshActivity}
+                                disabled={loadingActivity}
+                                className="flex items-center space-x-1.5 px-3.5 py-2 bg-slate-200/80 hover:bg-slate-300/80 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
+                                title="Refresh browser history"
+                            >
+                                <svg className={`w-4 h-4 ${loadingActivity ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                                <span>Refresh</span>
+                            </button>
+                        )}
                         <button
                             onClick={async () => {
                                 if (!window.confirm(`Are you sure you want to close ${currentViewStudent.full_name}'s browser and delete ALL their browsing history?\n\nThis will:\n- Close their entire browser\n- Delete all browsing history from the system\n- Free up database space`)) {
                                     return;
                                 }
                                 try {
-                                    const result = await forceCloseStudentBrowser(currentViewStudent.id);
+                                    const result = await forceCloseStudentBrowser(studentId);
                                     if (result.ok) {
                                         // Clear the activity list from UI
                                         setStudentActivity([]);
@@ -66,7 +99,19 @@ const BrowserActivityModal = ({
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                                {studentActivity.length > 0 ? (
+                                {loadingActivity ? (
+                                    <tr>
+                                        <td colSpan={4} className="px-6 py-12 text-center text-slate-500 dark:text-slate-400">
+                                            <div className="inline-flex items-center gap-2.5">
+                                                <svg className="w-5 h-5 animate-spin text-rose-500" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                                </svg>
+                                                <span>Loading browser history…</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ) : studentActivity.length > 0 ? (
                                     studentActivity.map((log) => (
                                         <tr key={log.id} className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 ${log.is_incognito ? 'bg-red-50 dark:bg-red-900/10' : ''}`}>
                                             <td className="px-6 py-4 text-center sticky left-0 bg-white dark:bg-slate-800 z-10 border-r border-slate-200 dark:border-slate-700">
@@ -77,7 +122,7 @@ const BrowserActivityModal = ({
                                                         }
                                                         try {
                                                             const { forceCloseStudentTab } = await import('../../../api/browserMonitoring');
-                                                            const result = await forceCloseStudentTab(currentViewStudent.id, log.id, log.url);
+                                                            const result = await forceCloseStudentTab(studentId, log.id, log.url);
                                                             if (result.ok) {
                                                                 // Remove from UI immediately for better UX
                                                                 setStudentActivity(prev => prev.filter(item => item.id !== log.id));

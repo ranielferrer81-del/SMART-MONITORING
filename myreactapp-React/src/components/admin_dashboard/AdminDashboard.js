@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createAccount, fetchTeachers, fetchAllStudents, fetchStudentsByCourse, updateAccount, deleteAccount, listSubjects, getSubjectEnrolledStudents, enrollStudentToSubject, unenrollStudentFromSubject } from '../../api/client';
 import ThemeToggle from '../../components/ThemeToggle';
 import BrowserMonitoringDashboard from '../BrowserMonitoringDashboard';
@@ -97,10 +97,53 @@ export default function AdminDashboard() {
     }
   }, [showStudentsModal]);
 
+  const isHandlingPopStateRef = useRef(false);
+  const activeSectionRef = useRef(activeSection);
+  activeSectionRef.current = activeSection;
+
+  // Keep logged-in admin inside the dashboard when clicking Browser Back
+  useEffect(() => {
+    const currentUrl = window.location.pathname + window.location.search;
+    window.history.replaceState({ smartDashboard: true, section: activeSectionRef.current }, '', currentUrl);
+    window.history.pushState({ smartDashboard: true, section: activeSectionRef.current }, '', currentUrl);
+
+    const handlePopState = (event) => {
+      const state = event.state;
+      if (state && state.smartDashboard && state.section) {
+        isHandlingPopStateRef.current = true;
+        setActiveSection(state.section);
+      } else {
+        window.history.pushState(
+          { smartDashboard: true, section: activeSectionRef.current },
+          '',
+          window.location.pathname + window.location.search
+        );
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  useEffect(() => {
+    if (isHandlingPopStateRef.current) {
+      isHandlingPopStateRef.current = false;
+      return;
+    }
+    const currentState = window.history.state;
+    if (!currentState || currentState.section !== activeSection) {
+      window.history.pushState(
+        { smartDashboard: true, section: activeSection },
+        '',
+        window.location.pathname + window.location.search
+      );
+    }
+  }, [activeSection]);
+
   const handleLogout = () => {
     localStorage.removeItem('user');
     localStorage.removeItem('token');
-    window.location.href = '/';
+    window.location.replace('/');
   };
 
   const setTabAndPersist = (t) => {

@@ -7,6 +7,25 @@ import StudentLivePresentation from './components/student_dashboard/StudentLiveP
 import AdminDashboard from './components/admin_dashboard/AdminDashboard';
 import './App.css';
 
+export function getAuthenticatedDashboardRoute() {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) return null;
+    const rawUser = localStorage.getItem('user');
+    if (!rawUser) return '/teacher/dashboard';
+    const user = JSON.parse(rawUser);
+    const role = String(user?.role || '').toLowerCase();
+    if (role === 'admin') return '/admin/dashboard';
+    if (role === 'teacher' || role === 'professor') return '/teacher/dashboard';
+    if (role === 'student') return '/student/dashboard';
+    if (user?.course || user?.student_number) return '/student/dashboard';
+    if (user?.department || user?.teacher_number) return '/teacher/dashboard';
+    return '/admin/dashboard';
+  } catch (_) {
+    return null;
+  }
+}
+
 function RequireAuth({ children }) {
   const token = localStorage.getItem('token');
   if (!token) {
@@ -15,10 +34,25 @@ function RequireAuth({ children }) {
   return children;
 }
 
+function PublicOnlyRoute({ children }) {
+  const dashboardRoute = getAuthenticatedDashboardRoute();
+  if (dashboardRoute) {
+    return <Navigate to={dashboardRoute} replace />;
+  }
+  return children;
+}
+
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<LoginForm />} />
+      <Route
+        path="/"
+        element={
+          <PublicOnlyRoute>
+            <LoginForm />
+          </PublicOnlyRoute>
+        }
+      />
       <Route
         path="/student/dashboard"
         element={
@@ -51,7 +85,10 @@ function App() {
           </RequireAuth>
         }
       />
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route
+        path="*"
+        element={<Navigate to={getAuthenticatedDashboardRoute() || '/'} replace />}
+      />
     </Routes>
   );
 }

@@ -419,13 +419,10 @@ function App() {
         {renderOverlays()}
         <PinEntry
           onSuccess={async () => {
-            // PIN validated successfully - minimize main window and show overlay
+            // PIN validated successfully - notify Electron, release lock screen, minimize main window and show overlay
             try {
               const electronAPI = (window as any).electronAPI;
               if (electronAPI) {
-                await electronAPI.minimizeMainWindow();
-                await electronAPI.showProfileOverlay();
-                // Notify Electron about login
                 if (session?.user) {
                   await electronAPI.studentLoggedIn({
                     userId: session.user.id,
@@ -435,6 +432,8 @@ function App() {
                     monitoringReady: true,
                   });
                 }
+                await electronAPI.minimizeMainWindow();
+                await electronAPI.showProfileOverlay();
               }
               // Set screen to logged-in for main window (though it will be hidden)
               setScreen('logged-in');
@@ -484,15 +483,13 @@ function App() {
         );
       }
 
-      // Overlay window - show ProfileWidget only
-      // Full-screen transparent window with draggable widget
+      // Overlay window - show ProfileWidget inside compact floating window
       return (
         <div
           className="w-full h-full bg-transparent"
           style={{
             overflow: 'visible',
             minHeight: '100vh',
-            pointerEvents: 'none', // Make container click-through, widget itself will handle events
           }}
         >
           <ProfileWidget user={session.user} onLogout={handleLogout} />
@@ -505,7 +502,7 @@ function App() {
       return (
         <div className="min-h-screen bg-slate-900 flex items-center justify-center">
           {renderOverlays()}
-          <div className="text-white">Loading...</div>
+          <div className="text-white text-xl font-semibold">Loading...</div>
         </div>
       );
     }
@@ -524,12 +521,12 @@ function App() {
       {renderOverlays()}
       <LockScreenShell>
         <div className="flex flex-col items-center">
-          <h1 className="text-6xl font-bold text-red-400 drop-shadow-lg mb-8">
+          <h1 className="text-6xl sm:text-7xl font-extrabold text-red-400 drop-shadow-lg mb-10">
             Welcome Fatimanians!
           </h1>
           <button
             onClick={() => setScreen('email-login')}
-            className="px-8 py-3 bg-red-800 text-white font-bold rounded-lg hover:bg-red-900 transition-colors shadow-lg"
+            className="px-12 py-4 text-xl bg-red-800 text-white font-bold rounded-xl hover:bg-red-900 transition-colors shadow-xl border border-white/20"
           >
             Login
           </button>

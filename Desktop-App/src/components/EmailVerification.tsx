@@ -213,7 +213,7 @@ export default function EmailVerification({
   return (
     <LockScreenShell>
       <motion.div
-        className="relative bg-white/10 border border-white/20 backdrop-blur-xl rounded-3xl p-12 shadow-2xl max-w-md w-full flex flex-col items-center gap-6"
+        className="relative bg-white/10 border border-white/20 backdrop-blur-xl rounded-3xl p-10 sm:p-12 shadow-2xl max-w-xl w-full flex flex-col items-center gap-6"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
@@ -226,41 +226,41 @@ export default function EmailVerification({
           <Mail className="w-10 h-10 text-white" />
         </motion.div>
 
-        <div className="space-y-2 w-full">
-          <p className="text-sm uppercase tracking-[0.4em] text-red-200">
+        <div className="space-y-2.5 w-full">
+          <p className="text-sm sm:text-base font-semibold uppercase tracking-[0.35em] text-red-200">
             Verify Your Email
           </p>
-          <h2 className="text-3xl font-extrabold text-white drop-shadow-lg">
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-white drop-shadow-lg">
             Enter Verification Code
           </h2>
           {emailSent === true ? (
             <>
-              <p className="text-sm text-green-200/80 mt-2">
+              <p className="text-base sm:text-lg text-green-200/90 mt-2">
                 ✅ Verification code has been sent to:
               </p>
-              <p className="text-base font-semibold text-white">
+              <p className="text-lg sm:text-xl font-bold text-white break-all">
                 {email}
               </p>
-              <p className="text-xs text-green-200/60 mt-1">
+              <p className="text-sm sm:text-base text-green-200/75 mt-1">
                 Please check your inbox and spam folder.
               </p>
               {devCode && /^\d{6}$/.test(devCode) && (
-                <p className="text-xs text-amber-100/90 mt-3">
+                <p className="text-sm sm:text-base text-amber-100/90 mt-3">
                   If nothing arrives: use this one-time code —{' '}
-                  <span className="font-mono font-semibold tracking-[0.2em]">{devCode}</span> — it is the same code
+                  <span className="font-mono font-bold text-lg tracking-[0.2em]">{devCode}</span> — it is the same code
                   sent to your email.
                 </p>
               )}
             </>
           ) : devCode ? (
             <>
-              <p className="text-sm text-green-200/90 mt-2">
+              <p className="text-base sm:text-lg text-green-200/90 mt-2">
                 Your sign-in code
               </p>
-              <p className="text-2xl font-bold text-white tracking-[0.2em] tabular-nums">
+              <p className="text-3xl sm:text-4xl font-extrabold text-white tracking-[0.2em] tabular-nums">
                 {devCode}
               </p>
-              <p className="text-xs text-white/70 mt-2">
+              <p className="text-sm sm:text-base text-white/80 mt-2">
                 We could not send the code to your inbox (check server mail settings). Use the code above to finish
                 signing in.
               </p>
@@ -269,17 +269,17 @@ export default function EmailVerification({
             <>
               {verificationFailed ? (
                 <>
-                  <p className="text-sm text-white/80 mt-2">
+                  <p className="text-base sm:text-lg text-white/85 mt-2">
                     If you still need a code, try resend below or use the code shown above.
                   </p>
-                  <p className="text-base font-semibold text-white mt-1">{email}</p>
+                  <p className="text-lg sm:text-xl font-bold text-white mt-1 break-all">{email}</p>
                 </>
               ) : (
                 <>
-                  <p className="text-sm text-white/80 mt-2">
+                  <p className="text-base sm:text-lg text-white/85 mt-2">
                     If you don't see the code yet, it may take a moment. You can resend it below.
                   </p>
-                  <p className="text-xs text-white/60 mt-2">
+                  <p className="text-sm sm:text-base text-white/70 mt-2">
                     Tip: check spam/junk folder too.
                   </p>
                 </>
@@ -287,10 +287,10 @@ export default function EmailVerification({
             </>
           ) : (
             <>
-              <p className="text-sm text-red-200/80 mt-2">
+              <p className="text-base sm:text-lg text-red-200/90 mt-2">
                 Enter the verification code sent to:
               </p>
-              <p className="text-base font-semibold text-white">
+              <p className="text-lg sm:text-xl font-bold text-white break-all">
                 {email}
               </p>
             </>
@@ -302,7 +302,7 @@ export default function EmailVerification({
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="rounded-xl px-4 py-3 text-sm backdrop-blur-sm space-y-2 bg-red-900/50 border border-red-500/50 text-red-100"
+              className="rounded-xl px-4 py-3.5 text-base backdrop-blur-sm space-y-2 bg-red-900/50 border border-red-500/50 text-red-100"
             >
               {deliveryFailureMessage && (
                 <p className="font-medium">{deliveryFailureMessage}</p>
@@ -315,7 +315,7 @@ export default function EmailVerification({
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className={`rounded-xl px-4 py-3 text-sm backdrop-blur-sm ${
+              className={`rounded-xl px-4 py-3.5 text-base backdrop-blur-sm ${
                 resendStatus.sent
                   ? 'bg-green-900/50 border border-green-500/50 text-green-100'
                   : 'bg-yellow-900/50 border border-yellow-500/50 text-yellow-100'
@@ -325,13 +325,13 @@ export default function EmailVerification({
             </motion.div>
           )}
 
-          <div className="space-y-2">
-            <label htmlFor="code" className="block text-xs uppercase tracking-[0.3em] text-red-200 text-left">
+          <div className="space-y-2.5">
+            <label htmlFor="code" className="block text-sm sm:text-base font-semibold uppercase tracking-[0.25em] text-red-200 text-left">
               Verification Code
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Mail className="h-5 w-5 text-red-300" />
+                <Mail className="h-6 w-6 text-red-300" />
               </div>
               <input
                 id="code"
@@ -341,7 +341,7 @@ export default function EmailVerification({
                   setCode(e.target.value.replace(/\D/g, '').slice(0, 6));
                   setError(null);
                 }}
-                className="block w-full pl-12 pr-4 py-4 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-red-200/60 focus:ring-2 focus:ring-red-500 focus:border-red-500/50 transition-all duration-200 outline-none backdrop-blur-sm text-center text-2xl font-bold tracking-widest"
+                className="block w-full pl-12 pr-4 py-4 bg-white/10 border border-white/25 rounded-2xl text-white placeholder-red-200/60 focus:ring-2 focus:ring-red-500 focus:border-red-500/50 transition-all duration-200 outline-none backdrop-blur-sm text-center text-3xl font-extrabold tracking-[0.3em]"
                 placeholder="000000"
                 required
                 maxLength={6}
@@ -353,11 +353,11 @@ export default function EmailVerification({
           <button
             type="submit"
             disabled={isLoading || code.length !== 6}
-            className="w-full px-10 py-4 bg-red-600 text-white font-semibold rounded-full border border-white/30 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+            className="w-full px-10 py-4 text-lg bg-red-600 text-white font-bold rounded-full border border-white/30 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
           >
             {isLoading ? (
               <span className="flex items-center justify-center gap-2">
-                <Loader2 className="h-5 w-5 animate-spin" />
+                <Loader2 className="h-6 w-6 animate-spin" />
                 Verifying...
               </span>
             ) : (
@@ -370,18 +370,18 @@ export default function EmailVerification({
               type="button"
               onClick={handleResend}
               disabled={isResending || countdown > 0}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-full border border-white/30 px-4 py-2 text-sm font-medium text-white/90 hover:bg-white/10 transition-colors backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full inline-flex items-center justify-center gap-2 rounded-full border border-white/30 px-5 py-3 text-base font-semibold text-white/90 hover:bg-white/10 transition-colors backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isResending ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-5 w-5 animate-spin" />
                   Sending...
                 </>
               ) : countdown > 0 ? (
                 `Resend code in ${countdown}s`
               ) : (
                 <>
-                  <RefreshCw className="h-4 w-4" />
+                  <RefreshCw className="h-5 w-5" />
                   Resend Verification Code
                 </>
               )}
@@ -392,9 +392,9 @@ export default function EmailVerification({
             <button
               type="button"
               onClick={onCancel}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-full border border-white/30 px-4 py-2 text-sm font-medium text-white/90 hover:bg-white/10 transition-colors backdrop-blur-sm"
+              className="w-full inline-flex items-center justify-center gap-2 rounded-full border border-white/30 px-5 py-3 text-base font-semibold text-white/90 hover:bg-white/10 transition-colors backdrop-blur-sm"
             >
-              <X className="h-4 w-4" />
+              <X className="h-5 w-5" />
               Cancel
             </button>
           )}

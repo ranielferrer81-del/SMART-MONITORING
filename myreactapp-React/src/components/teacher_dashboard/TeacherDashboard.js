@@ -279,10 +279,61 @@ export default function TeacherDashboard() {
     }
   }, [activeSection]);
 
+  const isHandlingPopStateRef = useRef(false);
+  const activeSectionRef = useRef(activeSection);
+  activeSectionRef.current = activeSection;
+
+  // Keep logged-in professor inside the dashboard when clicking Browser Back
+  useEffect(() => {
+    const currentUrl = window.location.pathname + window.location.search;
+    window.history.replaceState({ smartDashboard: true, section: activeSectionRef.current, monitoringSubView: false }, '', currentUrl);
+    window.history.pushState({ smartDashboard: true, section: activeSectionRef.current, monitoringSubView: false }, '', currentUrl);
+
+    const handlePopState = (event) => {
+      const state = event.state;
+      if (state && state.smartDashboard && state.section) {
+        isHandlingPopStateRef.current = true;
+        if (!state.monitoringSubView) {
+          setSelectedMonitoringSubject(null);
+        }
+        setActiveSection(state.section);
+      } else {
+        window.history.pushState(
+          { smartDashboard: true, section: activeSectionRef.current, monitoringSubView: false },
+          '',
+          window.location.pathname + window.location.search
+        );
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  useEffect(() => {
+    if (isHandlingPopStateRef.current) {
+      isHandlingPopStateRef.current = false;
+      return;
+    }
+    const hasSubView = Boolean(selectedMonitoringSubject);
+    const currentState = window.history.state;
+    if (
+      !currentState ||
+      currentState.section !== activeSection ||
+      Boolean(currentState.monitoringSubView) !== hasSubView
+    ) {
+      window.history.pushState(
+        { smartDashboard: true, section: activeSection, monitoringSubView: hasSubView },
+        '',
+        window.location.pathname + window.location.search
+      );
+    }
+  }, [activeSection, selectedMonitoringSubject]);
+
   const handleLogout = () => {
     localStorage.removeItem('user');
     localStorage.removeItem('token');
-    window.location.href = '/';
+    window.location.replace('/');
   };
 
   const isStudentOnline = (studentId) =>
@@ -752,11 +803,6 @@ export default function TeacherDashboard() {
                               <div className="text-xs font-semibold text-rose-600 dark:text-rose-400 uppercase tracking-wider">Email</div>
                             </div>
                             <div className="text-lg font-bold text-slate-800 dark:text-slate-100 truncate">{teacherInfo.email || '-'}</div>
-                          </div>
-                          <div className="bg-gradient-to-br from-red-900 to-red-800/10 dark:from-red-900/20 dark:to-red-800/10 rounded-xl p-5 border border-rose-200/50 dark:border-rose-800/30">
-                            <div className="flex items-center space-x-3 mb-2">
-                              <div className="w-10 h-10 bg-rose-500 rounded-lg flex items-center justify-center"><svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
-                            </div>
                           </div>
                         </div>
                       </div>

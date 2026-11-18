@@ -104,19 +104,19 @@ export default function PcLockOverlay({ message }: PcLockOverlayProps) {
         </div>
 
         {/* Headline */}
-        <div className="mb-2 flex items-center gap-2 justify-center">
-          <ShieldAlert className="h-5 w-5 text-red-400" />
+        <div className="mb-3 flex items-center gap-2.5 justify-center">
+          <ShieldAlert className="h-6 w-6 text-red-400" />
           <span
-            className="text-xs font-bold uppercase tracking-[0.3em]"
-            style={{ color: 'rgba(248,113,113,0.9)' }}
+            className="text-sm sm:text-base font-bold uppercase tracking-[0.3em]"
+            style={{ color: 'rgba(248,113,113,0.95)' }}
           >
             Access Restricted
           </span>
-          <ShieldAlert className="h-5 w-5 text-red-400" />
+          <ShieldAlert className="h-6 w-6 text-red-400" />
         </div>
 
         <h1
-          className="text-5xl font-extrabold tracking-tight mb-6"
+          className="text-5xl sm:text-6xl font-extrabold tracking-tight mb-6"
           style={{
             background: 'linear-gradient(135deg, #ffffff 0%, #fca5a5 60%, #ef4444 100%)',
             WebkitBackgroundClip: 'text',
@@ -129,20 +129,20 @@ export default function PcLockOverlay({ message }: PcLockOverlayProps) {
 
         {/* Custom message box */}
         <div
-          className="w-full rounded-xl px-8 py-5 mb-8 border"
+          className="w-full rounded-2xl px-8 py-6 mb-8 border"
           style={{
-            backgroundColor: 'rgba(127,29,29,0.25)',
-            borderColor: 'rgba(248,113,113,0.3)',
+            backgroundColor: 'rgba(127,29,29,0.28)',
+            borderColor: 'rgba(248,113,113,0.35)',
             backdropFilter: 'blur(8px)',
           }}
         >
-          <p className="text-base text-white/90 leading-relaxed font-medium">
+          <p className="text-xl sm:text-2xl text-white/95 leading-relaxed font-semibold">
             {message}
           </p>
         </div>
 
         {/* Hint */}
-        <p className="text-sm text-white/45 mb-10">
+        <p className="text-base sm:text-lg text-white/65 mb-10 font-medium">
           Contact your professor or administrator to regain access.
         </p>
 
@@ -155,17 +155,17 @@ export default function PcLockOverlay({ message }: PcLockOverlayProps) {
 
         {/* Live clock */}
         <div className="text-center">
-          <div className="text-4xl font-mono font-bold tracking-widest text-white/80 mb-1">
+          <div className="text-4xl sm:text-5xl font-mono font-bold tracking-widest text-white/85 mb-1.5">
             {timeStr}
           </div>
-          <div className="text-sm text-white/40 tracking-wide">
+          <div className="text-base sm:text-lg text-white/55 tracking-wide">
             {dateStr}
           </div>
         </div>
 
         {/* School branding */}
         <div className="mt-12">
-          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-white/30">
+          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-white/40">
             SMART Monitoring System
           </p>
         </div>

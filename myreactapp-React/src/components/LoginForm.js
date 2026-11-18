@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { loginRequest } from '../api/client';
 import { getApiBase } from '../config/apiBase';
+import { getAuthenticatedDashboardRoute } from '../App';
 import ThemeToggle from './ThemeToggle';
 
 const roleDefaultRoutes = {
@@ -23,6 +25,7 @@ function resolveLoginRoute(payload) {
 }
 
 const LoginForm = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -34,6 +37,14 @@ const LoginForm = () => {
     emailHint: '',
   });
   const [isLoading, setIsLoading] = useState(false);
+
+  // Redirect away from login if user is already authenticated
+  useEffect(() => {
+    const existingRoute = getAuthenticatedDashboardRoute();
+    if (existingRoute) {
+      navigate(existingRoute, { replace: true });
+    }
+  }, [navigate]);
 
   // Silently wake up Render backend on page load so it is warm by the time user submits
   useEffect(() => {
@@ -121,7 +132,8 @@ const LoginForm = () => {
         localStorage.setItem('user', JSON.stringify(result.data.user));
       } catch (_) { }
 
-      window.location.href = resolveLoginRoute(result.data);
+      const targetRoute = resolveLoginRoute(result.data);
+      navigate(targetRoute, { replace: true });
     } catch (err) {
       console.error('Login error:', err);
       alert('Network error. Check console for details.');

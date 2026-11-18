@@ -181,7 +181,49 @@ export default function StudentDashboard() {
     finally { setLoadingAttendance((prev) => ({ ...prev, [subjectId]: false })); }
   };
 
-  const handleLogout = () => { localStorage.removeItem('user'); localStorage.removeItem('token'); window.location.href = '/'; };
+  const isHandlingPopStateRef = useRef(false);
+  const activeSectionRef = useRef(activeSection);
+  activeSectionRef.current = activeSection;
+
+  useEffect(() => {
+    const currentUrl = window.location.pathname + window.location.search;
+    window.history.replaceState({ smartDashboard: true, section: activeSectionRef.current }, '', currentUrl);
+    window.history.pushState({ smartDashboard: true, section: activeSectionRef.current }, '', currentUrl);
+
+    const handlePopState = (event) => {
+      const state = event.state;
+      if (state && state.smartDashboard && state.section) {
+        isHandlingPopStateRef.current = true;
+        setActiveSection(state.section);
+      } else {
+        window.history.pushState(
+          { smartDashboard: true, section: activeSectionRef.current },
+          '',
+          window.location.pathname + window.location.search
+        );
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  useEffect(() => {
+    if (isHandlingPopStateRef.current) {
+      isHandlingPopStateRef.current = false;
+      return;
+    }
+    const currentState = window.history.state;
+    if (!currentState || currentState.section !== activeSection) {
+      window.history.pushState(
+        { smartDashboard: true, section: activeSection },
+        '',
+        window.location.pathname + window.location.search
+      );
+    }
+  }, [activeSection]);
+
+  const handleLogout = () => { localStorage.removeItem('user'); localStorage.removeItem('token'); window.location.replace('/'); };
 
   const handleProfilePictureUpload = async (file) => {
     setUploadingPicture(true);
