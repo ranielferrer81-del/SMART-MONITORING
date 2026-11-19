@@ -186,8 +186,8 @@ else
 fi
 
 # ---------------------------------------------------------------
-# 8. Start the server (with multi-worker concurrency)
+# 8. Start the server (with multi-worker concurrency for 100+ lab students)
 # ---------------------------------------------------------------
-export PHP_CLI_SERVER_WORKERS="${PHP_CLI_SERVER_WORKERS:-4}"
+export PHP_CLI_SERVER_WORKERS="${PHP_CLI_SERVER_WORKERS:-12}"
 echo "Starting Laravel server on port ${PORT:-8080} (PHP_CLI_SERVER_WORKERS=${PHP_CLI_SERVER_WORKERS})..."
 exec php -d upload_max_filesize=64M -d post_max_size=64M -d memory_limit=256M artisan serve --host=0.0.0.0 --port=${PORT:-8080}

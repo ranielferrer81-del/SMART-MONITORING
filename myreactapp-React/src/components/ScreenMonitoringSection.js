@@ -202,17 +202,21 @@ function ScreenCard({
     };
 
     load();
-    const id = setInterval(load, POLL_MS);
 
     return () => {
       cancelled = true;
-      clearInterval(id);
+    };
+  }, [item.student_id, item.has_frame, item.is_stale, item.captured_at]);
+
+  // Clean up object URL on unmount
+  useEffect(() => {
+    return () => {
       if (blobRef.current) {
         URL.revokeObjectURL(blobRef.current);
         blobRef.current = '';
       }
     };
-  }, [item.student_id, item.has_frame, item.is_stale, item.captured_at]);
+  }, []);
 
   const statusLabel = item.is_locked
     ? 'Locked'

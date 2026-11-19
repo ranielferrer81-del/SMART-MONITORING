@@ -302,7 +302,14 @@ export default function TeacherPresentationSection({ subjects: initialSubjects =
       if (!navigator.mediaDevices?.getDisplayMedia) {
         throw new Error('Screen sharing is not supported in this browser.');
       }
-      stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+      stream = await navigator.mediaDevices.getDisplayMedia({
+        video: {
+          width: { ideal: 854, max: 854 },
+          height: { ideal: 480, max: 480 },
+          frameRate: { ideal: 15, max: 20 },
+        },
+        audio: true,
+      });
       const targetSubjId = selectedSubjectId ? parseInt(selectedSubjectId, 10) : null;
       const startRes = await presentationStart(targetSubjId);
       if (!startRes?.ok || !startRes.session?.uuid) {

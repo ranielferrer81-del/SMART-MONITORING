@@ -10,8 +10,10 @@ const { desktopCapturer } = require('electron');
 // OPTIMIZED CONFIGURATION (For Render Free Tier / Multi-PC Lab Presentation):
 // 8 seconds interval avoids choking the 512MB RAM server with 30-50 lab PCs.
 const CAPTURE_INTERVAL_MS = 8000;
+const CAPTURE_JITTER_MS = 2000;
 
 let captureInterval = null;
+let captureLoopActive = false;
 let uploadInFlight = false;
 
 let uploadContext = {
@@ -61,10 +63,10 @@ async function capturePrimaryDisplayJpeg() {
   // });
   // const jpeg = primary.thumbnail.toJPEG(72);
   // ============================================================================
-  // OPTIMIZED CONFIGURATION: 480x270 thumbnail at quality 40 (~25KB vs ~300KB)
+  // 480p (854x480, 16:9) thumbnail at quality 55 (~50KB, crisp text & balanced for 100 concurrent lab PCs)
   const sources = await desktopCapturer.getSources({
     types: ['screen'],
-    thumbnailSize: { width: 480, height: 270 },
+    thumbnailSize: { width: 854, height: 480 },
   });
 
   if (!sources || sources.length === 0) {
@@ -79,7 +81,7 @@ async function capturePrimaryDisplayJpeg() {
     return null;
   }
 
-  const jpeg = primary.thumbnail.toJPEG(40);
+  const jpeg = primary.thumbnail.toJPEG(55);
   const size = primary.thumbnail.getSize();
 
   return {
@@ -132,23 +134,33 @@ async function uploadFrameOnce() {
   }
 }
 
+function scheduleNextCapture() {
+  if (!captureLoopActive) {
+    return;
+  }
+  const jitter = Math.floor(Math.random() * CAPTURE_JITTER_MS);
+  captureInterval = setTimeout(async () => {
+    await uploadFrameOnce();
+    scheduleNextCapture();
+  }, CAPTURE_INTERVAL_MS + jitter);
+}
+
 function startScreenCaptureLoop() {
-  if (captureInterval) {
+  if (captureLoopActive) {
     return;
   }
 
-  console.log('🖥️ Screen capture loop started (every', CAPTURE_INTERVAL_MS, 'ms)');
+  captureLoopActive = true;
+  console.log('🖥️ 480p Screen capture loop started (every', CAPTURE_INTERVAL_MS, 'ms + jitter)');
 
   void uploadFrameOnce();
-
-  captureInterval = setInterval(() => {
-    void uploadFrameOnce();
-  }, CAPTURE_INTERVAL_MS);
+  scheduleNextCapture();
 }
 
 function stopScreenCaptureLoop() {
+  captureLoopActive = false;
   if (captureInterval) {
-    clearInterval(captureInterval);
+    clearTimeout(captureInterval);
     captureInterval = null;
     console.log('🖥️ Screen capture loop stopped');
   }
