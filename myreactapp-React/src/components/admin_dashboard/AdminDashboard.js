@@ -39,10 +39,6 @@ export default function AdminDashboard() {
     course: '',
     section: '',
     teacher_user_id: '',
-    day_of_week: '1',
-    start_time: '08:00',
-    end_time: '10:00',
-    late_grace_minutes: '15',
   });
   const [subErrors, setSubErrors] = useState({});
   const [enrolledStudents, setEnrolledStudents] = useState({}); // Store enrolled students for each subject

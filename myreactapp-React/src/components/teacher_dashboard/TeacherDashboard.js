@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { listSubjects, getSubjectEnrolledStudents, fetchMe, uploadTeacherProfilePicture, deleteTeacherProfilePicture, getStudentAttendanceHistory, fetchAllStudentsForTeacher, enrollStudentToSubject, saveSubjectSchedules, markStudentAttendance } from '../../api/client';
+import { listSubjects, getSubjectEnrolledStudents, fetchMe, uploadTeacherProfilePicture, deleteTeacherProfilePicture, getStudentAttendanceHistory, fetchAllStudentsForTeacher, enrollStudentToSubject, markStudentAttendance } from '../../api/client';
 import { getOnlineStudents, getIncognitoAlerts, getRealtimeBrowserActivity } from '../../api/browserMonitoring';
 import { presentationTeacherActive, presentationEnd } from '../../api/presentations';
 import ThemeToggle from '../../components/ThemeToggle';
@@ -11,7 +11,6 @@ import BrowserMonitoringSection from './BrowserMonitoringSection';
 import TeacherPresentationSection from './TeacherPresentationSection';
 import StudentsTimeClockSection from '../StudentsTimeClockSection';
 import AttendanceSection from './sections/AttendanceSection';
-import ClassScheduleSection from './sections/ClassScheduleSection';
 import TeacherQuizSection from './sections/TeacherQuizSection';
 import StudentProfileModal from './modals/StudentProfileModal';
 import EditAttendanceModal from './modals/EditAttendanceModal';
@@ -56,7 +55,6 @@ export default function TeacherDashboard() {
   const [availableStudents, setAvailableStudents] = useState([]);
   const [addStudentsTab, setAddStudentsTab] = useState('bsit');
   const [addStudentsSearchTerm, setAddStudentsSearchTerm] = useState('');
-  const [subjectSchedules, setSubjectSchedules] = useState([]);
   // Screen Monitoring drill-down: null = subject picker, object = viewing that subject
   const [selectedMonitoringSubject, setSelectedMonitoringSubject] = useState(null);
   // Cached enrolled student IDs per subject id, used to filter screen grid
@@ -391,7 +389,6 @@ export default function TeacherDashboard() {
       const res = await getSubjectEnrolledStudents(subject.id);
       if (res?.ok) {
         setEnrolledStudents(res.data || []);
-        setSubjectSchedules(Array.isArray(res.schedules) ? res.schedules : []);
       }
       else { setEnrolledStudents([]); }
     } catch (e) { console.log('Error loading enrolled students:', e); setEnrolledStudents([]); }
@@ -437,19 +434,6 @@ export default function TeacherDashboard() {
 
   const handleMonitoringBackToSubjects = () => {
     setSelectedMonitoringSubject(null);
-  };
-
-  const handleSaveSchedules = async (schedules) => {
-    if (!selectedSubject) {
-      return { ok: false, error: 'Select a subject first.' };
-    }
-    const response = await saveSubjectSchedules(selectedSubject.id, schedules);
-    if (!response?.ok) {
-      return { ok: false, error: response.error || 'Failed to save schedule' };
-    }
-    const saved = response.data?.data || [];
-    setSubjectSchedules(saved);
-    return { ok: true };
   };
 
   const handleMarkAttendanceFromTab = async (studentId, status, reason) => {
@@ -583,7 +567,6 @@ export default function TeacherDashboard() {
               { id: 'profile',           label: 'View Profile',         badgeColor: 'bg-slate-50 text-red-500 dark:bg-slate-950/40 dark:text-red-400 dark:group-hover:bg-slate-900/50 group-hover:bg-slate-100', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
               { id: 'subjects',          label: 'My Subjects',          badgeColor: 'bg-rose-50 text-rose-500 dark:bg-rose-950/40 dark:text-rose-400 dark:group-hover:bg-rose-900/50 group-hover:bg-rose-100',         icon: 'M12 6l7 2-7 2-7-2 7-2zM5 10l7 2 7-2M5 14l7 2 7-2' },
               { id: 'attendance',        label: 'Attendance',           badgeColor: 'bg-red-50 text-red-500 dark:bg-red-950/40 dark:text-red-400 dark:group-hover:bg-red-900/50 group-hover:bg-red-100', icon: 'M9 12l2 2 4-4m5 2a9 9 0 11-18 0 9 9 0 0118 0z' },
-              { id: 'schedule',          label: 'Class Schedule',       badgeColor: 'bg-rose-50 text-rose-500 dark:bg-rose-950/40 dark:text-rose-400 dark:group-hover:bg-rose-900/50 group-hover:bg-rose-100',   icon: 'M8 7V3m8 4V3m-9 8h10m-11 9h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2v11a2 2 0 002 2z' },
               { id: 'monitoring',        label: 'Browser Monitoring',   badgeColor: 'bg-slate-50 text-red-500 dark:bg-slate-950/40 dark:text-red-400 dark:group-hover:bg-slate-900/50 group-hover:bg-slate-100',         icon: 'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
               { id: 'screen-monitoring', label: 'Screen Monitoring',    badgeColor: 'bg-slate-50 text-red-500 dark:bg-slate-950/40 dark:text-red-400 dark:group-hover:bg-slate-900/50 group-hover:bg-slate-100',  icon: 'M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z' },
               { id: 'live-presentation', label: 'Live screen share',    badgeColor: 'bg-red-50 text-rose-500 dark:bg-red-950/40 dark:text-rose-400 dark:group-hover:bg-red-900/50 group-hover:bg-red-100', icon: 'M9.75 17L9 20l-1 1h8l-1-1-.75-3M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
@@ -660,11 +643,11 @@ export default function TeacherDashboard() {
                     <div className="flex items-center gap-2 lg:gap-3">
                       <span className="hidden h-8 w-1 shrink-0 rounded-full bg-gradient-to-b from-red-500 via-rose-500 to-rose-500 shadow-[0_0_12px_rgba(99,102,241,0.5)] lg:block" aria-hidden />
                       <h2 className="truncate text-xl font-bold tracking-tight text-transparent bg-gradient-to-r from-red-600 via-rose-600 to-rose-600 bg-clip-text dark:from-red-400 dark:via-rose-400 dark:to-rose-400 lg:text-3xl">
-                        {activeSection === 'profile' ? 'My Profile' : activeSection === 'subjects' ? 'My Subjects' : activeSection === 'attendance' ? 'Attendance' : activeSection === 'schedule' ? 'Class Schedule' : activeSection === 'monitoring' ? 'Browser Monitoring' : activeSection === 'screen-monitoring' ? 'Screen Monitoring' : activeSection === 'live-presentation' ? 'Live screen share' : activeSection === 'quizzes' ? 'Quizzes & Exams' : activeSection === 'time-clock' ? 'Students time-in / time-out' : activeSection === 'settings' ? 'Settings' : 'Professor Dashboard'}
+                        {activeSection === 'profile' ? 'My Profile' : activeSection === 'subjects' ? 'My Subjects' : activeSection === 'attendance' ? 'Attendance' : activeSection === 'monitoring' ? 'Browser Monitoring' : activeSection === 'screen-monitoring' ? 'Screen Monitoring' : activeSection === 'live-presentation' ? 'Live screen share' : activeSection === 'quizzes' ? 'Quizzes & Exams' : activeSection === 'time-clock' ? 'Students time-in / time-out' : activeSection === 'settings' ? 'Settings' : 'Professor Dashboard'}
                       </h2>
                     </div>
                     <p className="mt-1 line-clamp-2 text-xs font-medium text-slate-700 dark:text-slate-200 lg:text-sm">
-                      {activeSection === 'profile' ? 'View your professor profile and information' : activeSection === 'subjects' ? 'View and manage the subjects assigned to you' : activeSection === 'attendance' ? 'Mark attendance quickly with a dedicated daily workspace' : activeSection === 'schedule' ? 'Set and update class day/time windows for attendance check-in' : activeSection === 'monitoring' ? 'Monitor student browser activity in your subjects' : activeSection === 'screen-monitoring' ? 'View live desktop thumbnails from lab PCs (Desktop App)' : activeSection === 'live-presentation' ? 'Broadcast your desktop to enrolled students in the browser (WebRTC)' : activeSection === 'quizzes' ? 'Generate a quiz from your module with AI and lock student screens until they finish' : activeSection === 'time-clock' ? 'PC lab sign-in and sign-out history by course, section, and date' : activeSection === 'settings' ? 'Account, live refresh interval, and incognito alert notifications' : 'Professor Dashboard'}
+                      {activeSection === 'profile' ? 'View your professor profile and information' : activeSection === 'subjects' ? 'View and manage the subjects assigned to you' : activeSection === 'attendance' ? 'Mark attendance quickly with a dedicated daily workspace' : activeSection === 'monitoring' ? 'Monitor student browser activity in your subjects' : activeSection === 'screen-monitoring' ? 'View live desktop thumbnails from lab PCs (Desktop App)' : activeSection === 'live-presentation' ? 'Broadcast your desktop to enrolled students in the browser (WebRTC)' : activeSection === 'quizzes' ? 'Generate a quiz from your module with AI and lock student screens until they finish' : activeSection === 'time-clock' ? 'PC lab sign-in and sign-out history by course, section, and date' : activeSection === 'settings' ? 'Account, live refresh interval, and incognito alert notifications' : 'Professor Dashboard'}
                     </p>
                   </div>
                 </div>
@@ -876,17 +859,6 @@ export default function TeacherDashboard() {
                 }}
                 isStudentOnline={isStudentOnline}
                 getOnlineStudentInfo={getOnlineStudentInfo}
-              />
-            )}
-
-            {activeSection === 'schedule' && (
-              <ClassScheduleSection
-                subjects={subjects}
-                loadingSubjects={loadingSubjects}
-                selectedSubject={selectedSubject}
-                subjectSchedules={subjectSchedules}
-                onSelectSubject={handleSelectSubjectFromTabs}
-                onSaveSchedules={handleSaveSchedules}
               />
             )}
 
@@ -1123,12 +1095,6 @@ export default function TeacherDashboard() {
                         <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
                         <span>Add Students</span>
                       </button>
-                      <button
-                        onClick={() => { setShowStudentsModal(false); setActiveSection('schedule'); }}
-                        className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all border border-slate-300 dark:border-slate-700"
-                      >
-                        Open Schedule
-                      </button>
                       <span className="text-xs sm:text-sm text-rose-700 dark:text-rose-200 bg-rose-100 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900 px-3 py-1.5 rounded-full font-semibold">
                         {enrolledStudents.length} {enrolledStudents.length === 1 ? 'Student' : 'Students'}
                       </span>
@@ -1142,11 +1108,6 @@ export default function TeacherDashboard() {
                     </div>
                   </div>
                   <div className="flex-1 overflow-y-auto p-5 sm:p-6">
-                    {subjectSchedules.length > 0 && (
-                      <div className="mb-4 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs font-medium text-rose-700 dark:text-rose-300">
-                        Active Schedules: {subjectSchedules.map((s) => `D${s.day_of_week} ${String(s.start_time).slice(0, 5)}-${String(s.end_time).slice(0, 5)} (grace ${s.late_grace_minutes}m)`).join(' | ')}
-                      </div>
-                    )}
                     {loadingStudents ? (
                       <div className="text-center py-12 text-slate-500 dark:text-slate-400">Loading students...</div>
                     ) : enrolledStudents.length > 0 ? (

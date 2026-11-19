@@ -291,15 +291,6 @@ class StudentProfileController extends Controller
             ], 401);
         }
 
-        try {
-            $this->autoRecordStudentAttendanceOnPinValidation((int) $user->id);
-        } catch (\Throwable $e) {
-            \Log::warning('Auto attendance on PIN validation failed', [
-                'student_user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
-
         return response()->json([
             'ok' => true,
             'message' => 'PIN validated successfully',

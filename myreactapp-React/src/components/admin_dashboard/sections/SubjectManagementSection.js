@@ -1,5 +1,5 @@
 import React from 'react';
-import { createSubject, deleteSubject, saveSubjectSchedules } from '../../../api/client';
+import { createSubject, deleteSubject } from '../../../api/client';
 
 const SubjectManagementSection = ({
     subjects, refreshSubjects, newSubject, setNewSubject,
@@ -13,11 +13,6 @@ const SubjectManagementSection = ({
         if (!newSubject.course) errs.course = 'Required';
         if (!newSubject.section.trim()) errs.section = 'Required';
         if (!newSubject.teacher_user_id) errs.teacher_user_id = 'Required';
-        if (!newSubject.start_time) errs.start_time = 'Required';
-        if (!newSubject.end_time) errs.end_time = 'Required';
-        if (newSubject.start_time && newSubject.end_time && newSubject.end_time <= newSubject.start_time) {
-            errs.end_time = 'End time must be after start time';
-        }
         setSubErrors(errs);
         if (Object.keys(errs).length) return;
         try {
@@ -30,21 +25,6 @@ const SubjectManagementSection = ({
             };
             const res = await createSubject(payload);
             if (res?.ok) {
-                const createdSubjectId = res?.data?.id;
-                if (createdSubjectId) {
-                    const schedulePayload = [{
-                        day_of_week: parseInt(newSubject.day_of_week, 10),
-                        start_time: newSubject.start_time,
-                        end_time: newSubject.end_time,
-                        late_grace_minutes: parseInt(newSubject.late_grace_minutes || '15', 10),
-                        is_active: true,
-                    }];
-                    const scheduleRes = await saveSubjectSchedules(createdSubjectId, schedulePayload);
-                    if (!scheduleRes?.ok) {
-                        setToast({ show: true, message: `Subject created but schedule failed: ${scheduleRes.error || 'unknown error'}`, type: 'error' });
-                        setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 4000);
-                    }
-                }
                 await refreshSubjects();
                 setNewSubject({
                     code: '',
@@ -52,10 +32,6 @@ const SubjectManagementSection = ({
                     course: '',
                     section: '',
                     teacher_user_id: '',
-                    day_of_week: '1',
-                    start_time: '08:00',
-                    end_time: '10:00',
-                    late_grace_minutes: '15',
                 });
                 setSubErrors({});
                 setToast({ show: true, message: 'Subject created successfully!', type: 'success' });
@@ -102,7 +78,7 @@ const SubjectManagementSection = ({
                 <div className="mb-6 overflow-hidden rounded-2xl border border-rose-200/60 bg-gradient-to-br from-white/85 via-rose-50/60 to-red-50/60 shadow-[0_20px_45px_-18px_rgba(244,63,94,0.35)] transition-all duration-300 hover:shadow-[0_24px_55px_-18px_rgba(99,102,241,0.35)] dark:border-rose-800/40 dark:from-slate-900/80 dark:via-slate-900/70 dark:to-red-950/45">
                     <div className="border-b border-rose-200/70 bg-white/70 px-4 py-3 backdrop-blur-sm dark:border-rose-900/60 dark:bg-slate-900/55">
                         <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-100">Create Subject Details</h4>
-                        <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">Fill out the subject details and class schedule in one place.</p>
+                        <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">Fill out the subject details and assign a professor.</p>
                     </div>
 
                     <div className="p-4">
@@ -179,61 +155,7 @@ const SubjectManagementSection = ({
                             {subErrors.teacher_user_id && <p className="mt-1 text-[10px] text-red-600">{subErrors.teacher_user_id}</p>}
                         </div>
                     </div>
-                    <div className="mt-4 rounded-xl border border-red-200/70 bg-white/65 p-4 shadow-inner dark:border-red-800/70 dark:bg-slate-900/50">
-                        <h4 className="text-sm font-semibold text-red-700 dark:text-red-200">Class Schedule</h4>
-                        <p className="mt-1 text-xs text-red-600 dark:text-red-300">Required for auto attendance check-in.</p>
-                        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                            <div>
-                                <label className="block text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300">Day</label>
-                                <select
-                                    value={newSubject.day_of_week || '1'}
-                                    onChange={(e) => setNewSubject((s) => ({ ...s, day_of_week: e.target.value }))}
-                                    className="mt-1 block w-full rounded-lg border border-slate-300 bg-white/85 px-3 py-2.5 text-sm shadow-sm transition-all duration-300 focus:border-rose-500 focus:ring-2 focus:ring-rose-200 dark:border-slate-700/50 dark:bg-slate-900/50 dark:text-slate-100 dark:focus:ring-rose-900/40"
-                                >
-                                    <option value="1">Monday</option>
-                                    <option value="2">Tuesday</option>
-                                    <option value="3">Wednesday</option>
-                                    <option value="4">Thursday</option>
-                                    <option value="5">Friday</option>
-                                    <option value="6">Saturday</option>
-                                    <option value="0">Sunday</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300">Start Time</label>
-                                <input
-                                    type="time"
-                                    value={newSubject.start_time || ''}
-                                    onChange={(e) => setNewSubject((s) => ({ ...s, start_time: e.target.value }))}
-                                    className={`mt-1 block w-full rounded-lg border px-3 py-2.5 text-sm shadow-sm transition-all duration-300 focus:border-rose-500 focus:ring-2 focus:ring-rose-200 dark:focus:ring-rose-900/40 ${subErrors.start_time ? 'border-red-300 bg-red-50' : 'border-slate-300 bg-white/85 dark:border-slate-700/50 dark:bg-slate-900/50 dark:text-slate-100'}`}
-                                />
-                                {subErrors.start_time && <p className="mt-1 text-[10px] text-red-600">{subErrors.start_time}</p>}
-                            </div>
-                            <div>
-                                <label className="block text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300">End Time</label>
-                                <input
-                                    type="time"
-                                    value={newSubject.end_time || ''}
-                                    onChange={(e) => setNewSubject((s) => ({ ...s, end_time: e.target.value }))}
-                                    className={`mt-1 block w-full rounded-lg border px-3 py-2.5 text-sm shadow-sm transition-all duration-300 focus:border-rose-500 focus:ring-2 focus:ring-rose-200 dark:focus:ring-rose-900/40 ${subErrors.end_time ? 'border-red-300 bg-red-50' : 'border-slate-300 bg-white/85 dark:border-slate-700/50 dark:bg-slate-900/50 dark:text-slate-100'}`}
-                                />
-                                {subErrors.end_time && <p className="mt-1 text-[10px] text-red-600">{subErrors.end_time}</p>}
-                            </div>
-                            <div>
-                                <label className="block text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300">Late Grace (minutes)</label>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    max="120"
-                                    value={newSubject.late_grace_minutes || '15'}
-                                    onChange={(e) => setNewSubject((s) => ({ ...s, late_grace_minutes: e.target.value }))}
-                                    className="mt-1 block w-full rounded-lg border border-slate-300 bg-white/85 px-3 py-2.5 text-sm shadow-sm transition-all duration-300 focus:border-rose-500 focus:ring-2 focus:ring-rose-200 dark:border-slate-700/50 dark:bg-slate-900/50 dark:text-slate-100 dark:focus:ring-rose-900/40"
-                                />
-                            </div>
-                        </div>
-                    </div>
-                    <div className="mt-4 flex items-center justify-between gap-3 border-t border-slate-200/70 pt-3 dark:border-slate-700/60">
-                        <p className="text-xs text-slate-600 dark:text-slate-300">Tip: keep start/end times strict so attendance windows stay accurate.</p>
+                    <div className="mt-4 flex items-center justify-end gap-3 border-t border-slate-200/70 pt-3 dark:border-slate-700/60">
                         <button
                             onClick={handleCreateSubject}
                             className="rounded-xl bg-gradient-to-r from-rose-600 via-red-600 to-red-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-rose-500/30 transition-all duration-300 hover:scale-[1.02] hover:from-rose-700 hover:via-red-700 hover:to-red-700 hover:shadow-rose-500/45"

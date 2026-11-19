@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { fetchMe, uploadProfilePicture, deleteProfilePicture, getStudentEnrolledSubjects, getStudentAttendance, listSubjects, getSubjectEnrolledStudents, getStudentOpenSessions, checkInStudentSubject } from '../../api/client';
+import { fetchMe, uploadProfilePicture, deleteProfilePicture, getStudentEnrolledSubjects, getStudentAttendance, listSubjects, getSubjectEnrolledStudents } from '../../api/client';
 import ThemeToggle from '../../components/ThemeToggle';
 
 // Extracted sections
@@ -45,12 +45,6 @@ export default function StudentDashboard() {
   const [settingsErrors, setSettingsErrors] = useState({});
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [settingsSuccess, setSettingsSuccess] = useState('');
-  const [openSessions, setOpenSessions] = useState([]);
-  const [loadingOpenSessions, setLoadingOpenSessions] = useState(false);
-  const [checkingInSubjectId, setCheckingInSubjectId] = useState(null);
-  const [checkInPin, setCheckInPin] = useState('');
-  const [checkInMessage, setCheckInMessage] = useState('');
-  const [checkInError, setCheckInError] = useState('');
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -122,54 +116,6 @@ export default function StudentDashboard() {
   }, [user]);
 
   useEffect(() => { if (activeSection === 'subjects' && user) fetchEnrolledSubjects(user); }, [activeSection, user, fetchEnrolledSubjects]);
-
-  const fetchOpenSessions = useCallback(async () => {
-    setLoadingOpenSessions(true);
-    try {
-      const res = await getStudentOpenSessions();
-      if (res?.ok) {
-        const rows = Array.isArray(res.data?.data) ? res.data.data : [];
-        setOpenSessions(rows);
-      } else {
-        setOpenSessions([]);
-      }
-    } catch (_) {
-      setOpenSessions([]);
-    } finally {
-      setLoadingOpenSessions(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (activeSection === 'subjects' && user) {
-      fetchOpenSessions();
-    }
-  }, [activeSection, user, fetchOpenSessions]);
-
-  const handleCheckIn = async (subjectId) => {
-    setCheckInMessage('');
-    setCheckInError('');
-    if (!checkInPin || checkInPin.length !== 4) {
-      setCheckInError('Enter your 4-digit PIN first.');
-      return;
-    }
-
-    setCheckingInSubjectId(subjectId);
-    try {
-      const res = await checkInStudentSubject(subjectId, checkInPin);
-      if (!res?.ok) {
-        setCheckInError(res?.error || 'Check-in failed.');
-        return;
-      }
-      setCheckInMessage(res?.data?.message || 'Checked in successfully.');
-      await Promise.all([fetchOpenSessions(), fetchEnrolledSubjects(user)]);
-      setCheckInPin('');
-    } catch (_) {
-      setCheckInError('Check-in failed.');
-    } finally {
-      setCheckingInSubjectId(null);
-    }
-  };
 
   const fetchAttendance = async (subjectId) => {
     if (attendanceData[subjectId] || loadingAttendance[subjectId]) return;
@@ -458,14 +404,6 @@ export default function StudentDashboard() {
                 attendanceData={attendanceData}
                 loadingAttendance={loadingAttendance}
                 fetchAttendance={fetchAttendance}
-                openSessions={openSessions}
-                loadingOpenSessions={loadingOpenSessions}
-                checkInPin={checkInPin}
-                setCheckInPin={setCheckInPin}
-                checkInMessage={checkInMessage}
-                checkInError={checkInError}
-                checkingInSubjectId={checkingInSubjectId}
-                handleCheckIn={handleCheckIn}
               />
             )}
             {activeSection === 'settings' && (

@@ -6,14 +6,6 @@ const SubjectsSection = ({
     attendanceData,
     loadingAttendance,
     fetchAttendance,
-    openSessions,
-    loadingOpenSessions,
-    checkInPin,
-    setCheckInPin,
-    checkInMessage,
-    checkInError,
-    checkingInSubjectId,
-    handleCheckIn,
 }) => {
     return (
         <div className="max-w-full lg:max-w-6xl mx-auto">
@@ -28,48 +20,6 @@ const SubjectsSection = ({
                             <span className="w-2 h-2 bg-rose-500 rounded-full animate-pulse" />
                             <span className="text-sm font-semibold text-rose-700 dark:text-rose-100">{enrolledSubjects.length} Subject{enrolledSubjects.length !== 1 ? 's' : ''}</span>
                         </div>
-                    </div>
-
-                    <div className="mb-6 rounded-xl border border-rose-200/60 bg-rose-50/60 p-4 dark:border-rose-900/60 dark:bg-rose-900/20">
-                        <div className="mb-3 flex items-center justify-between gap-3">
-                            <h4 className="text-sm font-semibold text-rose-700 dark:text-rose-200">Open Sessions Now (PIN Check-in)</h4>
-                            {loadingOpenSessions && <span className="text-xs text-rose-600 dark:text-rose-300">Loading...</span>}
-                        </div>
-                        <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-                            <input
-                                type="password"
-                                inputMode="numeric"
-                                maxLength={4}
-                                value={checkInPin}
-                                onChange={(e) => setCheckInPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                                className="w-full sm:w-56 rounded-lg border border-rose-200 bg-white px-3 py-2 text-sm dark:border-rose-700 dark:bg-slate-900"
-                                placeholder="Enter 4-digit PIN"
-                            />
-                            <span className="text-xs text-slate-700 dark:text-slate-300">Attendance is only recorded if session day/time is valid.</span>
-                        </div>
-                        {checkInMessage && <p className="mb-2 text-sm text-red-700 dark:text-red-300">{checkInMessage}</p>}
-                        {checkInError && <p className="mb-2 text-sm text-red-700 dark:text-red-300">{checkInError}</p>}
-                        {openSessions?.length ? (
-                            <div className="space-y-2">
-                                {openSessions.map((session) => (
-                                    <div key={`${session.id}-${session.start_time}`} className="flex flex-col gap-2 rounded-lg border border-rose-100 bg-white/80 p-3 dark:border-rose-800 dark:bg-slate-900/60 sm:flex-row sm:items-center sm:justify-between">
-                                        <div>
-                                            <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{session.name} ({session.code})</p>
-                                            <p className="text-xs text-slate-600 dark:text-slate-300">{session.start_time} - {session.end_time} | {session.window_status === 'open' ? `Expected: ${session.expected_status}` : 'Window closed'}</p>
-                                        </div>
-                                        <button
-                                            onClick={() => handleCheckIn(session.id)}
-                                            disabled={session.window_status !== 'open' || checkingInSubjectId === session.id}
-                                            className="rounded-lg bg-rose-600 px-3 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-                                        >
-                                            {checkingInSubjectId === session.id ? 'Checking in...' : 'Check In'}
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <p className="text-xs text-slate-600 dark:text-slate-300">No open session right now.</p>
-                        )}
                     </div>
 
                     {loadingSubjects ? (
